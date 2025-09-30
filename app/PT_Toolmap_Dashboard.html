@@ -1,0 +1,1535 @@
+
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Kali Linux Toolmap</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <header>
+      <div class="header-container">
+        <div class="header-brand">
+          <div class="header-icon">
+            <img src="kali.svg" alt="Logo Kali Toolmap" style="width:100%;">
+          </div>
+          <h1>Kali Linux Toolmap</h1>
+        </div>
+
+        <div class="header-search">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            <input id="searchInput" class="search-input" placeholder="Cerca tool, capabilities, fasi..." autocomplete="off"/>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button id="resetBtn" class="btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+            Reset
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="main-container">
+      <div class="layout">
+        <aside class="sidebar">
+          <div class="sidebar-header">
+            <h2 class="sidebar-title">Navigazione</h2>
+            <div class="sidebar-controls">
+              <button id="expandAllBtn" class="btn" title="Espandi tutto">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="7,13 12,18 17,13"></polyline>
+                  <polyline points="7,6 12,11 17,6"></polyline>
+                </svg>
+              </button>
+              <button id="collapseAllBtn" class="btn" title="Comprimi tutto">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="17,11 12,6 7,11"></polyline>
+                  <polyline points="17,18 12,13 7,18"></polyline>
+                </svg>
+              </button>
+              <button id="downloadRegistryBtn" class="btn btn-primary" title="Scarica registry.yml">Scarica YAML</button>
+            </div>
+          </div>
+          <div class="tree-container">
+            <nav id="treeNav" class="tree" aria-label="Navigazione gerarchica"></nav>
+          </div>
+        </aside>
+
+        <div id="breadcrumbs" class="breadcrumbs">Tutte le sezioni</div>
+        <div class="tools-scroll">
+          <section class="content-area">
+
+          <div class="tools-scroll-container">
+            <div id="toolsGrid" class="tools-grid"></div>
+            <div id="emptyState" class="empty-state" style="display:none">
+                <h3>Nessun risultato trovato</h3>
+                <p>Prova a rimuovere filtri o modifica la query</p>
+            </div>
+          </div>
+        </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal per le note -->
+    <div id="notesModal" class="modal-overlay">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title" id="modalTitle">Note - Tool</h2>
+          <button class="modal-close" id="closeModalBtn" aria-label="Chiudi">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="modal-tabs">
+            <button class="modal-tab active" data-tab="edit">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              Editor
+            </button>
+            <button class="modal-tab" data-tab="preview">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              Anteprima
+            </button>
+          </div>
+
+          <div class="modal-content">
+            <div class="tab-panel active" id="editPanel">
+              <textarea id="notesEditor" class="notes-editor" 
+              placeholder="Scrivi le tue note in Markdown o HTML...
+
+                    Esempi:
+                    # Titolo
+                    ## Sottotitolo
+
+                    **Testo in grassetto**
+                    *Testo in corsivo*
+
+                    - Lista puntata
+                    - Altro elemento
+
+                    ```bash
+                    comando di esempio
+                    ```
+
+                    > Citazione importante
+
+                    [Link](https://example.com)
+                    ">
+                </textarea>
+            </div>
+
+            <div class="tab-panel" id="previewPanel">
+              <div id="notesPreview" class="notes-preview markdown-content">
+                <p style="color: var(--md-on-surface-muted); text-align: center; margin-top: 40px;">
+                  L'anteprima apparirà qui...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="saveNotesBtn" class="btn btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17,21 17,13 7,13 7,21"></polyline>
+              <polyline points="7,3 7,8 15,8"></polyline>
+            </svg>
+            Salva Note
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <button id="backToTopBtn" class="back-to-top" aria-label="Torna su">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="19" x2="12" y2="5"></line>
+        <polyline points="5,12 12,5 19,12"></polyline>
+      </svg>
+    </button>
+
+    <script id="toolsData" type="application/json">[{"id": "metasploit-pentest-plugin", "name": "Pentest-plugin", "version": null, "kind": "metasploit", "phases": ["00_Common"], "caps": ["automation", "workspace", "import-export", "loot-triage"], "repo": "https://github.com/darkoperator/Metasploit-Plugins", "desc": "Plugin che estende msfconsole con comandi per gestire workspace, import/export dei risultati e note operative. Utile per standardizzare i flussi ripetibili e ridurre tempi morti tra ricognizione, exploitation e raccolta evidenze. Semplice da caricare e integrare nel workflow team.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Metasploit_Plugins"], "notes": ""}, {"id": "scipag-vulscan", "name": "Vulscan", "version": null, "kind": "nmap", "phases": ["00_Common"], "caps": ["service-detection", "vuln-mapping", "cve-correlation"], "repo": "https://github.com/scipag/vulscan", "desc": "Modulo per Nmap che converte l’output di -sV in suggerimenti CVE offline. Fa matching prodotto/versione→vulnerabilità per prioritizzare i servizi a rischio subito dopo la scansione. Ideale come triage rapido prima di vulnerability scanning più pesante.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Scripts"], "notes": ""}, {"id": "adrecon", "name": "ADRecon", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["ad-inventory", "reporting", "risk-overview"], "repo": "https://github.com/sense-of-security/ADRecon", "desc": "Colleziona artefatti AD (utenti privilegiati, trust, GPO, deleghe) e genera report completi per una vista olistica dei rischi. Ottimo per baseline iniziale e pianificazione di attacchi/mitigazioni in ambienti Windows enterprise.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "crackmapexec-win", "name": "CrackMapExecWin", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["auth-spray", "lateral-movement", "remote-exec", "loot"], "repo": "https://github.com/maaaaz/CrackMapExecWin", "desc": "Port Windows di CME per autenticazioni in massa, enum di condivisioni/local-admins e comandi remoti (SMB/WMI/WinRM). Perfetto per triage veloce, raccolta credenziali e movimento laterale in domini AD.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "domainpasswordspray", "name": "DomainPasswordSpray.ps1", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["password-spraying", "user-enum", "opsec"], "repo": "https://github.com/dafthack/DomainPasswordSpray", "desc": "Script PowerShell per password spraying contro domini AD con generazione automatica degli utenti. Rispetta le lockout policy e produce evidenze pulite per initial access a basso rumore in scenari enterprise.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "getuserspns-windows", "name": "GetUserSPNs_windows.exe", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["kerberoasting", "spn-enum"], "repo": "https://github.com/maaaaz/impacket-examples-windows", "desc": "Esegue enum degli SPN utente e richiede TGS per attacchi di kerberoasting. I ticket ottenuti possono essere crackati offline per recuperare password di servizio e aprire nuove superfici di escalation.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "group3r", "name": "Group3r", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["gpo-audit", "misconfig-detection"], "repo": "https://github.com/Group3r/Group3r", "desc": "Enum veloce di GPO e analisi di misconfigurazioni sfruttabili (script, MSI, percorsi in SYSVOL, ACL rischiose). Aiuta a scoprire writeable path e credenziali esposte utili ad escalation e movimenti laterali.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "inveigh-exe", "name": "Inveigh.exe", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["mitm", "llmnr-nbns-mdns", "hash-capture", "relay-support"], "repo": "https://github.com/Kevin-Robertson/Inveigh", "desc": "Strumento .NET per avvelenamento LLMNR/NBNS/mDNS e cattura NTLM. Utile per attivare relay o cracking offline e ottenere credenziali valide nei segmenti Windows poco monitorati.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "inveigh-ps1", "name": "Inveigh.ps1", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["mitm", "llmnr-nbns-mdns", "hash-capture"], "repo": "https://github.com/Kevin-Robertson/Inveigh", "desc": "Versione PowerShell di Inveigh per scenari fileless o con restrizioni sui binari. Permette cattura/relay di challenge-response con footprint operativo contenuto.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "kerbrute-win", "name": "kerbrute_Windows.exe", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["user-enum", "password-spraying", "kerberos-preauth"], "repo": "https://github.com/ropnop/kerbrute", "desc": "Enum utenti e password spraying via Kerberos pre-auth (AS-REQ/AS-REP) a basso rumore. Ottimo per validare account senza generare traffico SMB/LDAP evidente.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "mimikatz", "name": "Mimikatz", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["credential-dumping", "tickets", "pth", "ptt"], "repo": "https://github.com/gentilkiwi/mimikatz", "desc": "Toolkit per dump credenziali (LSA/WDigest/DPAPI) e operazioni Kerberos avanzate (Pass-the-Hash/Ticket, golden/silver). Cardine per consolidare accesso e persistenza in post-exploitation.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "pingcastle", "name": "PingCastle", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["ad-health", "risk-scoring", "reporting"], "repo": "https://www.pingcastle.com/download/", "desc": "Valuta salute e rischio dell’AD con indicatori metodologici e report chiari. Evidenzia deleghe rischiose, esposizioni e priorità di remediation per la roadmap difensiva.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "powerupsql", "name": "PowerUpSQL", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["mssql-discovery", "audit-weak-config", "priv-esc", "os-cmd"], "repo": "https://github.com/NetSPI/PowerUpSQL", "desc": "Toolkit PowerShell per discovery di istanze SQL Server, audit configurazioni deboli e abusi post-exploitation (esecuzione OS, catene di impersonation/link server) in ambienti Windows.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "powerview-ps1", "name": "PowerView.ps1", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["ad-enum", "acl-abuse", "situational-awareness"], "repo": "https://github.com/PowerShellMafia/PowerSploit", "desc": "Modulo PowerShell per mappare oggetti/relazioni AD e individuare ACL/deleghe sfruttabili. Spesso usato per preparare la raccolta dati di BloodHound o percorsi d’escalation.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "responder-windows", "name": "Responder-Windows", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["llmnr-nbns-mdns-poisoning", "hash-capture", "relay"], "repo": "https://github.com/lgandx/Responder-Windows", "desc": "Port Windows di Responder per intercettare risoluzioni nomi locali e catturare hash NTLM. Alternativa pratica quando Python non è disponibile sull’host di lavoro.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "rpcdump-windows", "name": "rpcdump_windows.exe", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["rpc-enum", "endpoint-mapper"], "repo": "https://github.com/csandker/RPCDump", "desc": "Interroga l’Endpoint Mapper e lista interfacce/UUID/endpoint RPC esposti. Utile per individuare superfici d’attacco poco documentate lato Windows e servizi proprietari.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "rubeus", "name": "Rubeus.exe", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["kerberos-abuse", "asreproast", "kerberoast", "ptt", "ticket-management"], "repo": "https://github.com/GhostPack/Rubeus", "desc": "Toolkit Kerberos per AS-REP/Kerberoasting, gestione e abuso di ticket (dump/forge/overpass/PTT). Abilita escalation e persistenza su domini AD ben monitorati.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "securityassessment-ps1", "name": "SecurityAssessment.ps1", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["host-baseline", "policy-audit", "inventory"], "repo": null, "desc": "Script per raccogliere baseline di sicurezza (policy, ruoli, servizi, log) e produrre evidenze utili ad hardening e verifiche post-remediation su host Windows gestiti.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "sharphound", "name": "SharpHound.exe", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["ad-graph-collection", "bloodhound-ingest"], "repo": "https://github.com/SpecterOps/SharpHound", "desc": "Collettore per BloodHound: acquisisce relazioni AD (ACL, sessioni, gruppi, SPN, deleghe) e genera pacchetti ingest per tracciare percorsi di escalation nei domini.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "sharpmapexec", "name": "SharpMapExec.exe", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["lateral-movement", "spray", "remote-exec"], "repo": "https://github.com/cube0x0/SharpMapExec", "desc": "Reimplementazione C# in stile CME per esecuzione remota e movimento laterale da host Windows. Indicata per scenari con restrizioni su Python o ambienti locked-down.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "sharpview", "name": "SharpView.exe", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["ad-enum", "acl-enum", "situational-awareness"], "repo": "https://github.com/tevora-threat/SharpView", "desc": "Port C# di PowerView per enumerazione AD e analisi ACL quando PowerShell è ristretto/monitorato. Spesso usato per raccolta dati preliminare a BloodHound.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "snaffler", "name": "Snaffler.exe", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["fileshare-hunting", "secret-discovery", "regex-content"], "repo": "https://github.com/SnaffCon/Snaffler", "desc": "Scansiona file share alla ricerca di credenziali e dati sensibili usando pattern/regex. Utile per prioritizzare “needle in a haystack” in grandi domini Windows.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "sysinternals-suite", "name": "SysinternalsSuite", "version": null, "kind": "windows", "phases": ["00_Common"], "caps": ["proc-monitoring", "forensics", "troubleshooting"], "repo": "https://learn.microsoft.com/en-us/sysinternals/downloads/sysinternals-suite", "desc": "Raccolta Microsoft (Autoruns, ProcMon, Sysmon, PsTools, ecc.) per analisi processi, servizi, registry e rete. Indispensabile per DFIR leggero e troubleshooting durante engagement.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Tools_Windows"], "notes": ""}, {"id": "wordlist-paroleitaliane", "name": "Parole Italiane", "version": null, "kind": "wordlist", "phases": ["00_Common"], "caps": ["italian-words", "mutation-base"], "repo": "https://github.com/napolux/paroleitaliane", "desc": "Dizionari in italiano (nomi, cognomi, termini comuni) per spraying/bruteforce contestuale e generazione di wordlist mutate ad hoc su target locali.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Wordlists"], "notes": ""}, {"id": "wordlist-payloadsallthethings-4-2", "name": "PayloadsAllTheThings", "version": "4.2", "kind": "wordlist", "phases": ["00_Common"], "caps": ["payloads", "fuzzing", "bypass-techniques"], "repo": "https://github.com/swisskyrepo/PayloadsAllTheThings", "desc": "Raccolta curata di payload, bypass e cheat-sheet per molte vulnerabilità (injection, traversal, XXE, XSS, deserializzazione). Riferimento pratico per fuzzing mirato e verifica remediation.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Wordlists"], "notes": ""}, {"id": "wordlist-portswigger", "name": "PortSwigger", "version": null, "kind": "wordlist", "phases": ["00_Common"], "caps": ["burp-integration", "content-discovery", "intruder"], "repo": "https://github.com/PortSwigger/wordlist-extractor", "desc": "Wordlist e utility integrate all’ecosistema Burp per estrarre/generare dizionari dagli asset dell’app target e alimentarli in Intruder/Extender.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Wordlists"], "notes": ""}, {"id": "wordlist-seclists-2025-2", "name": "SecLists", "version": "2025.2", "kind": "wordlist", "phases": ["00_Common"], "caps": ["user-passlists", "content-discovery", "fuzzing", "payloads"], "repo": "https://github.com/danielmiessler/SecLists", "desc": "Collezione OWASP di liste per pentest (user/pass, dir/file, fuzzing, pattern sensibili, web-shell). Standard de-facto per discovery, brute force e test mirati.", "best_in": [], "best_in_paths": [], "category_path": ["00_Common", "Wordlists"], "notes": ""}, {"id": "subbrute-77", "name": "subbrute-77", "version": null, "kind": "tool", "phases": ["01_Information_Gathering"], "caps": ["dns-bruteforce", "subdomain-enum", "resolver-rotation", "wildcard-detection"], "repo": "https://github.com/TheRook/subbrute", "desc": "Brute force di sottodomini usando open resolvers per ridurre rate-limit e blocchi. Supporta wordlist personalizzate, rilevazione wildcard e caching, ampliando velocemente la superficie prima di tecniche passive/lente.", "best_in": ["01_Information_Gathering"], "best_in_paths": [["01_Information_Gathering", "01_Recon", "Infrastructure", "DNS_Subdomains"]], "category_path": ["01_Information_Gathering", "01_Recon", "Infrastructure", "DNS_Subdomains"], "notes": ""}, {"id": "dirsearch", "name": "dirsearch", "version": "0.4.3", "kind": "tool", "phases": ["01_Information_Gathering"], "caps": ["content-discovery", "bruteforce-dirs", "wordlists", "extensions", "resume", "proxy"], "repo": "https://github.com/maurosoria/dirsearch", "desc": "Web path scanner per directory/file nascosti con filtri su status/lunghezza/regex, gestione estensioni e resume. Ottimizzato per grandi superfici con threading, rate control, autenticazione e proxy.", "best_in": ["01_Information_Gathering"], "best_in_paths": [["01_Information_Gathering", "01_Recon", "Web", "Content_Discovery"]], "category_path": ["01_Information_Gathering", "01_Recon", "Web", "Content_Discovery"], "notes": ""}, {"id": "aquatone-linux-amd64", "name": "aquatone_linux_amd64", "version": "1.7.0", "kind": "tool", "phases": ["01_Information_Gathering"], "caps": ["visual-recon", "screenshotting", "html-report", "host-triage"], "repo": "https://github.com/michenriksen/aquatone", "desc": "Visual recon dei servizi web: screenshot massivi e report HTML navigabile per triage rapido. Raggruppa per host/porta e fa emergere pannelli, errori e app non mappate a colpo d’occhio.", "best_in": ["01_Information_Gathering"], "best_in_paths": [["01_Information_Gathering", "01_Recon", "Web", "Fingerprinting", "Visual_Recon"]], "category_path": ["01_Information_Gathering", "01_Recon", "Web", "Fingerprinting", "Visual_Recon"], "notes": ""}, {"id": "whatwaf-1-9", "name": "WhatWaf", "version": "1.9", "kind": "tool", "phases": ["01_Information_Gathering"], "caps": ["waf-detection", "waf-fingerprint", "bypass-tips"], "repo": "https://github.com/Ekultek/WhatWaf", "desc": "Fingerprint dei WAF tramite pattern di header/redirect/pagine di blocco con suggerimenti di tuning. Guida l’adattamento di fuzzing/exploitation per ridurre i blocchi applicativi.", "best_in": ["01_Information_Gathering"], "best_in_paths": [["01_Information_Gathering", "01_Recon", "Web", "Fingerprinting", "WAF"]], "category_path": ["01_Information_Gathering", "01_Recon", "Web", "Fingerprinting", "WAF"], "notes": ""}, {"id": "paramspider", "name": "paramspider", "version": "1.0.1", "kind": "tool", "phases": ["01_Information_Gathering"], "caps": ["params-discovery", "wayback-mining", "scope-filtering", "ext-exclusion"], "repo": "https://github.com/devanshbatham/ParamSpider", "desc": "Estrae URL/parametri dagli archivi web (es. Wayback) senza toccare il target. Filtra con estensioni/regex e produce liste pronte per fuzzing mirato (XSS/SQLi/SSRF).", "best_in": ["01_Information_Gathering"], "best_in_paths": [["01_Information_Gathering", "01_Recon", "Web", "Params_Discovery"]], "category_path": ["01_Information_Gathering", "01_Recon", "Web", "Params_Discovery"], "notes": ""}, {"id": "smb-enum", "name": "SMB-enum", "version": null, "kind": "tool", "phases": ["01_Information_Gathering"], "caps": ["smb-enum", "shares", "null-session", "rid-cycling"], "repo": null, "desc": "Raccolta di tecniche/utility per enumerare SMB: condivisioni, permessi, utenti e policy tramite null session e RID cycling. Utile per identificare percorsi leggibili/scrivibili e punti d’appoggio in rete prima di movimenti laterali. (Riferimenti: guide pratiche e cheat-sheet SMB).", "best_in": ["01_Information_Gathering"], "best_in_paths": [["01_Information_Gathering", "02_Enumeration", "Infrastructure", "SMB"]], "category_path": ["01_Information_Gathering", "02_Enumeration", "Infrastructure", "SMB"], "notes": ""}, {"id": "postman", "name": "Postman", "version": null, "kind": "app", "phases": ["01_Information_Gathering"], "caps": ["api-client", "collections", "environment", "auth-testing"], "repo": "https://www.postman.com/downloads/", "desc": "Client API per creare/organizzare richieste, variabili d’ambiente e collezioni condivisibili. Consente test ripetibili su endpoint, autenticazioni e flussi end-to-end con report e collaborazione integrata.", "best_in": ["01_Information_Gathering"], "best_in_paths": [["01_Information_Gathering", "02_Enumeration", "Web", "API"]], "category_path": ["01_Information_Gathering", "02_Enumeration", "Web", "API"], "notes": ""}, {"id": "cmseek-v-1-1-3", "name": "CMSeeK", "version": "1.1.3", "kind": "tool", "phases": ["01_Information_Gathering"], "caps": ["cms-detection", "fingerprint", "deep-scan", "version-detect"], "repo": "https://github.com/Tuhinshubhra/CMSeeK", "desc": "Riconoscimento e fingerprint dei principali CMS con scansioni guidate o CLI. Esegue rilevamento versione e moduli di approfondimento per mappare rapidamente superfici e possibili vettori noti.", "best_in": ["01_Information_Gathering"], "best_in_paths": [["01_Information_Gathering", "02_Enumeration", "Web", "CMS"]], "category_path": ["01_Information_Gathering", "02_Enumeration", "Web", "CMS"], "notes": ""}, {"id": "cmsmap", "name": "CMSmap", "version": null, "kind": "tool", "phases": ["01_Information_Gathering"], "caps": ["cms-scan", "vuln-checks", "wordpress", "joomla", "drupal", "moodle"], "repo": "https://github.com/dionach/CMSmap", "desc": "Scanner Python per CMS che integra controlli comuni su più piattaforme (WP/Joomla/Drupal/Moodle). Automatizza detection e test ricorrenti per evidenziare configurazioni deboli e plugin noti vulnerabili.", "best_in": ["01_Information_Gathering"], "best_in_paths": [["01_Information_Gathering", "02_Enumeration", "Web", "CMS"]], "category_path": ["01_Information_Gathering", "02_Enumeration", "Web", "CMS"], "notes": ""}, {"id": "joomlascan", "name": "JoomlaScan", "version": null, "kind": "tool", "phases": ["01_Information_Gathering"], "caps": ["joomla-enum", "components-detect", "fingerprint"], "repo": "https://github.com/drego85/JoomlaScan", "desc": "Rileva componenti e impronte di installazioni Joomla per individuare estensioni esposte e potenziali superfici attaccabili. Utile per triage mirato prima di verifiche su versioni/plugin.", "best_in": ["01_Information_Gathering"], "best_in_paths": [["01_Information_Gathering", "02_Enumeration", "Web", "CMS", "Joomla"]], "category_path": ["01_Information_Gathering", "02_Enumeration", "Web", "CMS", "Joomla"], "notes": ""}, {"id": "katana-linux-amd64", "name": "katana_linux_amd64", "version": "1.2.2", "kind": "tool", "phases": ["01_Information_Gathering"], "caps": ["crawler", "spider", "javascript-aware", "sitemap"], "repo": "https://github.com/projectdiscovery/katana", "desc": "Crawler moderno ad alte prestazioni per enumerare percorsi e asset web, con parsing JavaScript e output strutturato. Ideale per alimentare content discovery, fuzzing e mapping dell’applicazione.", "best_in": ["01_Information_Gathering"], "best_in_paths": [["01_Information_Gathering", "02_Enumeration", "Web", "Crawling", "Active"]], "category_path": ["01_Information_Gathering", "02_Enumeration", "Web", "Crawling", "Active"], "notes": ""}, {"id": "findsploit-2-0", "name": "Findsploit", "version": "2.0", "kind": "framework", "phases": ["02_Exploitation"], "caps": ["exploit-search", "cve-mapping", "aux-suggest"], "repo": "https://github.com/1N3/Findsploit", "desc": "Wrapper da CLI che interroga più fonti (Exploit-DB/Metasploit/GitHub) per cercare PoC ed exploit in base a keyword/versioni/CVE. Utile per passare rapidamente da vuln-id a tecnica praticabile, con suggerimenti su moduli e script correlati.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "General"]], "category_path": ["02_Exploitation", "General"], "notes": ""}, {"id": "cameradar-5-0-4", "name": "cameradar", "version": "5.0.4", "kind": "tool", "phases": ["02_Exploitation"], "caps": ["rtsp-scan", "route-bruteforce", "creds-attack", "docker"], "repo": "https://github.com/Ullaakut/cameradar", "desc": "Scanner/attacker per RTSP che individua stream su porte comuni e tenta credenziali/percorsi noti per esporre feed video. Fornisce workflow “scan→attack→print-streams” e immagini Docker pronte per campagne mirate in LAN o VLAN isolate.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Infrastructure", "RTSP"]], "category_path": ["02_Exploitation", "Infrastructure", "RTSP"], "notes": ""}, {"id": "hikpwn", "name": "HikPwn", "version": null, "kind": "tool", "phases": ["02_Exploitation"], "caps": ["hikvision-enum", "vuln-checks", "active-scan"], "repo": "https://github.com/4n4nk3/HikPwn", "desc": "Scanner dedicato a device Hikvision: enum attiva/passiva, rilevazione porte/servizi esposti e check di vulnerabilità note. Comodo per triage rapido prima di password spraying o tentativi RTSP/ISAPI.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Infrastructure", "RTSP"]], "category_path": ["02_Exploitation", "Infrastructure", "RTSP"], "notes": ""}, {"id": "rtsp-routes-wordlist", "name": "routes_wordlist.txt", "version": null, "kind": "wordlist", "phases": ["02_Exploitation"], "caps": ["rtsp-routes", "content-discovery"], "repo": null, "desc": "Wordlist di percorsi comuni per stream RTSP (es. /live.sdp, /Streaming/Channels/101, /h264). Utile per brute-force dei path quando l’endpoint risponde ma non pubblica l’indice o nasconde i mount point.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Infrastructure", "RTSP"]], "category_path": ["02_Exploitation", "Infrastructure", "RTSP"], "notes": ""}, {"id": "rtsp-authgrinder", "name": "rtsp_authgrinder", "version": null, "kind": "tool", "phases": ["02_Exploitation"], "caps": ["rtsp-bruteforce", "basic-digest", "multi-thread"], "repo": "https://github.com/tektengu/rtsp_authgrinder", "desc": "Brute-forcer di credenziali per servizi RTSP con supporto a Basic/Digest e threading. Indicato su DVR/IP-cam con credenziali deboli quando il percorso dello stream è noto o enumerabile.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Infrastructure", "RTSP"]], "category_path": ["02_Exploitation", "Infrastructure", "RTSP"], "notes": ""}, {"id": "rtsp-crack-1-0-3", "name": "rtsp_crack", "version": "1.0.3", "kind": "tool", "phases": ["02_Exploitation"], "caps": ["rtsp-bruteforce", "gui", "digest-support"], "repo": null, "desc": "Utility orientata al brute-force di endpoint RTSP (spesso con interfaccia grafica) che prova combinazioni utente/password e gestisce meccanismi Digest. Utile per verifiche rapide su piccole liste di target o durante demo onsite.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Infrastructure", "RTSP"]], "category_path": ["02_Exploitation", "Infrastructure", "RTSP"], "notes": ""}, {"id": "rtsp-digest-auth-bruteforcer", "name": "RTSP-Digest-Auth-Bruteforcer", "version": null, "kind": "tool", "phases": ["02_Exploitation"], "caps": ["digest-bruteforce", "header-crafting"], "repo": null, "desc": "Script per forzare l’autenticazione Digest su server RTSP costruendo correttamente nonce/response e gestendo retry. Indicato quando Basic è disabilitato e si dispone di route/realm noti dal banner.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Infrastructure", "RTSP"]], "category_path": ["02_Exploitation", "Infrastructure", "RTSP"], "notes": ""}, {"id": "rtsp-findingsomefun", "name": "RTSP-FindingSomeFun", "version": null, "kind": "tool", "phases": ["02_Exploitation"], "caps": ["mass-scan", "bruteforce", "wordlist-combos"], "repo": "https://github.com/ThatNotEasy/RTSP-FindingSomeFun", "desc": "Scanner/bruteforcer massivo di endpoint RTSP con supporto a liste IP, multithreading e combinazioni user/pass predefinite. Pensato per ricognizioni estese su reti ampie o blocchi IP interni.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Infrastructure", "RTSP"]], "category_path": ["02_Exploitation", "Infrastructure", "RTSP"], "notes": ""}, {"id": "rtspscanner", "name": "RTSPScanner", "version": null, "kind": "tool", "phases": ["02_Exploitation"], "caps": ["rtsp-scan", "path-testing", "api-output"], "repo": "https://github.com/BeardedTek-com/RTSPScanner", "desc": "Utility Python per enumerare sorgenti RTSP su host o network, testare path noti e integrare i risultati in pipeline (es. rtsp-simple-server). Utile per consolidare elenco stream prima di attacchi mirati.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Infrastructure", "RTSP"]], "category_path": ["02_Exploitation", "Infrastructure", "RTSP"], "notes": ""}, {"id": "drupalgeddon", "name": "drupalgeddon", "version": null, "kind": "exploit", "phases": ["02_Exploitation"], "caps": ["rce", "sql-injection", "cve-2014-3704"], "repo": null, "desc": "Exploit storico per Drupal 7 (CVE-2014-3704) che sfrutta SQLi in core per creare admin o eseguire codice. Ancora utile in legacy assessment e in laboratori per catene da SQLi→RCE.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "CMS_Exploits", "Drupal"]], "category_path": ["02_Exploitation", "Web", "CMS_Exploits", "Drupal"], "notes": ""}, {"id": "drupalgeddon2", "name": "drupalgeddon2", "version": null, "kind": "exploit", "phases": ["02_Exploitation"], "caps": ["rce", "cve-2018-7600", "unauth"], "repo": "https://github.com/dreadlocked/Drupalgeddon2", "desc": "PoC per CVE-2018-7600 (SA-CORE-2018-002): injection in Forms API che porta ad esecuzione comandi su Drupal 7/8 non patchati. Usato per initial access rapido su istanze legacy esposte.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "CMS_Exploits", "Drupal"]], "category_path": ["02_Exploitation", "Web", "CMS_Exploits", "Drupal"], "notes": ""}, {"id": "joomla-bruteforce", "name": "joomla-bruteforce", "version": null, "kind": "exploit", "phases": ["02_Exploitation"], "caps": ["auth-bruteforce", "session-handling", "proxy"], "repo": "https://github.com/ajnik/joomla-bruteforce", "desc": "Script per brute-force delle credenziali di login Joomla con supporto a proxy e wordlist. Indicato quando non sono presenti vulnerabilità note ma l’hardening è debole o assente.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "CMS_Exploits", "Joomla"]], "category_path": ["02_Exploitation", "Web", "CMS_Exploits", "Joomla"], "notes": ""}, {"id": "joomla-dir-traversal", "name": "joomla_dir_trav.py", "version": null, "kind": "exploit", "phases": ["02_Exploitation"], "caps": ["path-traversal", "file-read", "artifact-extract"], "repo": null, "desc": "Exploit per vulnerabilità di directory traversal in Joomla che consente lettura/cancellazione di file fuori dal path previsto. Utile per esfiltrare config/log e preparare escalation successive.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "CMS_Exploits", "Joomla"]], "category_path": ["02_Exploitation", "Web", "CMS_Exploits", "Joomla"], "notes": ""}, {"id": "wp-cve-2024-9047", "name": "CVE-2024-9047", "version": "2024-9047", "kind": "exploit", "phases": ["02_Exploitation"], "caps": ["path-traversal", "arbitrary-read", "wp-file-upload"], "repo": null, "desc": "Path Traversal nel plugin “WordPress File Upload” ≤4.24.11 con possibilità di leggere/eliminare file fuori directory (richiede PHP ≤7.4 su target). Indicata per creep di config/keys propedeutico a RCE.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "CMS_Exploits", "WordPress"]], "category_path": ["02_Exploitation", "Web", "CMS_Exploits", "WordPress"], "notes": ""}, {"id": "wp-wpdiscuz-rce", "name": "RCE - wpDiscuz", "version": null, "kind": "exploit", "phases": ["02_Exploitation"], "caps": ["unauth-file-upload", "rce", "cve-2020-24186"], "repo": "https://www.exploit-db.com/exploits/49967", "desc": "Vulnerabilità nei plugin wpDiscuz 7.0–7.0.4 che consente upload arbitrario di file (incluso PHP) via endpoint AJAX, portando ad esecuzione di codice. Efficace per initial shell non autenticata.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "CMS_Exploits", "WordPress"]], "category_path": ["02_Exploitation", "Web", "CMS_Exploits", "WordPress"], "notes": ""}, {"id": "wpxploit-1-0-0", "name": "wpxploit", "version": "1.0.0", "kind": "tool", "phases": ["02_Exploitation"], "caps": ["xmlrpc-bruteforce", "credential-spraying"], "repo": "https://github.com/relarizky/wpxploit", "desc": "Script semplice per attacchi di dizionario contro l’endpoint XML-RPC di WordPress (system.multicall). Utile per spraying low-and-slow su installazioni non rate-limited.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "CMS_Exploits", "WordPress"]], "category_path": ["02_Exploitation", "Web", "CMS_Exploits", "WordPress"], "notes": ""}, {"id": "wpxstrike", "name": "WPXStrike", "version": null, "kind": "tool", "phases": ["02_Exploitation"], "caps": ["xss-to-rce", "wp-automation", "post-exploitation"], "repo": "https://github.com/nowak0x01/WPXStrike", "desc": "Strumento per elevare XSS su WordPress a esecuzione di codice o impatti critici, automatizzando iniezioni/pivot su versioni 4.x–6.x. Utile in scenari con WAF leggeri e policy editor permissive.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "CMS_Exploits", "WordPress"]], "category_path": ["02_Exploitation", "Web", "CMS_Exploits", "WordPress"], "notes": ""}, {"id": "phpbash", "name": "phpbash", "version": null, "kind": "webshell", "phases": ["02_Exploitation"], "caps": ["semi-interactive-shell", "tty-like", "exec"], "repo": "https://github.com/Arrexel/phpbash", "desc": "Web-shell PHP semi-interattiva con interfaccia tipo TTY per eseguire comandi, navigare il FS e trasferire file. Ideale come primo foothold quando l’upload non filtra estensioni.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "File_Upload"]], "category_path": ["02_Exploitation", "Web", "File_Upload"], "notes": ""}, {"id": "php-reverse-shell", "name": "php-reverse-shell", "version": null, "kind": "webshell", "phases": ["02_Exploitation"], "caps": ["reverse-connection", "callback", "simple"], "repo": "https://github.com/pentestmonkey/php-reverse-shell", "desc": "Script PHP minimale per stabilire una reverse shell verso listener controllato. Veloce da configurare (IP/porta), utile in combinazione con upload arbitrari o misconfig di file manager.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "File_Upload"]], "category_path": ["02_Exploitation", "Web", "File_Upload"], "notes": ""}, {"id": "tomcat-cmd-jsp", "name": "Tomcat_cmd.jsp", "version": null, "kind": "webshell", "phases": ["02_Exploitation"], "caps": ["jsp-shell", "tomcat-manage", "cmd-exec"], "repo": "https://github.com/SecurityRiskAdvisors/cmd.jsp", "desc": "Web-shell JSP universale per ambienti Tomcat/Java, utile dove i filtri PHP non sono applicabili. Permette esecuzione comandi e gestione di base dei file con footprint ridotto.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "File_Upload"]], "category_path": ["02_Exploitation", "Web", "File_Upload"], "notes": ""}, {"id": "wwwolf-php-webshell", "name": "wwwolf-php-webshell", "version": null, "kind": "webshell", "phases": ["02_Exploitation"], "caps": ["file-manager", "cmd-exec", "upload-download"], "repo": "https://github.com/WhiteWinterWolf/wwwolf-php-webshell", "desc": "Web-shell PHP completa con file manager, esecuzione comandi e funzioni di rete. Indicata per operare velocemente post-upload e creare staging per payload successivi.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "File_Upload"]], "category_path": ["02_Exploitation", "Web", "File_Upload"], "notes": ""}, {"id": "lfifreak", "name": "LFiFreak", "version": null, "kind": "tool", "phases": ["02_Exploitation"], "caps": ["lfi-auto", "wrapper-bypass", "wordlist"], "repo": "https://github.com/OsandaMalith/LFiFreak", "desc": "Automazione per LFI con test su wrapper (php://, data://), bypass comuni e wordlist di percorsi sensibili. Utile per escalation da lettura file a code-exec con log poisoning o session hijack.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "Injection", "LFI"]], "category_path": ["02_Exploitation", "Web", "Injection", "LFI"], "notes": ""}, {"id": "lfisuite", "name": "LFISuite", "version": null, "kind": "tool", "phases": ["02_Exploitation"], "caps": ["lfi-enum", "bypass", "auto-exploit"], "repo": "https://github.com/D35m0nd142/LFISuite", "desc": "Toolkit per sfruttare LFI con tecniche di enumerazione, probing su vari wrapper e funzioni di exploitation automatica (inclusi log/session poisoning). Buona base per catene LFI→RCE.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "Injection", "LFI"]], "category_path": ["02_Exploitation", "Web", "Injection", "LFI"], "notes": ""}, {"id": "liffy", "name": "liffy", "version": null, "kind": "tool", "phases": ["02_Exploitation"], "caps": ["lfi-exploit", "rce-primitives", "wrapper-techniques"], "repo": "https://github.com/mzfr/liffy", "desc": "Sfrutta LFI per ottenere RCE tramite tecniche note (log poisoning, php://filter, session injection). Fornisce payload pronti e flussi guidati per trasformare rapidamente LFI in shell utile.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "Injection", "LFI"]], "category_path": ["02_Exploitation", "Web", "Injection", "LFI"], "notes": ""}, {"id": "xsstrike-3-1-6", "name": "XSStrike", "version": "3.1.6", "kind": "tool", "phases": ["02_Exploitation"], "caps": ["xss-scan", "payload-gen", "crawler", "waf-testing"], "repo": "https://github.com/s0md3v/XSStrike", "desc": "Suite avanzata per XSS con generatori intelligenti di payload, crawler veloce e fuzzer per WAF. Consente di validare riflessi/DOM e di costruire catene verso account takeover o privesc applicative.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "Injection", "XSS"]], "category_path": ["02_Exploitation", "Web", "Injection", "XSS"], "notes": ""}, {"id": "xxeinjector", "name": "XXEinjector", "version": null, "kind": "tool", "phases": ["02_Exploitation"], "caps": ["xxe-auto", "oob-exfil", "dir-enum"], "repo": "https://github.com/enjoiz/XXEinjector", "desc": "Automazione per XXE con supporto a esfiltrazione OOB (FTP/HTTP/Gopher), listing directory in stack Java e brute dei path. Utile per ottenere file sensibili e pivot su credenziali/segreti.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "Injection", "XXE"]], "category_path": ["02_Exploitation", "Web", "Injection", "XXE"], "notes": ""}, {"id": "poc-cve-2025-29927", "name": "PoC CVE-2025-29927", "version": null, "kind": "exploit", "phases": ["02_Exploitation"], "caps": ["auth-bypass", "header-manipulation", "nextjs-middleware"], "repo": null, "desc": "PoC per CVE-2025-29927 che sfrutta l’header x-middleware-subrequest per bypassare autorizzazioni in middleware Next.js non patchati. Utile per validare esposizioni e dimostrare impatto su route protette.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "Next_js"]], "category_path": ["02_Exploitation", "Web", "Next_js"], "notes": ""}, {"id": "cnvd-2020-10487-tomcat-ajp-lfi", "name": "CNVD-2020-10487-Tomcat-Ajp-lfi", "version": null, "kind": "exploit", "phases": ["02_Exploitation"], "caps": ["ajp-lfi", "ghostcat", "file-read"], "repo": "https://github.com/YDHCUI/CNVD-2020-10487-Tomcat-Ajp-lfi", "desc": "Exploit per “Ghostcat” (AJP) che consente LFI su Tomcat tramite protocollo 8009. Indicato per leggere web.xml/credenziali e preparare webshell drop-in via include dove possibile.", "best_in": ["02_Exploitation"], "best_in_paths": [["02_Exploitation", "Web", "Tomcat"]], "category_path": ["02_Exploitation", "Web", "Tomcat"], "notes": ""}, {"id": "kerbrute-linux-amd64", "name": "kerbrute_linux_amd64", "version": "1.0.3", "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["kerberos-preauth", "user-enum", "password-spraying"], "repo": "https://github.com/ropnop/kerbrute", "desc": "Enum e spraying su AD via Kerberos Pre-Auth con basso rumore; utile per validare utenti/password senza traffico SMB/LDAP visibile. Versione di riferimento 1.0.3 (binaries).", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]], "category_path": ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"], "notes": ""}, {"id": "krbrelayx", "name": "krbrelayx", "version": null, "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["kerberos-relay", "unconstrained-delegation", "adcs-abuse"], "repo": "https://github.com/dirkjanm/krbrelayx", "desc": "Toolkit per relaying Kerberos e abusi su deleghe non vincolate/AD CS; integra utility per DNS/LDAP e dipende da impacket/ldap3.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]], "category_path": ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"], "notes": ""}, {"id": "nopac", "name": "noPac", "version": null, "kind": "exploit", "phases": ["03_Post_Exploitation"], "caps": ["cve-2021-42278", "cve-2021-42287", "priv-esc-da"], "repo": "https://github.com/Ridter/noPac", "desc": "Exploit chain CVE-2021-42278/42287 per impersonare DA partendo da utente di dominio standard su DC non patchati.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]], "category_path": ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"], "notes": ""}, {"id": "pkinittools", "name": "PKINITtools", "version": null, "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["pkinit", "adcs-relay", "certificate-auth"], "repo": "https://github.com/dirkjanm/PKINITtools", "desc": "Strumenti per PKINIT e relaying verso AD CS, utili per catene di autenticazione certificate-based e abuso di template deboli.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]], "category_path": ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"], "notes": ""}, {"id": "pywhisker", "name": "pywhisker", "version": null, "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["adcs-esc", "keycredentiallink", "shadow-credentials"], "repo": "https://github.com/ShutdownRepo/pywhisker", "desc": "Implementa in Python l’attacco “Whisker” per manipolare msDS-KeyCredentialLink e ottenere controllo di account/computer tramite Shadow Credentials.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]], "category_path": ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"], "notes": ""}, {"id": "kerberos-windows-scripts", "name": "kerberos_windows_scripts", "version": null, "kind": "toolkit", "phases": ["03_Post_Exploitation"], "caps": ["kerberos-cli", "ticket-ops", "linux-ad-integration"], "repo": "https://github.com/ropnop/kerberos_windows_scripts", "desc": "Raccolta di script per interagire con Kerberos AD da Linux (operazioni su ticket/realm, integrazione con tool di rete).", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "AD_Windows", "Recon_Health"]], "category_path": ["03_Post_Exploitation", "AD_Windows", "Recon_Health"], "notes": ""}, {"id": "kerbrute", "name": "kerbrute", "version": "1.0.3", "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["kerberos-preauth", "user-enum", "spray"], "repo": "https://github.com/ropnop/kerbrute", "desc": "Pre-auth bruteforcer/enumerator per AD con output pulito e threading; utile per health check e validazioni in rete Windows.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "AD_Windows", "Recon_Health"]], "category_path": ["03_Post_Exploitation", "AD_Windows", "Recon_Health"], "notes": ""}, {"id": "dehashed", "name": "Dehashed", "version": null, "kind": "service", "phases": ["03_Post_Exploitation"], "caps": ["breach-data", "osint", "credentials-hunting"], "repo": null, "desc": "Servizio OSINT per query su data breach (email/username/hash/IP) via web/API; utile per arricchire wordlist e confermare compromissioni.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]], "category_path": ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"], "notes": ""}, {"id": "dehashed-py", "name": "dehashed.py", "version": null, "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["dehashed-api", "csv-export", "query-automation"], "repo": null, "desc": "Client/utility per interrogare l’API di Dehashed e salvare risultati (CSV/JSON); comodo per enrichment e pivot OSINT.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]], "category_path": ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"], "notes": ""}, {"id": "firefox-decrypt-main", "name": "firefox_decrypt-main", "version": null, "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["firefox-secrets", "password-decrypt", "nss"], "repo": "https://github.com/unode/firefox_decrypt", "desc": "Estrae e decifra password dai profili Firefox/derivati sfruttando librerie NSS; supporta override del path quando il rilevamento automatico fallisce.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]], "category_path": ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"], "notes": ""}, {"id": "lazagne-2-4-7", "name": "LaZagne", "version": "2.4.7", "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["credential-recovery", "browser-mail-vaults", "windows"], "repo": "https://github.com/AlessandroZ/LaZagne", "desc": "Recupero credenziali da applicazioni comuni su host locale (browser, mail, client vari) con moduli multipli e output aggregato.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]], "category_path": ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"], "notes": ""}, {"id": "mailsniper", "name": "MailSniper", "version": null, "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["exchange-search", "ews", "o365", "keyword-hunt"], "repo": "https://github.com/dafthack/MailSniper", "desc": "Ricerca da PowerShell in mailbox Exchange/Office365 per individuare password, architetture e informazioni sensibili, anche cross-mailbox con privilegi adeguati.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]], "category_path": ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"], "notes": ""}, {"id": "net-creds", "name": "net-creds", "version": null, "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["pcap-live-sniff", "creds-extract", "protocol-auto"], "repo": "https://github.com/DanMcInerney/net-creds", "desc": "Sniffer che estrae credenziali/hash da interfaccia o PCAP senza affidarsi a porte note, concatenando frammenti e riconoscendo protocolli.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]], "category_path": ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"], "notes": ""}, {"id": "pcredz", "name": "PCredz", "version": null, "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["pcap-parse", "ntlm-kerberos", "creds-extract"], "repo": "https://github.com/lgandx/PCredz", "desc": "Estrae NTLM/Kerberos/HTTP Basic e altri secreti da PCAP o interfacce live, utile per triage di catture di rete su grandi ambienti.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]], "category_path": ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"], "notes": ""}, {"id": "credking", "name": "CredKing", "version": null, "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["password-spraying", "aws-lambda", "ip-rotation"], "repo": "https://github.com/ustayready/CredKing", "desc": "Password spraying distribuito su AWS Lambda con rotazione IP multi-regione; include plugin per provider comuni e output aggregato.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]], "category_path": ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"], "notes": ""}, {"id": "decrypt-chrome-passwords-main", "name": "decrypt-chrome-passwords", "version": null, "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["chrome-secrets", "password-decrypt", "windows"], "repo": "https://github.com/ohyicong/decrypt-chrome-passwords", "desc": "Script per decifrare le password salvate da Google Chrome (Windows), con export CSV e dipendenze Python standard per Crypto/SQLite.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]], "category_path": ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"], "notes": ""}, {"id": "htb-wordlist", "name": "HTB-wordlist", "version": null, "kind": "wordlist", "phases": ["03_Post_Exploitation"], "caps": ["custom-wordlists", "bruteforce", "enum"], "repo": null, "desc": "Collezione di liste mirate nate in contesto HTB per brute force/enum; utile come base specifica per scenari CTF/lab e test mirati.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]], "category_path": ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"], "notes": ""}, {"id": "omnispray", "name": "Omnispray", "version": null, "kind": "framework", "phases": ["03_Post_Exploitation"], "caps": ["modular-spraying", "m365", "generic-idp"], "repo": "https://github.com/0xZDH/Omnispray", "desc": "Framework modulare di enum/spraying che estende O365Spray a target generici, con template di moduli per provider diversi e pipeline ripetibili.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]], "category_path": ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"], "notes": ""}, {"id": "statistically-likely-usernames", "name": "statistically-likely-usernames", "version": null, "kind": "wordlist", "phases": ["03_Post_Exploitation"], "caps": ["username-generation", "corp-patterns"], "repo": "https://github.com/insidetrust/statistically-likely-usernames", "desc": "Wordlist per generare username “probabili” basati su pattern aziendali, utile per enum e spraying a basso rumore.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]], "category_path": ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"], "notes": ""}, {"id": "username-anarchy-0-6", "name": "username-anarchy", "version": "0.6", "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["username-generation", "pattern-rules"], "repo": "https://github.com/urbanadventurer/username-anarchy", "desc": "Generatore di username con regole personalizzabili (iniziali, pattern, separatori), utile per costruire liste realistiche a partire da nominativi.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]], "category_path": ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"], "notes": ""}, {"id": "bashfuscator", "name": "Bashfuscator", "version": null, "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["bash-obfuscation", "mutators", "randomization"], "repo": "https://github.com/Bashfuscator/Bashfuscator", "desc": "Framework di offuscamento per one-liner/script Bash con mutatori modulari; genera codice randomizzato che a runtime ricostruisce l’input originale.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Evasion"]], "category_path": ["03_Post_Exploitation", "Evasion"], "notes": ""}, {"id": "ligolo-ng", "name": "Ligolo-ng", "version": "0.8.2", "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["reverse-tunnel", "tun-interface", "tcp-tls", "autoroute"], "repo": "https://github.com/nicocha30/ligolo-ng", "desc": "Tunneling leggero con interfaccia TUN e supporto TCP/TLS; consente pivot trasparenti e instradamento automatico, pensato per red team multi-host.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Pivoting"]], "category_path": ["03_Post_Exploitation", "Pivoting"], "notes": ""}, {"id": "linenum", "name": "LinEnum", "version": null, "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["linux-enum", "privesc-checks", "baseline"], "repo": "https://github.com/rebootuser/LinEnum", "desc": "Script di enumerazione locale Linux per identificare misconfig e vettori di escalation, con output organizzato per triage veloce.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Privilege_Escalation", "Linux"]], "category_path": ["03_Post_Exploitation", "Privilege_Escalation", "Linux"], "notes": ""}, {"id": "logrotten-2-1", "name": "logrotten", "version": "2.1", "kind": "exploit", "phases": ["03_Post_Exploitation"], "caps": ["logrotate-race", "file-replace", "priv-esc"], "repo": "https://github.com/whotwagner/logrotten", "desc": "Exploit della race condition di logrotate per sovrascrivere file privilegiati e ottenere escalation local.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Privilege_Escalation", "Linux"]], "category_path": ["03_Post_Exploitation", "Privilege_Escalation", "Linux"], "notes": ""}, {"id": "one-gadget-1-10-0", "name": "OneGadget", "version": "1.10.0", "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["libc-gadgets", "rce-primitives", "ctf"], "repo": "https://github.com/david942j/one_gadget", "desc": "Trova “one-gadget” in libc per ottenere execve('/bin/sh') in exploit pwn; disponibile come gem Ruby e pacchetti distro.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Privilege_Escalation", "Linux"]], "category_path": ["03_Post_Exploitation", "Privilege_Escalation", "Linux"], "notes": ""}, {"id": "pspy", "name": "pspy", "version": null, "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["process-snoop", "cron-watch", "no-root"], "repo": "https://github.com/DominicBreuker/pspy", "desc": "Monitora processi/cron senza root leggendo procfs e intercettando processi effimeri; ottimo per individuare hook/esecuzioni privilegiate.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Privilege_Escalation", "Linux"]], "category_path": ["03_Post_Exploitation", "Privilege_Escalation", "Linux"], "notes": ""}, {"id": "screen-exploit-poc", "name": "screen-exploit-poc.sh", "version": null, "kind": "exploit", "phases": ["03_Post_Exploitation"], "caps": ["screen-privesc", "local-exploit"], "repo": null, "desc": "PoC per escalation su GNU screen vulnerabile; utile su host legacy dove persiste la versione affetta e permessi deboli.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Privilege_Escalation", "Linux"]], "category_path": ["03_Post_Exploitation", "Privilege_Escalation", "Linux"], "notes": ""}, {"id": "peass-ng", "name": "PEASS-ng", "version": "20250904-27f4363e", "kind": "toolkit", "phases": ["03_Post_Exploitation"], "caps": ["winpeas", "linpeas", "macpeas", "privesc-checks"], "repo": "https://github.com/peass-ng/PEASS-ng", "desc": "Suite di script per enumerare percorsi di privilege escalation su Windows/Linux/macOS con output evidenziato e checklist integrate.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Privilege_Escalation"]], "category_path": ["03_Post_Exploitation", "Privilege_Escalation"], "notes": ""}, {"id": "ghidra-11-4-2-public", "name": "Ghidra", "version": "11.4.2", "kind": "framework", "phases": ["03_Post_Exploitation"], "caps": ["disassembly", "decompiler", "scripting"], "repo": "https://github.com/NationalSecurityAgency/ghidra", "desc": "Framework SRE multipiattaforma (NSA) con disassembly, decompiler, grafi e scripting; adatto ad analisi di binari, malware e patch diff.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Reverse_Engineering"]], "category_path": ["03_Post_Exploitation", "Reverse_Engineering"], "notes": ""}, {"id": "pwninit-3-3-1", "name": "pwninit", "version": "3.3.1", "kind": "tool", "phases": ["03_Post_Exploitation"], "caps": ["ctf-bootstrap", "libc-setup", "patch-elf"], "repo": "https://github.com/io12/pwninit", "desc": "Automazione bootstrap per challenge pwn: scarica linker/symbols, patcha RPATH/interpreter e genera template pwntools pronti.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Reverse_Engineering"]], "category_path": ["03_Post_Exploitation", "Reverse_Engineering"], "notes": ""}, {"id": "pwntools-4-14-1", "name": "pwntools", "version": "4.14.1", "kind": "library", "phases": ["03_Post_Exploitation"], "caps": ["exploit-dev", "rop", "tube-io", "asm"], "repo": "https://github.com/Gallopsled/pwntools", "desc": "Framework Python per sviluppo exploit (ROP, assembler, tubes/SSH) con ampia documentazione ed esempi; riferimento de-facto per CTF/pwn.", "best_in": ["03_Post_Exploitation"], "best_in_paths": [["03_Post_Exploitation", "Reverse_Engineering"]], "category_path": ["03_Post_Exploitation", "Reverse_Engineering"], "notes": ""}, {"id": "5ire-0-13-2-appimage", "name": "5ire-0.13.2-x86_64.AppImage", "version": "0.13.2", "kind": "app", "phases": ["04_Miscellaneous"], "caps": ["mcp-client", "rag-local", "providers", "appimage"], "repo": "https://github.com/nanbingxyz/5ire", "desc": "Desktop AI assistant/MCP client multipiattaforma con knowledge base locale (RAG) e integrazione tool via MCP server; distribuito come AppImage per Linux. Utile per orchestrare agenti LLM con strumenti esterni e lavorare offline sui propri documenti.", "best_in": ["04_Miscellaneous"], "best_in_paths": [["04_Miscellaneous"]], "category_path": ["04_Miscellaneous"], "notes": ""}, {"id": "hexstrike-ai", "name": "hexstrike-ai", "version": "6.0", "kind": "mcp-server", "phases": ["04_Miscellaneous"], "caps": ["ai-agents", "tool-orchestration", "automation", "pentest-framework"], "repo": "https://github.com/0x4m4/hexstrike-ai", "desc": "MCP server che collega LLM (Claude/GPT/Copilot) a 150+ tool di sicurezza con decision engine e agenti autonomi per discovery, scanning ed exploitation automatizzabili. Pensato per red team/bug bounty e integrazione nei client MCP.", "best_in": ["04_Miscellaneous"], "best_in_paths": [["04_Miscellaneous"]], "category_path": ["04_Miscellaneous"], "notes": ""}]</script>
+    <script id="treeData" type="application/json">{"00_Common": {"Metasploit_Plugins": {}, "Scripts": {}, "Tools_Windows": {}, "Wordlists": {}}, "01_Information_Gathering": {"01_Recon": {"Infrastructure": {"DNS_Subdomains": {}}, "Web": {"Content_Discovery": {}, "Fingerprinting": {"Visual_Recon": {}, "WAF": {}}, "Params_Discovery": {}}}, "02_Enumeration": {"Infrastructure": {"SMB": {}}, "Web": {"API": {}, "CMS": {"Joomla": {}}, "Crawling": {"Active": {}}}}}, "02_Exploitation": {"General": {}, "Infrastructure": {"RTSP": {}}, "Web": {"CMS_Exploits": {"Drupal": {}, "Joomla": {}, "WordPress": {}}, "File_Upload": {}, "Injection": {"LFI": {}, "XSS": {}, "XXE": {}}, "Next_js": {}, "Tomcat": {}}}, "03_Post_Exploitation": {"AD_Windows": {"Kerberos_ADCS_Relay": {}, "Recon_Health": {}}, "Credentials": {"Credentials_Hunting": {}, "Passwords_Cracking": {}}, "Evasion": {}, "Pivoting": {}, "Privilege_Escalation": {"Linux": {}}, "Reverse_Engineering": {}}, "04_Miscellaneous": {}}</script>
+    <script id="registryYaml" type="text/plain">- id: metasploit-pentest-plugin
+  name: Pentest-plugin
+  version:
+  kind: metasploit
+  phases: [ "00_Common" ]
+  caps: [ "automation", "workspace", "import-export", "loot-triage" ]
+  repo: https://github.com/darkoperator/Metasploit-Plugins
+  desc: Plugin che estende msfconsole con comandi per gestire workspace, import/export dei risultati e note operative. Utile per standardizzare i flussi ripetibili e ridurre tempi morti tra ricognizione, exploitation e raccolta evidenze. Semplice da caricare e integrare nel workflow team.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Metasploit_Plugins" ]
+  notes:
+
+- id: scipag-vulscan
+  name: Vulscan
+  version:
+  kind: nmap
+  phases: [ "00_Common" ]
+  caps: [ "service-detection", "vuln-mapping", "cve-correlation" ]
+  repo: https://github.com/scipag/vulscan
+  desc: Modulo per Nmap che converte l’output di -sV in suggerimenti CVE offline. Fa matching prodotto/versione→vulnerabilità per prioritizzare i servizi a rischio subito dopo la scansione. Ideale come triage rapido prima di vulnerability scanning più pesante.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Scripts" ]
+  notes:
+
+- id: adrecon
+  name: ADRecon
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "ad-inventory", "reporting", "risk-overview" ]
+  repo: https://github.com/sense-of-security/ADRecon
+  desc: Colleziona artefatti AD (utenti privilegiati, trust, GPO, deleghe) e genera report completi per una vista olistica dei rischi. Ottimo per baseline iniziale e pianificazione di attacchi/mitigazioni in ambienti Windows enterprise.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: crackmapexec-win
+  name: CrackMapExecWin
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "auth-spray", "lateral-movement", "remote-exec", "loot" ]
+  repo: https://github.com/maaaaz/CrackMapExecWin
+  desc: Port Windows di CME per autenticazioni in massa, enum di condivisioni/local-admins e comandi remoti (SMB/WMI/WinRM). Perfetto per triage veloce, raccolta credenziali e movimento laterale in domini AD.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: domainpasswordspray
+  name: DomainPasswordSpray.ps1
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "password-spraying", "user-enum", "opsec" ]
+  repo: https://github.com/dafthack/DomainPasswordSpray
+  desc: Script PowerShell per password spraying contro domini AD con generazione automatica degli utenti. Rispetta le lockout policy e produce evidenze pulite per initial access a basso rumore in scenari enterprise.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: getuserspns-windows
+  name: GetUserSPNs_windows.exe
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "kerberoasting", "spn-enum" ]
+  repo: https://github.com/maaaaz/impacket-examples-windows
+  desc: Esegue enum degli SPN utente e richiede TGS per attacchi di kerberoasting. I ticket ottenuti possono essere crackati offline per recuperare password di servizio e aprire nuove superfici di escalation.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: group3r
+  name: Group3r
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "gpo-audit", "misconfig-detection" ]
+  repo: https://github.com/Group3r/Group3r
+  desc: Enum veloce di GPO e analisi di misconfigurazioni sfruttabili (script, MSI, percorsi in SYSVOL, ACL rischiose). Aiuta a scoprire writeable path e credenziali esposte utili ad escalation e movimenti laterali.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: inveigh-exe
+  name: Inveigh.exe
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "mitm", "llmnr-nbns-mdns", "hash-capture", "relay-support" ]
+  repo: https://github.com/Kevin-Robertson/Inveigh
+  desc: Strumento .NET per avvelenamento LLMNR/NBNS/mDNS e cattura NTLM. Utile per attivare relay o cracking offline e ottenere credenziali valide nei segmenti Windows poco monitorati.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: inveigh-ps1
+  name: Inveigh.ps1
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "mitm", "llmnr-nbns-mdns", "hash-capture" ]
+  repo: https://github.com/Kevin-Robertson/Inveigh
+  desc: Versione PowerShell di Inveigh per scenari fileless o con restrizioni sui binari. Permette cattura/relay di challenge-response con footprint operativo contenuto.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: kerbrute-win
+  name: kerbrute_Windows.exe
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "user-enum", "password-spraying", "kerberos-preauth" ]
+  repo: https://github.com/ropnop/kerbrute
+  desc: Enum utenti e password spraying via Kerberos pre-auth (AS-REQ/AS-REP) a basso rumore. Ottimo per validare account senza generare traffico SMB/LDAP evidente.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: mimikatz
+  name: Mimikatz
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "credential-dumping", "tickets", "pth", "ptt" ]
+  repo: https://github.com/gentilkiwi/mimikatz
+  desc: Toolkit per dump credenziali (LSA/WDigest/DPAPI) e operazioni Kerberos avanzate (Pass-the-Hash/Ticket, golden/silver). Cardine per consolidare accesso e persistenza in post-exploitation.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: pingcastle
+  name: PingCastle
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "ad-health", "risk-scoring", "reporting" ]
+  repo: https://www.pingcastle.com/download/
+  desc: Valuta salute e rischio dell’AD con indicatori metodologici e report chiari. Evidenzia deleghe rischiose, esposizioni e priorità di remediation per la roadmap difensiva.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: powerupsql
+  name: PowerUpSQL
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "mssql-discovery", "audit-weak-config", "priv-esc", "os-cmd" ]
+  repo: https://github.com/NetSPI/PowerUpSQL
+  desc: Toolkit PowerShell per discovery di istanze SQL Server, audit configurazioni deboli e abusi post-exploitation (esecuzione OS, catene di impersonation/link server) in ambienti Windows.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: powerview-ps1
+  name: PowerView.ps1
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "ad-enum", "acl-abuse", "situational-awareness" ]
+  repo: https://github.com/PowerShellMafia/PowerSploit
+  desc: Modulo PowerShell per mappare oggetti/relazioni AD e individuare ACL/deleghe sfruttabili. Spesso usato per preparare la raccolta dati di BloodHound o percorsi d’escalation.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: responder-windows
+  name: Responder-Windows
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "llmnr-nbns-mdns-poisoning", "hash-capture", "relay" ]
+  repo: https://github.com/lgandx/Responder-Windows
+  desc: Port Windows di Responder per intercettare risoluzioni nomi locali e catturare hash NTLM. Alternativa pratica quando Python non è disponibile sull’host di lavoro.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: rpcdump-windows
+  name: rpcdump_windows.exe
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "rpc-enum", "endpoint-mapper" ]
+  repo: https://github.com/csandker/RPCDump
+  desc: Interroga l’Endpoint Mapper e lista interfacce/UUID/endpoint RPC esposti. Utile per individuare superfici d’attacco poco documentate lato Windows e servizi proprietari.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: rubeus
+  name: Rubeus.exe
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "kerberos-abuse", "asreproast", "kerberoast", "ptt", "ticket-management" ]
+  repo: https://github.com/GhostPack/Rubeus
+  desc: Toolkit Kerberos per AS-REP/Kerberoasting, gestione e abuso di ticket (dump/forge/overpass/PTT). Abilita escalation e persistenza su domini AD ben monitorati.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: securityassessment-ps1
+  name: SecurityAssessment.ps1
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "host-baseline", "policy-audit", "inventory" ]
+  repo:
+  desc: Script per raccogliere baseline di sicurezza (policy, ruoli, servizi, log) e produrre evidenze utili ad hardening e verifiche post-remediation su host Windows gestiti.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: sharphound
+  name: SharpHound.exe
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "ad-graph-collection", "bloodhound-ingest" ]
+  repo: https://github.com/SpecterOps/SharpHound
+  desc: "Collettore per BloodHound: acquisisce relazioni AD (ACL, sessioni, gruppi, SPN, deleghe) e genera pacchetti ingest per tracciare percorsi di escalation nei domini."
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: sharpmapexec
+  name: SharpMapExec.exe
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "lateral-movement", "spray", "remote-exec" ]
+  repo: https://github.com/cube0x0/SharpMapExec
+  desc: Reimplementazione C# in stile CME per esecuzione remota e movimento laterale da host Windows. Indicata per scenari con restrizioni su Python o ambienti locked-down.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: sharpview
+  name: SharpView.exe
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "ad-enum", "acl-enum", "situational-awareness" ]
+  repo: https://github.com/tevora-threat/SharpView
+  desc: Port C# di PowerView per enumerazione AD e analisi ACL quando PowerShell è ristretto/monitorato. Spesso usato per raccolta dati preliminare a BloodHound.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: snaffler
+  name: Snaffler.exe
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "fileshare-hunting", "secret-discovery", "regex-content" ]
+  repo: https://github.com/SnaffCon/Snaffler
+  desc: Scansiona file share alla ricerca di credenziali e dati sensibili usando pattern/regex. Utile per prioritizzare “needle in a haystack” in grandi domini Windows.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: sysinternals-suite
+  name: SysinternalsSuite
+  version:
+  kind: windows
+  phases: [ "00_Common" ]
+  caps: [ "proc-monitoring", "forensics", "troubleshooting" ]
+  repo: https://learn.microsoft.com/en-us/sysinternals/downloads/sysinternals-suite
+  desc: Raccolta Microsoft (Autoruns, ProcMon, Sysmon, PsTools, ecc.) per analisi processi, servizi, registry e rete. Indispensabile per DFIR leggero e troubleshooting durante engagement.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Tools_Windows" ]
+  notes:
+
+- id: wordlist-paroleitaliane
+  name: Parole Italiane
+  version:
+  kind: wordlist
+  phases: [ "00_Common" ]
+  caps: [ "italian-words", "mutation-base" ]
+  repo: https://github.com/napolux/paroleitaliane
+  desc: Dizionari in italiano (nomi, cognomi, termini comuni) per spraying/bruteforce contestuale e generazione di wordlist mutate ad hoc su target locali.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Wordlists" ]
+  notes:
+
+- id: wordlist-payloadsallthethings-4-2
+  name: PayloadsAllTheThings
+  version: "4.2"
+  kind: wordlist
+  phases: [ "00_Common" ]
+  caps: [ "payloads", "fuzzing", "bypass-techniques" ]
+  repo: https://github.com/swisskyrepo/PayloadsAllTheThings
+  desc: Raccolta curata di payload, bypass e cheat-sheet per molte vulnerabilità (injection, traversal, XXE, XSS, deserializzazione). Riferimento pratico per fuzzing mirato e verifica remediation.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Wordlists" ]
+  notes:
+
+- id: wordlist-portswigger
+  name: PortSwigger
+  version:
+  kind: wordlist
+  phases: [ "00_Common" ]
+  caps: [ "burp-integration", "content-discovery", "intruder" ]
+  repo: https://github.com/PortSwigger/wordlist-extractor
+  desc: Wordlist e utility integrate all’ecosistema Burp per estrarre/generare dizionari dagli asset dell’app target e alimentarli in Intruder/Extender.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Wordlists" ]
+  notes:
+
+- id: wordlist-seclists-2025-2
+  name: SecLists
+  version: "2025.2"
+  kind: wordlist
+  phases: [ "00_Common" ]
+  caps: [ "user-passlists", "content-discovery", "fuzzing", "payloads" ]
+  repo: https://github.com/danielmiessler/SecLists
+  desc: Collezione OWASP di liste per pentest (user/pass, dir/file, fuzzing, pattern sensibili, web-shell). Standard de-facto per discovery, brute force e test mirati.
+  best_in: []
+  best_in_paths: []
+  category_path: [ "00_Common", "Wordlists" ]
+  notes:
+
+- id: subbrute-77
+  name: subbrute-77
+  version:
+  kind: tool
+  phases: [ "01_Information_Gathering" ]
+  caps: [ "dns-bruteforce", "subdomain-enum", "resolver-rotation", "wildcard-detection" ]
+  repo: https://github.com/TheRook/subbrute
+  desc: Brute force di sottodomini usando open resolvers per ridurre rate-limit e blocchi. Supporta wordlist personalizzate, rilevazione wildcard e caching, ampliando velocemente la superficie prima di tecniche passive/lente.
+  best_in: [ "01_Information_Gathering" ]
+  best_in_paths:
+    - [ "01_Information_Gathering", "01_Recon", "Infrastructure", "DNS_Subdomains" ]
+  category_path: [ "01_Information_Gathering", "01_Recon", "Infrastructure", "DNS_Subdomains" ]
+  notes:
+
+- id: dirsearch
+  name: dirsearch
+  version: "0.4.3"
+  kind: tool
+  phases: [ "01_Information_Gathering" ]
+  caps: [ "content-discovery", "bruteforce-dirs", "wordlists", "extensions", "resume", "proxy" ]
+  repo: https://github.com/maurosoria/dirsearch
+  desc: Web path scanner per directory/file nascosti con filtri su status/lunghezza/regex, gestione estensioni e resume. Ottimizzato per grandi superfici con threading, rate control, autenticazione e proxy.
+  best_in: [ "01_Information_Gathering" ]
+  best_in_paths:
+    - [ "01_Information_Gathering", "01_Recon", "Web", "Content_Discovery" ]
+  category_path: [ "01_Information_Gathering", "01_Recon", "Web", "Content_Discovery" ]
+  notes:
+
+- id: aquatone-linux-amd64
+  name: aquatone_linux_amd64
+  version: "1.7.0"
+  kind: tool
+  phases: [ "01_Information_Gathering" ]
+  caps: [ "visual-recon", "screenshotting", "html-report", "host-triage" ]
+  repo: https://github.com/michenriksen/aquatone
+  desc: "Visual recon dei servizi web: screenshot massivi e report HTML navigabile per triage rapido. Raggruppa per host/porta e fa emergere pannelli, errori e app non mappate a colpo d’occhio."
+  best_in: [ "01_Information_Gathering" ]
+  best_in_paths:
+    - [ "01_Information_Gathering", "01_Recon", "Web", "Fingerprinting", "Visual_Recon" ]
+  category_path: [ "01_Information_Gathering", "01_Recon", "Web", "Fingerprinting", "Visual_Recon" ]
+  notes:
+
+- id: whatwaf-1-9
+  name: WhatWaf
+  version: "1.9"
+  kind: tool
+  phases: [ "01_Information_Gathering" ]
+  caps: [ "waf-detection", "waf-fingerprint", "bypass-tips" ]
+  repo: https://github.com/Ekultek/WhatWaf
+  desc: Fingerprint dei WAF tramite pattern di header/redirect/pagine di blocco con suggerimenti di tuning. Guida l’adattamento di fuzzing/exploitation per ridurre i blocchi applicativi.
+  best_in: [ "01_Information_Gathering" ]
+  best_in_paths:
+    - [ "01_Information_Gathering", "01_Recon", "Web", "Fingerprinting", "WAF" ]
+  category_path: [ "01_Information_Gathering", "01_Recon", "Web", "Fingerprinting", "WAF" ]
+  notes:
+
+- id: paramspider
+  name: paramspider
+  version: "1.0.1"
+  kind: tool
+  phases: [ "01_Information_Gathering" ]
+  caps: [ "params-discovery", "wayback-mining", "scope-filtering", "ext-exclusion" ]
+  repo: https://github.com/devanshbatham/ParamSpider
+  desc: Estrae URL/parametri dagli archivi web (es. Wayback) senza toccare il target. Filtra con estensioni/regex e produce liste pronte per fuzzing mirato (XSS/SQLi/SSRF).
+  best_in: [ "01_Information_Gathering" ]
+  best_in_paths:
+    - [ "01_Information_Gathering", "01_Recon", "Web", "Params_Discovery" ]
+  category_path: [ "01_Information_Gathering", "01_Recon", "Web", "Params_Discovery" ]
+  notes:
+
+- id: smb-enum
+  name: SMB-enum
+  version:
+  kind: tool
+  phases: [ "01_Information_Gathering" ]
+  caps: [ "smb-enum", "shares", "null-session", "rid-cycling" ]
+  repo:
+  desc: "Raccolta di tecniche/utility per enumerare SMB: condivisioni, permessi, utenti e policy tramite null session e RID cycling. Utile per identificare percorsi leggibili/scrivibili e punti d’appoggio in rete prima di movimenti laterali. (Riferimenti: guide pratiche e cheat-sheet SMB)."
+  best_in: [ "01_Information_Gathering" ]
+  best_in_paths:
+    - [ "01_Information_Gathering", "02_Enumeration", "Infrastructure", "SMB" ]
+  category_path: [ "01_Information_Gathering", "02_Enumeration", "Infrastructure", "SMB" ]
+  notes:
+
+- id: postman
+  name: Postman
+  version:
+  kind: app
+  phases: [ "01_Information_Gathering" ]
+  caps: [ "api-client", "collections", "environment", "auth-testing" ]
+  repo: https://www.postman.com/downloads/
+  desc: Client API per creare/organizzare richieste, variabili d’ambiente e collezioni condivisibili. Consente test ripetibili su endpoint, autenticazioni e flussi end-to-end con report e collaborazione integrata.
+  best_in: [ "01_Information_Gathering" ]
+  best_in_paths:
+    - [ "01_Information_Gathering", "02_Enumeration", "Web", "API" ]
+  category_path: [ "01_Information_Gathering", "02_Enumeration", "Web", "API" ]
+  notes:
+
+- id: cmseek-v-1-1-3
+  name: CMSeeK
+  version: "1.1.3"
+  kind: tool
+  phases: [ "01_Information_Gathering" ]
+  caps: [ "cms-detection", "fingerprint", "deep-scan", "version-detect" ]
+  repo: https://github.com/Tuhinshubhra/CMSeeK
+  desc: Riconoscimento e fingerprint dei principali CMS con scansioni guidate o CLI. Esegue rilevamento versione e moduli di approfondimento per mappare rapidamente superfici e possibili vettori noti.
+  best_in: [ "01_Information_Gathering" ]
+  best_in_paths:
+    - [ "01_Information_Gathering", "02_Enumeration", "Web", "CMS" ]
+  category_path: [ "01_Information_Gathering", "02_Enumeration", "Web", "CMS" ]
+  notes:
+
+- id: cmsmap
+  name: CMSmap
+  version:
+  kind: tool
+  phases: [ "01_Information_Gathering" ]
+  caps: [ "cms-scan", "vuln-checks", "wordpress", "joomla", "drupal", "moodle" ]
+  repo: https://github.com/dionach/CMSmap
+  desc: Scanner Python per CMS che integra controlli comuni su più piattaforme (WP/Joomla/Drupal/Moodle). Automatizza detection e test ricorrenti per evidenziare configurazioni deboli e plugin noti vulnerabili.
+  best_in: [ "01_Information_Gathering" ]
+  best_in_paths:
+    - [ "01_Information_Gathering", "02_Enumeration", "Web", "CMS" ]
+  category_path: [ "01_Information_Gathering", "02_Enumeration", "Web", "CMS" ]
+  notes:
+
+- id: joomlascan
+  name: JoomlaScan
+  version:
+  kind: tool
+  phases: [ "01_Information_Gathering" ]
+  caps: [ "joomla-enum", "components-detect", "fingerprint" ]
+  repo: https://github.com/drego85/JoomlaScan
+  desc: Rileva componenti e impronte di installazioni Joomla per individuare estensioni esposte e potenziali superfici attaccabili. Utile per triage mirato prima di verifiche su versioni/plugin.
+  best_in: [ "01_Information_Gathering" ]
+  best_in_paths:
+    - [ "01_Information_Gathering", "02_Enumeration", "Web", "CMS", "Joomla"]
+  category_path: [ "01_Information_Gathering", "02_Enumeration", "Web", "CMS", "Joomla" ]
+  notes:
+
+- id: katana-linux-amd64
+  name: katana_linux_amd64
+  version: "1.2.2"
+  kind: tool
+  phases: [ "01_Information_Gathering" ]
+  caps: [ "crawler", "spider", "javascript-aware", "sitemap" ]
+  repo: https://github.com/projectdiscovery/katana
+  desc: Crawler moderno ad alte prestazioni per enumerare percorsi e asset web, con parsing JavaScript e output strutturato. Ideale per alimentare content discovery, fuzzing e mapping dell’applicazione.
+  best_in: [ "01_Information_Gathering" ]
+  best_in_paths:
+    - [ "01_Information_Gathering", "02_Enumeration", "Web", "Crawling", "Active" ]
+  category_path: [ "01_Information_Gathering", "02_Enumeration", "Web", "Crawling", "Active" ]
+  notes:
+
+- id: findsploit-2-0
+  name: Findsploit
+  version: "2.0"
+  kind: framework
+  phases: [ "02_Exploitation" ]
+  caps: [ "exploit-search", "cve-mapping", "aux-suggest" ]
+  repo: https://github.com/1N3/Findsploit
+  desc: Wrapper da CLI che interroga più fonti (Exploit-DB/Metasploit/GitHub) per cercare PoC ed exploit in base a keyword/versioni/CVE. Utile per passare rapidamente da vuln-id a tecnica praticabile, con suggerimenti su moduli e script correlati.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "General" ]
+  category_path: [ "02_Exploitation", "General" ]
+  notes:
+
+- id: cameradar-5-0-4
+  name: cameradar
+  version: "5.0.4"
+  kind: tool
+  phases: [ "02_Exploitation" ]
+  caps: [ "rtsp-scan", "route-bruteforce", "creds-attack", "docker" ]
+  repo: https://github.com/Ullaakut/cameradar
+  desc: Scanner/attacker per RTSP che individua stream su porte comuni e tenta credenziali/percorsi noti per esporre feed video. Fornisce workflow “scan→attack→print-streams” e immagini Docker pronte per campagne mirate in LAN o VLAN isolate.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  notes:
+
+- id: hikpwn
+  name: HikPwn
+  version:
+  kind: tool
+  phases: [ "02_Exploitation" ]
+  caps: [ "hikvision-enum", "vuln-checks", "active-scan" ]
+  repo: https://github.com/4n4nk3/HikPwn
+  desc: "Scanner dedicato a device Hikvision: enum attiva/passiva, rilevazione porte/servizi esposti e check di vulnerabilità note. Comodo per triage rapido prima di password spraying o tentativi RTSP/ISAPI."
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  notes:
+
+- id: rtsp-routes-wordlist
+  name: routes_wordlist.txt
+  version:
+  kind: wordlist
+  phases: [ "02_Exploitation" ]
+  caps: [ "rtsp-routes", "content-discovery" ]
+  repo:
+  desc: Wordlist di percorsi comuni per stream RTSP (es. /live.sdp, /Streaming/Channels/101, /h264). Utile per brute-force dei path quando l’endpoint risponde ma non pubblica l’indice o nasconde i mount point.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  notes:
+
+- id: rtsp-authgrinder
+  name: rtsp_authgrinder
+  version:
+  kind: tool
+  phases: [ "02_Exploitation" ]
+  caps: [ "rtsp-bruteforce", "basic-digest", "multi-thread" ]
+  repo: https://github.com/tektengu/rtsp_authgrinder
+  desc: Brute-forcer di credenziali per servizi RTSP con supporto a Basic/Digest e threading. Indicato su DVR/IP-cam con credenziali deboli quando il percorso dello stream è noto o enumerabile.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  notes:
+
+- id: rtsp-crack-1-0-3
+  name: rtsp_crack
+  version: "1.0.3"
+  kind: tool
+  phases: [ "02_Exploitation" ]
+  caps: [ "rtsp-bruteforce", "gui", "digest-support" ]
+  repo:
+  desc: Utility orientata al brute-force di endpoint RTSP (spesso con interfaccia grafica) che prova combinazioni utente/password e gestisce meccanismi Digest. Utile per verifiche rapide su piccole liste di target o durante demo onsite.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  notes:
+
+- id: rtsp-digest-auth-bruteforcer
+  name: RTSP-Digest-Auth-Bruteforcer
+  version:
+  kind: tool
+  phases: [ "02_Exploitation" ]
+  caps: [ "digest-bruteforce", "header-crafting" ]
+  repo:
+  desc: Script per forzare l’autenticazione Digest su server RTSP costruendo correttamente nonce/response e gestendo retry. Indicato quando Basic è disabilitato e si dispone di route/realm noti dal banner.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  notes:
+
+- id: rtsp-findingsomefun
+  name: RTSP-FindingSomeFun
+  version:
+  kind: tool
+  phases: [ "02_Exploitation" ]
+  caps: [ "mass-scan", "bruteforce", "wordlist-combos" ]
+  repo: https://github.com/ThatNotEasy/RTSP-FindingSomeFun
+  desc: Scanner/bruteforcer massivo di endpoint RTSP con supporto a liste IP, multithreading e combinazioni user/pass predefinite. Pensato per ricognizioni estese su reti ampie o blocchi IP interni.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  notes:
+
+- id: rtspscanner
+  name: RTSPScanner
+  version:
+  kind: tool
+  phases: [ "02_Exploitation" ]
+  caps: [ "rtsp-scan", "path-testing", "api-output" ]
+  repo: https://github.com/BeardedTek-com/RTSPScanner
+  desc: Utility Python per enumerare sorgenti RTSP su host o network, testare path noti e integrare i risultati in pipeline (es. rtsp-simple-server). Utile per consolidare elenco stream prima di attacchi mirati.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
+  notes:
+
+- id: drupalgeddon
+  name: drupalgeddon
+  version:
+  kind: exploit
+  phases: [ "02_Exploitation" ]
+  caps: [ "rce", "sql-injection", "cve-2014-3704" ]
+  repo:
+  desc: Exploit storico per Drupal 7 (CVE-2014-3704) che sfrutta SQLi in core per creare admin o eseguire codice. Ancora utile in legacy assessment e in laboratori per catene da SQLi→RCE.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "CMS_Exploits", "Drupal" ]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "Drupal" ]
+  notes:
+
+- id: drupalgeddon2
+  name: drupalgeddon2
+  version:
+  kind: exploit
+  phases: [ "02_Exploitation" ]
+  caps: [ "rce", "cve-2018-7600", "unauth" ]
+  repo: https://github.com/dreadlocked/Drupalgeddon2
+  desc: "PoC per CVE-2018-7600 (SA-CORE-2018-002): injection in Forms API che porta ad esecuzione comandi su Drupal 7/8 non patchati. Usato per initial access rapido su istanze legacy esposte."
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "CMS_Exploits", "Drupal" ]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "Drupal" ]
+  notes:
+
+- id: joomla-bruteforce
+  name: joomla-bruteforce
+  version:
+  kind: exploit
+  phases: [ "02_Exploitation" ]
+  caps: [ "auth-bruteforce", "session-handling", "proxy" ]
+  repo: https://github.com/ajnik/joomla-bruteforce
+  desc: Script per brute-force delle credenziali di login Joomla con supporto a proxy e wordlist. Indicato quando non sono presenti vulnerabilità note ma l’hardening è debole o assente.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "CMS_Exploits", "Joomla" ]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "Joomla" ]
+  notes:
+
+- id: joomla-dir-traversal
+  name: joomla_dir_trav.py
+  version:
+  kind: exploit
+  phases: [ "02_Exploitation" ]
+  caps: [ "path-traversal", "file-read", "artifact-extract" ]
+  repo:
+  desc: Exploit per vulnerabilità di directory traversal in Joomla che consente lettura/cancellazione di file fuori dal path previsto. Utile per esfiltrare config/log e preparare escalation successive.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "CMS_Exploits", "Joomla" ]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "Joomla" ]
+  notes:
+
+- id: wp-cve-2024-9047
+  name: CVE-2024-9047
+  version: "2024-9047"
+  kind: exploit
+  phases: [ "02_Exploitation" ]
+  caps: [ "path-traversal", "arbitrary-read", "wp-file-upload" ]
+  repo:
+  desc: Path Traversal nel plugin “WordPress File Upload” ≤4.24.11 con possibilità di leggere/eliminare file fuori directory (richiede PHP ≤7.4 su target). Indicata per creep di config/keys propedeutico a RCE.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "CMS_Exploits", "WordPress" ]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "WordPress" ]
+  notes:
+
+- id: wp-wpdiscuz-rce
+  name: RCE - wpDiscuz
+  version:
+  kind: exploit
+  phases: [ "02_Exploitation" ]
+  caps: [ "unauth-file-upload", "rce", "cve-2020-24186" ]
+  repo: https://www.exploit-db.com/exploits/49967
+  desc: Vulnerabilità nei plugin wpDiscuz 7.0–7.0.4 che consente upload arbitrario di file (incluso PHP) via endpoint AJAX, portando ad esecuzione di codice. Efficace per initial shell non autenticata.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "CMS_Exploits", "WordPress" ]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "WordPress" ]
+  notes:
+
+- id: wpxploit-1-0-0
+  name: wpxploit
+  version: "1.0.0"
+  kind: tool
+  phases: [ "02_Exploitation" ]
+  caps: [ "xmlrpc-bruteforce", "credential-spraying" ]
+  repo: https://github.com/relarizky/wpxploit
+  desc: Script semplice per attacchi di dizionario contro l’endpoint XML-RPC di WordPress (system.multicall). Utile per spraying low-and-slow su installazioni non rate-limited.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "CMS_Exploits", "WordPress" ]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "WordPress" ]
+  notes:
+
+- id: wpxstrike
+  name: WPXStrike
+  version:
+  kind: tool
+  phases: [ "02_Exploitation" ]
+  caps: [ "xss-to-rce", "wp-automation", "post-exploitation" ]
+  repo: https://github.com/nowak0x01/WPXStrike
+  desc: Strumento per elevare XSS su WordPress a esecuzione di codice o impatti critici, automatizzando iniezioni/pivot su versioni 4.x–6.x. Utile in scenari con WAF leggeri e policy editor permissive.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "CMS_Exploits", "WordPress" ]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "WordPress" ]
+  notes:
+
+- id: phpbash
+  name: phpbash
+  version:
+  kind: webshell
+  phases: [ "02_Exploitation" ]
+  caps: [ "semi-interactive-shell", "tty-like", "exec" ]
+  repo: https://github.com/Arrexel/phpbash
+  desc: Web-shell PHP semi-interattiva con interfaccia tipo TTY per eseguire comandi, navigare il FS e trasferire file. Ideale come primo foothold quando l’upload non filtra estensioni.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "File_Upload" ]
+  category_path: [ "02_Exploitation", "Web", "File_Upload" ]
+  notes:
+
+- id: php-reverse-shell
+  name: php-reverse-shell
+  version:
+  kind: webshell
+  phases: [ "02_Exploitation" ]
+  caps: [ "reverse-connection", "callback", "simple" ]
+  repo: https://github.com/pentestmonkey/php-reverse-shell
+  desc: Script PHP minimale per stabilire una reverse shell verso listener controllato. Veloce da configurare (IP/porta), utile in combinazione con upload arbitrari o misconfig di file manager.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "File_Upload" ]
+  category_path: [ "02_Exploitation", "Web", "File_Upload" ]
+  notes:
+
+- id: tomcat-cmd-jsp
+  name: Tomcat_cmd.jsp
+  version:
+  kind: webshell
+  phases: [ "02_Exploitation" ]
+  caps: [ "jsp-shell", "tomcat-manage", "cmd-exec" ]
+  repo: https://github.com/SecurityRiskAdvisors/cmd.jsp
+  desc: Web-shell JSP universale per ambienti Tomcat/Java, utile dove i filtri PHP non sono applicabili. Permette esecuzione comandi e gestione di base dei file con footprint ridotto.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "File_Upload" ]
+  category_path: [ "02_Exploitation", "Web", "File_Upload" ]
+  notes:
+
+- id: wwwolf-php-webshell
+  name: wwwolf-php-webshell
+  version:
+  kind: webshell
+  phases: [ "02_Exploitation" ]
+  caps: [ "file-manager", "cmd-exec", "upload-download" ]
+  repo: https://github.com/WhiteWinterWolf/wwwolf-php-webshell
+  desc: Web-shell PHP completa con file manager, esecuzione comandi e funzioni di rete. Indicata per operare velocemente post-upload e creare staging per payload successivi.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "File_Upload" ]
+  category_path: [ "02_Exploitation", "Web", "File_Upload" ]
+  notes:
+
+- id: lfifreak
+  name: LFiFreak
+  version:
+  kind: tool
+  phases: [ "02_Exploitation" ]
+  caps: [ "lfi-auto", "wrapper-bypass", "wordlist" ]
+  repo: https://github.com/OsandaMalith/LFiFreak
+  desc: Automazione per LFI con test su wrapper (php://, data://), bypass comuni e wordlist di percorsi sensibili. Utile per escalation da lettura file a code-exec con log poisoning o session hijack.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "Injection", "LFI" ]
+  category_path: [ "02_Exploitation", "Web", "Injection", "LFI" ]
+  notes:
+
+- id: lfisuite
+  name: LFISuite
+  version:
+  kind: tool
+  phases: [ "02_Exploitation" ]
+  caps: [ "lfi-enum", "bypass", "auto-exploit" ]
+  repo: https://github.com/D35m0nd142/LFISuite
+  desc: Toolkit per sfruttare LFI con tecniche di enumerazione, probing su vari wrapper e funzioni di exploitation automatica (inclusi log/session poisoning). Buona base per catene LFI→RCE.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "Injection", "LFI" ]
+  category_path: [ "02_Exploitation", "Web", "Injection", "LFI" ]
+  notes:
+
+- id: liffy
+  name: liffy
+  version:
+  kind: tool
+  phases: [ "02_Exploitation" ]
+  caps: [ "lfi-exploit", "rce-primitives", "wrapper-techniques" ]
+  repo: https://github.com/mzfr/liffy
+  desc: Sfrutta LFI per ottenere RCE tramite tecniche note (log poisoning, php://filter, session injection). Fornisce payload pronti e flussi guidati per trasformare rapidamente LFI in shell utile.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "Injection", "LFI" ]
+  category_path: [ "02_Exploitation", "Web", "Injection", "LFI" ]
+  notes:
+
+- id: xsstrike-3-1-6
+  name: XSStrike
+  version: "3.1.6"
+  kind: tool
+  phases: [ "02_Exploitation" ]
+  caps: [ "xss-scan", "payload-gen", "crawler", "waf-testing" ]
+  repo: https://github.com/s0md3v/XSStrike
+  desc: Suite avanzata per XSS con generatori intelligenti di payload, crawler veloce e fuzzer per WAF. Consente di validare riflessi/DOM e di costruire catene verso account takeover o privesc applicative.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "Injection", "XSS" ]
+  category_path: [ "02_Exploitation", "Web", "Injection", "XSS" ]
+  notes:
+
+- id: xxeinjector
+  name: XXEinjector
+  version:
+  kind: tool
+  phases: [ "02_Exploitation" ]
+  caps: [ "xxe-auto", "oob-exfil", "dir-enum" ]
+  repo: https://github.com/enjoiz/XXEinjector
+  desc: Automazione per XXE con supporto a esfiltrazione OOB (FTP/HTTP/Gopher), listing directory in stack Java e brute dei path. Utile per ottenere file sensibili e pivot su credenziali/segreti.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "Injection", "XXE" ]
+  category_path: [ "02_Exploitation", "Web", "Injection", "XXE" ]
+  notes:
+
+- id: poc-cve-2025-29927
+  name: PoC CVE-2025-29927
+  version:
+  kind: exploit
+  phases: [ "02_Exploitation" ]
+  caps: [ "auth-bypass", "header-manipulation", "nextjs-middleware" ]
+  repo:
+  desc: PoC per CVE-2025-29927 che sfrutta l’header x-middleware-subrequest per bypassare autorizzazioni in middleware Next.js non patchati. Utile per validare esposizioni e dimostrare impatto su route protette.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "Next_js" ]
+  category_path: [ "02_Exploitation", "Web", "Next_js" ]
+  notes:
+
+- id: cnvd-2020-10487-tomcat-ajp-lfi
+  name: CNVD-2020-10487-Tomcat-Ajp-lfi
+  version:
+  kind: exploit
+  phases: [ "02_Exploitation" ]
+  caps: [ "ajp-lfi", "ghostcat", "file-read" ]
+  repo: https://github.com/YDHCUI/CNVD-2020-10487-Tomcat-Ajp-lfi
+  desc: Exploit per “Ghostcat” (AJP) che consente LFI su Tomcat tramite protocollo 8009. Indicato per leggere web.xml/credenziali e preparare webshell drop-in via include dove possibile.
+  best_in: [ "02_Exploitation" ]
+  best_in_paths:
+    - [ "02_Exploitation", "Web", "Tomcat" ]
+  category_path: [ "02_Exploitation", "Web", "Tomcat" ]
+  notes:
+
+- id: kerbrute-linux-amd64
+  name: kerbrute_linux_amd64
+  version: "1.0.3"
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "kerberos-preauth", "user-enum", "password-spraying" ]
+  repo: https://github.com/ropnop/kerbrute
+  desc: Enum e spraying su AD via Kerberos Pre-Auth con basso rumore; utile per validare utenti/password senza traffico SMB/LDAP visibile. Versione di riferimento 1.0.3 (binaries).
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
+  category_path: [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
+  notes:
+
+- id: krbrelayx
+  name: krbrelayx
+  version:
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "kerberos-relay", "unconstrained-delegation", "adcs-abuse" ]
+  repo: https://github.com/dirkjanm/krbrelayx
+  desc: Toolkit per relaying Kerberos e abusi su deleghe non vincolate/AD CS; integra utility per DNS/LDAP e dipende da impacket/ldap3.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
+  category_path: [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
+  notes:
+
+- id: nopac
+  name: noPac
+  version:
+  kind: exploit
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "cve-2021-42278", "cve-2021-42287", "priv-esc-da" ]
+  repo: https://github.com/Ridter/noPac
+  desc: Exploit chain CVE-2021-42278/42287 per impersonare DA partendo da utente di dominio standard su DC non patchati.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
+  category_path: [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
+  notes:
+
+- id: pkinittools
+  name: PKINITtools
+  version:
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "pkinit", "adcs-relay", "certificate-auth" ]
+  repo: https://github.com/dirkjanm/PKINITtools
+  desc: Strumenti per PKINIT e relaying verso AD CS, utili per catene di autenticazione certificate-based e abuso di template deboli.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
+  category_path: [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
+  notes:
+
+- id: pywhisker
+  name: pywhisker
+  version:
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "adcs-esc", "keycredentiallink", "shadow-credentials" ]
+  repo: https://github.com/ShutdownRepo/pywhisker
+  desc: Implementa in Python l’attacco “Whisker” per manipolare msDS-KeyCredentialLink e ottenere controllo di account/computer tramite Shadow Credentials.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
+  category_path: [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
+  notes:
+
+- id: kerberos-windows-scripts
+  name: kerberos_windows_scripts
+  version:
+  kind: toolkit
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "kerberos-cli", "ticket-ops", "linux-ad-integration" ]
+  repo: https://github.com/ropnop/kerberos_windows_scripts
+  desc: Raccolta di script per interagire con Kerberos AD da Linux (operazioni su ticket/realm, integrazione con tool di rete).
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "AD_Windows", "Recon_Health" ]
+  category_path: [ "03_Post_Exploitation", "AD_Windows", "Recon_Health" ]
+  notes:
+
+- id: kerbrute
+  name: kerbrute
+  version: "1.0.3"
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "kerberos-preauth", "user-enum", "spray" ]
+  repo: https://github.com/ropnop/kerbrute
+  desc: Pre-auth bruteforcer/enumerator per AD con output pulito e threading; utile per health check e validazioni in rete Windows.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "AD_Windows", "Recon_Health" ]
+  category_path: [ "03_Post_Exploitation", "AD_Windows", "Recon_Health" ]
+  notes:
+
+- id: dehashed
+  name: Dehashed
+  version:
+  kind: service
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "breach-data", "osint", "credentials-hunting" ]
+  repo:
+  desc: Servizio OSINT per query su data breach (email/username/hash/IP) via web/API; utile per arricchire wordlist e confermare compromissioni.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
+  notes:
+
+- id: dehashed-py
+  name: dehashed.py
+  version:
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "dehashed-api", "csv-export", "query-automation" ]
+  repo:
+  desc: Client/utility per interrogare l’API di Dehashed e salvare risultati (CSV/JSON); comodo per enrichment e pivot OSINT.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
+  notes:
+
+- id: firefox-decrypt-main
+  name: firefox_decrypt-main
+  version:
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "firefox-secrets", "password-decrypt", "nss" ]
+  repo: https://github.com/unode/firefox_decrypt
+  desc: Estrae e decifra password dai profili Firefox/derivati sfruttando librerie NSS; supporta override del path quando il rilevamento automatico fallisce.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
+  notes:
+
+- id: lazagne-2-4-7
+  name: LaZagne
+  version: "2.4.7"
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "credential-recovery", "browser-mail-vaults", "windows" ]
+  repo: https://github.com/AlessandroZ/LaZagne
+  desc: Recupero credenziali da applicazioni comuni su host locale (browser, mail, client vari) con moduli multipli e output aggregato.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
+  notes:
+
+- id: mailsniper
+  name: MailSniper
+  version:
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "exchange-search", "ews", "o365", "keyword-hunt" ]
+  repo: https://github.com/dafthack/MailSniper
+  desc: Ricerca da PowerShell in mailbox Exchange/Office365 per individuare password, architetture e informazioni sensibili, anche cross-mailbox con privilegi adeguati.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
+  notes:
+
+- id: net-creds
+  name: net-creds
+  version:
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "pcap-live-sniff", "creds-extract", "protocol-auto" ]
+  repo: https://github.com/DanMcInerney/net-creds
+  desc: Sniffer che estrae credenziali/hash da interfaccia o PCAP senza affidarsi a porte note, concatenando frammenti e riconoscendo protocolli.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
+  notes:
+
+- id: pcredz
+  name: PCredz
+  version:
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "pcap-parse", "ntlm-kerberos", "creds-extract" ]
+  repo: https://github.com/lgandx/PCredz
+  desc: Estrae NTLM/Kerberos/HTTP Basic e altri secreti da PCAP o interfacce live, utile per triage di catture di rete su grandi ambienti.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
+  notes:
+
+- id: credking
+  name: CredKing
+  version:
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "password-spraying", "aws-lambda", "ip-rotation" ]
+  repo: https://github.com/ustayready/CredKing
+  desc: Password spraying distribuito su AWS Lambda con rotazione IP multi-regione; include plugin per provider comuni e output aggregato.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
+  notes:
+
+- id: decrypt-chrome-passwords-main
+  name: decrypt-chrome-passwords
+  version:
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "chrome-secrets", "password-decrypt", "windows" ]
+  repo: https://github.com/ohyicong/decrypt-chrome-passwords
+  desc: Script per decifrare le password salvate da Google Chrome (Windows), con export CSV e dipendenze Python standard per Crypto/SQLite.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
+  notes:
+
+- id: htb-wordlist
+  name: HTB-wordlist
+  version:
+  kind: wordlist
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "custom-wordlists", "bruteforce", "enum" ]
+  repo:
+  desc: Collezione di liste mirate nate in contesto HTB per brute force/enum; utile come base specifica per scenari CTF/lab e test mirati.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
+  notes:
+
+- id: omnispray
+  name: Omnispray
+  version:
+  kind: framework
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "modular-spraying", "m365", "generic-idp" ]
+  repo: https://github.com/0xZDH/Omnispray
+  desc: Framework modulare di enum/spraying che estende O365Spray a target generici, con template di moduli per provider diversi e pipeline ripetibili.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
+  notes:
+
+- id: statistically-likely-usernames
+  name: statistically-likely-usernames
+  version:
+  kind: wordlist
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "username-generation", "corp-patterns" ]
+  repo: https://github.com/insidetrust/statistically-likely-usernames
+  desc: Wordlist per generare username “probabili” basati su pattern aziendali, utile per enum e spraying a basso rumore.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
+  notes:
+
+- id: username-anarchy-0-6
+  name: username-anarchy
+  version: "0.6"
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "username-generation", "pattern-rules" ]
+  repo: https://github.com/urbanadventurer/username-anarchy
+  desc: Generatore di username con regole personalizzabili (iniziali, pattern, separatori), utile per costruire liste realistiche a partire da nominativi.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
+  notes:
+
+- id: bashfuscator
+  name: Bashfuscator
+  version:
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "bash-obfuscation", "mutators", "randomization" ]
+  repo: https://github.com/Bashfuscator/Bashfuscator
+  desc: Framework di offuscamento per one-liner/script Bash con mutatori modulari; genera codice randomizzato che a runtime ricostruisce l’input originale.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Evasion" ]
+  category_path: [ "03_Post_Exploitation", "Evasion" ]
+  notes:
+
+- id: ligolo-ng
+  name: Ligolo-ng
+  version: "0.8.2"
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "reverse-tunnel", "tun-interface", "tcp-tls", "autoroute" ]
+  repo: https://github.com/nicocha30/ligolo-ng
+  desc: Tunneling leggero con interfaccia TUN e supporto TCP/TLS; consente pivot trasparenti e instradamento automatico, pensato per red team multi-host.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Pivoting" ]
+  category_path: [ "03_Post_Exploitation", "Pivoting" ]
+  notes:
+
+- id: linenum
+  name: LinEnum
+  version:
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "linux-enum", "privesc-checks", "baseline" ]
+  repo: https://github.com/rebootuser/LinEnum
+  desc: Script di enumerazione locale Linux per identificare misconfig e vettori di escalation, con output organizzato per triage veloce.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
+  category_path: [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
+  notes:
+
+- id: logrotten-2-1
+  name: logrotten
+  version: "2.1"
+  kind: exploit
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "logrotate-race", "file-replace", "priv-esc" ]
+  repo: https://github.com/whotwagner/logrotten
+  desc: Exploit della race condition di logrotate per sovrascrivere file privilegiati e ottenere escalation local.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
+  category_path: [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
+  notes:
+
+- id: one-gadget-1-10-0
+  name: OneGadget
+  version: "1.10.0"
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "libc-gadgets", "rce-primitives", "ctf" ]
+  repo: https://github.com/david942j/one_gadget
+  desc: Trova “one-gadget” in libc per ottenere execve('/bin/sh') in exploit pwn; disponibile come gem Ruby e pacchetti distro.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
+  category_path: [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
+  notes:
+
+- id: pspy
+  name: pspy
+  version:
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "process-snoop", "cron-watch", "no-root" ]
+  repo: https://github.com/DominicBreuker/pspy
+  desc: Monitora processi/cron senza root leggendo procfs e intercettando processi effimeri; ottimo per individuare hook/esecuzioni privilegiate.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
+  category_path: [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
+  notes:
+
+- id: screen-exploit-poc
+  name: screen-exploit-poc.sh
+  version:
+  kind: exploit
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "screen-privesc", "local-exploit" ]
+  repo:
+  desc: PoC per escalation su GNU screen vulnerabile; utile su host legacy dove persiste la versione affetta e permessi deboli.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
+  category_path: [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
+  notes:
+
+- id: peass-ng
+  name: PEASS-ng
+  version: "20250904-27f4363e"
+  kind: toolkit
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "winpeas", "linpeas", "macpeas", "privesc-checks" ]
+  repo: https://github.com/peass-ng/PEASS-ng
+  desc: Suite di script per enumerare percorsi di privilege escalation su Windows/Linux/macOS con output evidenziato e checklist integrate.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Privilege_Escalation" ]
+  category_path: [ "03_Post_Exploitation", "Privilege_Escalation" ]
+  notes:
+
+- id: ghidra-11-4-2-public
+  name: Ghidra
+  version: "11.4.2"
+  kind: framework
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "disassembly", "decompiler", "scripting" ]
+  repo: https://github.com/NationalSecurityAgency/ghidra
+  desc: Framework SRE multipiattaforma (NSA) con disassembly, decompiler, grafi e scripting; adatto ad analisi di binari, malware e patch diff.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Reverse_Engineering" ]
+  category_path: [ "03_Post_Exploitation", "Reverse_Engineering" ]
+  notes:
+
+- id: pwninit-3-3-1
+  name: pwninit
+  version: "3.3.1"
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "ctf-bootstrap", "libc-setup", "patch-elf" ]
+  repo: https://github.com/io12/pwninit
+  desc: "Automazione bootstrap per challenge pwn: scarica linker/symbols, patcha RPATH/interpreter e genera template pwntools pronti."
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Reverse_Engineering" ]
+  category_path: [ "03_Post_Exploitation", "Reverse_Engineering" ]
+  notes:
+
+- id: pwntools-4-14-1
+  name: pwntools
+  version: "4.14.1"
+  kind: library
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "exploit-dev", "rop", "tube-io", "asm" ]
+  repo: https://github.com/Gallopsled/pwntools
+  desc: Framework Python per sviluppo exploit (ROP, assembler, tubes/SSH) con ampia documentazione ed esempi; riferimento de-facto per CTF/pwn.
+  best_in: [ "03_Post_Exploitation" ]
+  best_in_paths:
+    - [ "03_Post_Exploitation", "Reverse_Engineering" ]
+  category_path: [ "03_Post_Exploitation", "Reverse_Engineering" ]
+  notes:
+
+- id: 5ire-0-13-2-appimage
+  name: 5ire-0.13.2-x86_64.AppImage
+  version: "0.13.2"
+  kind: app
+  phases: [ "04_Miscellaneous" ]
+  caps: [ "mcp-client", "rag-local", "providers", "appimage" ]
+  repo: https://github.com/nanbingxyz/5ire
+  desc: Desktop AI assistant/MCP client multipiattaforma con knowledge base locale (RAG) e integrazione tool via MCP server; distribuito come AppImage per Linux. Utile per orchestrare agenti LLM con strumenti esterni e lavorare offline sui propri documenti.
+  best_in: [ "04_Miscellaneous" ]
+  best_in_paths:
+    - [ "04_Miscellaneous" ]
+  category_path: [ "04_Miscellaneous" ]
+  notes:
+
+- id: hexstrike-ai
+  name: hexstrike-ai
+  version: "6.0"
+  kind: mcp-server
+  phases: [ "04_Miscellaneous" ]
+  caps: [ "ai-agents", "tool-orchestration", "automation", "pentest-framework" ]
+  repo: https://github.com/0x4m4/hexstrike-ai
+  desc: MCP server che collega LLM (Claude/GPT/Copilot) a 150+ tool di sicurezza con decision engine e agenti autonomi per discovery, scanning ed exploitation automatizzabili. Pensato per red team/bug bounty e integrazione nei client MCP.
+  best_in: [ "04_Miscellaneous" ]
+  best_in_paths:
+    - [ "04_Miscellaneous" ]
+  category_path: [ "04_Miscellaneous" ]
+  notes:
+</script>
+
+</body>
+</html>
