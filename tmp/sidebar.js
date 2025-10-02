@@ -218,11 +218,21 @@
         const sidebar = document.getElementById("sidebar");
         document.querySelectorAll(".nav-item.has-children > .btn").forEach(btn => {
             btn.addEventListener("click", () => {
-                if (sidebar && sidebar.classList.contains("collapsed")) return;
-
                 const navItem = btn.closest(".nav-item");
                 const phaseKey = navItem.dataset.phase;
                 const wasOpen = navItem.classList.contains("open");
+
+                // If sidebar is collapsed, open it and the phase
+                if (sidebar && sidebar.classList.contains("collapsed")) {
+                    sidebar.classList.remove("collapsed");
+                    hideHoverPane();
+
+                    // Open this phase
+                    navItem.classList.add("open");
+                    btn.classList.add("active");
+                    highlightActivePath(phaseKey);
+                    return;
+                }
 
                 // Chiudi tutte le altre fasi
                 document.querySelectorAll(".nav-item.open").forEach(item => {
@@ -243,7 +253,36 @@
                     resetPathHighlight(navItem);
                 }
             });
+
+            // Add hover handler for collapsed sidebar
+            btn.addEventListener("mouseenter", () => {
+                if (sidebar && sidebar.classList.contains("collapsed")) {
+                    const navItem = btn.closest(".nav-item");
+                    const phaseKey = navItem.dataset.phase;
+                    const phaseData = taxonomy[phaseKey];
+
+                    if (hasChildrenNode(phaseData)) {
+                        clearTimeout(hoverTimeout);
+                        showHoverPaneForNode(btn, phaseData, phaseKey);
+                    }
+                }
+            });
+
+            btn.addEventListener("mouseleave", () => {
+                if (sidebar && sidebar.classList.contains("collapsed")) {
+                    hoverTimeout = setTimeout(() => {
+                        hideHoverPane();
+                    }, 200);
+                }
+            });
         });
+
+        // Keep hover pane open when mouse enters it
+        document.addEventListener("mouseenter", (e) => {
+            if (e.target.closest(".hover-pane")) {
+                clearTimeout(hoverTimeout);
+            }
+        }, true);
     }
 
     // Drill-down ricorsivo con path tracking
@@ -260,21 +299,23 @@
                 const hasKids = hasChildrenNode(node);
                 const phaseKey = path.split("/")[0];
 
-                // Aggiorna il path tracking per la fase corrente
+                // 1) Memoria path + ricolorazione (testo colorato sui nodi del path)
                 phasePathMap.set(phaseKey, path);
-
-                // Applica l'evidenziazione del percorso
                 highlightActivePath(phaseKey);
 
-                // stato active tra i fratelli
-                el.parentElement.querySelectorAll(":scope > .folder-leaf")
-                    .forEach(s => s.classList.toggle("active", s === el));
+                // 2) Background SEMPRE sull'ultimo nodo cliccato (anche se ha figli)
+                document.querySelectorAll(".leaf.active, .folder-leaf.active, .section-title.active")
+                    .forEach(n => n.classList.remove("active"));
+                el.classList.add("active");
 
+                // 3) Se non ha figli, abbiamo finito
                 if (!hasKids) return;
 
-                // SE È GIÀ APERTO → CHIUSURA
+                // 4) Se è già aperto → CHIUSURA con animazione, background rimane su questo nodo
                 const next = el.nextElementSibling;
-                if (next && next.classList.contains("children-nested") && next.dataset.parent === path) {
+                const isOpen = !!(next && next.classList.contains("children-nested") && next.dataset.parent === path);
+
+                if (isOpen) {
                     const h = next.scrollHeight;
                     next.style.maxHeight = h + "px";
                     next.style.opacity = "1";
@@ -287,12 +328,13 @@
                     next.addEventListener("transitionend", () => {
                         next.remove();
                         markLastVisible(el.parentElement);
-                        highlightActivePath(phaseKey);
+                        highlightActivePath(phaseKey);   // ricalcola i connettori e il path
                     }, {once: true});
+
                     return;
                 }
 
-                // NON ERA APERTO → APERTURA
+                // 5) NON era aperto → APERTURA (il background resta sul nodo aperto)
                 const depth = depthFromPath(path);
                 const nest = document.createElement("div");
                 nest.className = "children children-nested";
@@ -319,11 +361,12 @@
                     if (document.body.contains(nest) && nest.style.opacity === "1") {
                         nest.style.maxHeight = "none";
                     }
-                    highlightActivePath(phaseKey);
+                    highlightActivePath(phaseKey); // aggiorna connettori dopo apertura
                 };
                 nest.addEventListener("transitionend", onOpenEnd);
 
                 attachFolderLeafDrilldown(nest);
+                refreshAllVLinesDebounced(nest);
             });
         });
     }
@@ -349,6 +392,9 @@
     function attachSidebarControls() {
         const sidebar = document.getElementById("sidebar");
         const collapseBtn = document.getElementById("collapseBtn");
+        const collapseAllBtn = document.getElementById("collapseAllBtn");
+        const expandAllBtn = document.getElementById("expandAllBtn");
+
         if (collapseBtn) {
             collapseBtn.addEventListener("click", () => {
                 sidebar.classList.toggle("collapsed");
@@ -359,7 +405,35 @@
                         item.querySelector(".btn")?.classList.remove("active");
                     });
                     clearAllPathHighlights();
+                    hideHoverPane();
                 }
+            });
+        }
+
+        if (collapseAllBtn) {
+            collapseAllBtn.addEventListener("click", () => {
+                document.querySelectorAll(".nav-item.open").forEach(item => {
+                    item.classList.remove("open");
+                    item.querySelector(".btn")?.classList.remove("active");
+                });
+                document.querySelectorAll(".children-nested").forEach(nested => {
+                    nested.remove();
+                });
+                clearAllPathHighlights();
+            });
+        }
+
+        if (expandAllBtn) {
+            expandAllBtn.addEventListener("click", () => {
+                document.querySelectorAll(".nav-item.has-children").forEach(item => {
+                    const btn = item.querySelector(".btn");
+                    if (!item.classList.contains("open")) {
+                        item.classList.add("open");
+                        btn?.classList.add("active");
+                        const phaseKey = item.dataset.phase;
+                        highlightActivePath(phaseKey);
+                    }
+                });
             });
         }
 
@@ -391,6 +465,158 @@
                 });
                 document.querySelectorAll('.children, .children-nested').forEach(markLastVisible);
             });
+        }
+    }
+
+    // -------------------------------
+    // HOVER PANE FOR COLLAPSED SIDEBAR
+    // -------------------------------
+    let hoverPane = null;
+    let hoverTimeout = null;
+
+    function createHoverPane() {
+        if (!hoverPane) {
+            hoverPane = document.createElement("div");
+            hoverPane.className = "hover-pane";
+            document.body.appendChild(hoverPane);
+        }
+        return hoverPane;
+    }
+
+    function hideHoverPane() {
+        if (hoverPane) {
+            hoverPane.classList.remove("active");
+        }
+    }
+
+    function showHoverPaneForNode(element, node, path) {
+        const pane = createHoverPane();
+        const childrenHTML = buildChildren(node, path);
+
+        pane.innerHTML = childrenHTML;
+
+        const rect = element.getBoundingClientRect();
+        pane.style.left = `${rect.right + 10}px`;
+        pane.style.top = `${rect.top}px`;
+
+        setTimeout(() => {
+            pane.classList.add("active");
+        }, 50);
+
+        // Attach hover handlers for nested navigation
+        attachHoverPaneHandlers(pane);
+        // Attach click handlers for opening sidebar
+        attachHoverPaneClickHandlers(pane, path);
+    }
+
+    function attachHoverPaneHandlers(pane) {
+        pane.querySelectorAll(".folder-leaf").forEach(leaf => {
+            leaf.addEventListener("mouseenter", (e) => {
+                e.stopPropagation();
+                const path = leaf.dataset.path;
+                const node = getNodeByPath(taxonomy, path);
+                const hasKids = hasChildrenNode(node);
+
+                if (hasKids) {
+                    clearTimeout(hoverTimeout);
+                    showHoverPaneForNode(leaf, node, path);
+                }
+            });
+        });
+
+        pane.addEventListener("mouseleave", () => {
+            hoverTimeout = setTimeout(() => {
+                hideHoverPane();
+            }, 200);
+        });
+
+        pane.addEventListener("mouseenter", () => {
+            clearTimeout(hoverTimeout);
+        });
+    }
+
+    function attachHoverPaneClickHandlers(pane, basePath) {
+        pane.querySelectorAll(".folder-leaf").forEach(leaf => {
+            leaf.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const clickedPath = leaf.dataset.path;
+                const phaseKey = clickedPath.split("/")[0];
+
+                // Open sidebar
+                const sidebar = document.getElementById("sidebar");
+                sidebar.classList.remove("collapsed");
+
+                // Open the phase
+                const navItem = document.querySelector(`.nav-item[data-phase="${phaseKey}"]`);
+                if (navItem && !navItem.classList.contains("open")) {
+                    navItem.classList.add("open");
+                    navItem.querySelector(".btn")?.classList.add("active");
+                }
+
+                // Expand path to the clicked node
+                expandPathTo(clickedPath);
+
+                // Hide hover pane
+                hideHoverPane();
+            });
+        });
+    }
+
+    function expandPathTo(targetPath) {
+        const parts = targetPath.split("/");
+        const phaseKey = parts[0];
+
+        // Build path progressively
+        for (let i = 1; i < parts.length; i++) {
+            const partialPath = parts.slice(0, i + 1).join("/");
+            const parentPath = parts.slice(0, i).join("/");
+
+            const parentNode = document.querySelector(`.folder-leaf[data-path="${parentPath}"]`);
+            if (parentNode) {
+                const node = getNodeByPath(taxonomy, partialPath);
+                const hasKids = hasChildrenNode(node);
+
+                if (hasKids) {
+                    // Check if already expanded
+                    const next = parentNode.nextElementSibling;
+                    const isOpen = !!(next && next.classList.contains("children-nested") && next.dataset.parent === parentPath);
+
+                    if (!isOpen) {
+                        // Expand it
+                        const depth = depthFromPath(parentPath);
+                        const nest = document.createElement("div");
+                        nest.className = "children children-nested";
+                        nest.dataset.parent = parentPath;
+                        nest.style.setProperty("--level", depth);
+
+                        nest.innerHTML = buildChildren(node, parentPath);
+                        nest.style.maxHeight = "none";
+                        nest.style.opacity = "1";
+                        nest.style.paddingTop = "2px";
+
+                        parentNode.after(nest);
+                        markLastVisible(parentNode.parentElement);
+                        markLastVisible(nest);
+                        attachFolderLeafDrilldown(nest);
+                        refreshAllVLinesDebounced(nest);
+                    }
+                }
+            }
+        }
+
+        // Highlight and activate the final node
+        const finalNode = document.querySelector(`.folder-leaf[data-path="${targetPath}"]`);
+        if (finalNode) {
+            document.querySelectorAll(".leaf.active, .folder-leaf.active, .section-title.active")
+                .forEach(n => n.classList.remove("active"));
+            finalNode.classList.add("active");
+            phasePathMap.set(phaseKey, targetPath);
+            highlightActivePath(phaseKey);
+
+            // Scroll into view
+            setTimeout(() => {
+                finalNode.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 100);
         }
     }
 
@@ -526,3 +752,219 @@ if (document.readyState === 'loading') {
 } else {
     initVLineClamp();
 }
+
+/* === Sidebar Auto-Grow (Dynamic Width Based on Content & Path) === */
+(() => {
+  "use strict";
+
+  const CFG = {
+    base: 320,           // Base width
+    safety: 20,          // Extra padding for safety
+    maxVW: 0.90,         // Max 90% of viewport width
+    minPathWidth: 320,   // Minimum width for paths
+    // All visible text elements including labels and folder names
+    textSelectors: ".btn .label, .folder-leaf > span, .leaf > span, .section-title > span"
+  };
+
+  const ready = (fn) => (document.readyState === "loading")
+    ? document.addEventListener("DOMContentLoaded", fn)
+    : fn();
+
+  ready(() => {
+    const sidebar = document.getElementById("sidebar");
+    const nav = document.getElementById("nav");
+    if (!sidebar || !nav) return;
+
+    let lastApplied = null;
+    const isCollapsed = () => sidebar.classList.contains("collapsed");
+    const cap = () => Math.floor(window.innerWidth * CFG.maxVW);
+
+    // Calculate left position without considering transform
+    const leftNoTransform = (el) => {
+      let x = 0, n = el;
+      while (n && n !== sidebar) {
+        x += n.offsetLeft || 0;
+        n = n.offsetParent;
+      }
+      return x;
+    };
+
+    // Check if element is in an open tree branch
+    const isInOpenTree = (el) => {
+      for (let p = el; p && p !== sidebar; p = p.parentElement) {
+        // Check if parent is a collapsed phase
+        if (p.classList.contains("children")) {
+          const item = p.closest(".nav-item");
+          if (!item || !item.classList.contains("open")) return false;
+        }
+        // Check if parent is a closed nested folder
+        if (p.classList.contains("children-nested")) {
+          // If it's not marked as open AND has max-height: 0, it's closed
+          const style = getComputedStyle(p);
+          const maxHeight = style.maxHeight;
+          if (maxHeight === "0px") return false;
+        }
+      }
+      return true;
+    };
+
+    // Compute the full path width for a folder-leaf element
+    const getPathWidth = (el) => {
+      if (!el || !el.dataset || !el.dataset.path) return 0;
+
+      const path = el.dataset.path;
+      const parts = path.split("/");
+
+      // Calculate indentation based on depth
+      const depth = parts.length - 1;
+      const gutter = 28; // --gutter from CSS
+      const indentation = depth * gutter;
+
+      // Get the actual text width
+      const span = el.querySelector("span");
+      const textWidth = span ? (span.scrollWidth || span.offsetWidth) : 0;
+
+      // Icon width + gap + text + indentation + safety
+      const iconWidth = 16;
+      const gap = 8;
+
+      return indentation + iconWidth + gap + textWidth + CFG.safety;
+    };
+
+    const computeNeeded = () => {
+      if (isCollapsed()) return null;
+
+      const sidebarPadding = parseFloat(getComputedStyle(sidebar).paddingLeft) || 0;
+      const padR = parseFloat(getComputedStyle(sidebar).paddingRight) || 0;
+      let needed = CFG.base;
+
+      // Check all visible text elements
+      const labels = nav.querySelectorAll(CFG.textSelectors);
+      for (const el of labels) {
+        if (!el || !el.offsetParent) continue;
+
+        const parent = el.closest(".folder-leaf, .leaf, .btn, .section-title");
+        if (!parent) continue;
+
+        // Only consider elements in open tree branches
+        if (!isInOpenTree(parent)) continue;
+
+        // Calculate required width based on position and content
+        const left = leftNoTransform(el);
+        const textWidth = el.scrollWidth || el.offsetWidth || 0;
+
+        // For folder-leaf elements, also consider full path width
+        if (parent.classList.contains("folder-leaf")) {
+          const pathWidth = getPathWidth(parent);
+          needed = Math.max(needed, pathWidth + padR);
+        }
+
+        // Calculate width needed for this element
+        const requiredWidth = Math.ceil(left + textWidth + padR + CFG.safety);
+        needed = Math.max(needed, requiredWidth);
+      }
+
+      // Ensure minimum path width
+      needed = Math.max(needed, CFG.minPathWidth);
+
+      // Cap at max viewport width
+      return Math.min(needed, cap());
+    };
+
+    const apply = () => {
+      const target = computeNeeded();
+      if (target == null) return;
+
+      const current = Math.round(parseFloat(getComputedStyle(sidebar).width));
+
+      // Avoid unnecessary updates
+      if (lastApplied !== null && Math.abs(lastApplied - target) <= 1) return;
+      if (Math.abs(current - target) <= 1) {
+        lastApplied = target;
+        return;
+      }
+
+      sidebar.style.width = target + "px";
+      lastApplied = target;
+
+      // Refresh vertical lines after width change
+      if (typeof window.refreshAllVLinesDebounced === "function") {
+        window.refreshAllVLinesDebounced();
+      } else if (typeof window.refreshAllVLines === "function") {
+        window.refreshAllVLines();
+      }
+    };
+
+    let ticking = false;
+    const schedule = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        if (!isCollapsed()) apply();
+      });
+    };
+
+    const onCollapseChange = () => {
+      if (isCollapsed()) {
+        // Reset to CSS default when collapsed
+        sidebar.style.removeProperty("width");
+        lastApplied = null;
+      } else {
+        // Recalculate when expanding
+        setTimeout(schedule, 0);
+        setTimeout(schedule, 220);
+      }
+    };
+
+    // Watch for DOM changes in nav
+    const moNav = new MutationObserver(schedule);
+    moNav.observe(nav, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["class", "style", "data-open", "aria-expanded"]
+    });
+
+    // Watch for sidebar collapse/expand
+    const moSidebar = new MutationObserver(muts => {
+      for (const m of muts) {
+        if (m.type === "attributes" && m.attributeName === "class") {
+          onCollapseChange();
+          return;
+        }
+      }
+      schedule();
+    });
+    moSidebar.observe(sidebar, {
+      attributes: true,
+      attributeFilter: ["class", "style"]
+    });
+
+    // Watch for resize of sidebar and nav
+    const ro = new ResizeObserver(schedule);
+    ro.observe(sidebar);
+    ro.observe(nav);
+
+    // Listen to transition end events to recalculate after animations
+    nav.addEventListener("transitionend", e => {
+      if (e.propertyName === "max-height" ||
+          e.propertyName === "height" ||
+          e.propertyName === "opacity" ||
+          e.propertyName === "width") {
+        schedule();
+      }
+    }, true);
+
+    // Listen to window resize
+    window.addEventListener("resize", schedule);
+
+    // Initial calculation after sidebar is built
+    setTimeout(schedule, 0);
+    setTimeout(schedule, 300);
+    setTimeout(schedule, 600);
+
+    // Expose for manual triggering and debugging
+    window.SidebarAutoGrow = { schedule, apply, computeNeeded };
+  });
+})();
