@@ -26,6 +26,10 @@
     --elbow-top: 35%;
     --tree-stroke: rgba(255, 255, 255, .12);
     --tree-stroke-fade: rgba(255, 255, 255, .08);
+
+    --elbow-shift-x: 0px; /* + sposta la L a destra, - a sinistra */
+    --elbow-w-tweak: 0px; /* accorcia/allunga la L orizzontale */
+    --vline-shift-x: 0px; /* sposta la colonna verticale | */
 }
 
 * {
@@ -108,10 +112,12 @@ body {
     filter: brightness(0) saturate(100%) invert(42%) sepia(89%) saturate(2191%) hue-rotate(202deg) brightness(98%) contrast(96%);
     flex-shrink: 0;
 }
+
 .hover-pane .folder-leaf.active {
-  color: var(--phase);
-  font-weight: 600;
+    color: var(--phase);
+    font-weight: 600;
 }
+
 .brand-name {
     font-size: 16px;
     font-weight: 700;
@@ -388,7 +394,7 @@ nav::-webkit-scrollbar-thumb:hover {
     content: '';
     position: absolute;
     left: var(--tree-x);
-    top: 10px;
+    top: -10px; /* altezza | principale */
     bottom: 23px;
     width: var(--tree-w);
     border-radius: 2px;
@@ -440,15 +446,18 @@ nav::-webkit-scrollbar-thumb:hover {
 .section-title::before {
     content: '';
     position: absolute;
-    left: calc(-1 * (var(--gutter) - var(--tree-x)));
     top: var(--elbow-top);
     margin-top: calc(-1 * var(--elbow-h) / 2);
-    width: var(--elbow-w);
     height: var(--elbow-h);
     border-left: 3px solid var(--tree-stroke);
     border-bottom: 3px solid var(--tree-stroke);
     border-bottom-left-radius: 7px;
     transition: border-color .2s ease, border-width .2s ease, width .2s ease;
+
+    left: calc(
+            -1 * (var(--gutter) - var(--tree-x)) + var(--elbow-shift-x)
+    );
+    width: calc(var(--elbow-w) + var(--elbow-w-tweak));
 }
 
 .children > :first-child::before {
@@ -574,7 +583,7 @@ nav::-webkit-scrollbar-thumb:hover {
 
 .hover-pane .children {
     margin-left: 0;
-    padding-left: 18px;
+    padding-left: var(--gutter);
     max-height: none;
     opacity: 1;
 }
@@ -705,27 +714,32 @@ p {
 /* Hover-pane: forza subito la colorazione delle "L" e della V-line */
 .hover-pane .folder-leaf.in-active-path::before,
 .hover-pane .leaf.in-active-path::before {
-  border-left-color: var(--phase) !important;
-  border-bottom-color: var(--phase) !important;
-  border-left-width: 3px !important;
-  border-bottom-width: 3px !important;
+    border-left-color: var(--phase) !important;
+    border-bottom-color: var(--phase) !important;
+    border-left-width: 3px !important;
+    border-bottom-width: 3px !important;
 }
 
 .hover-pane .children.has-active-path::before,
 .hover-pane .children-nested.has-active-path::before {
-  background: var(--phase) !important;
-  width: 2px !important;
+    background: var(--phase) !important;
+    width: 2px !important;
 }
 
 .hover-pane .folder-leaf.in-active-path,
 .hover-pane .leaf.in-active-path {
-  color: var(--phase) !important;
-  font-weight: 600;
+    color: var(--phase) !important;
+    font-weight: 600;
 }
 
 .hover-pane .folder-leaf.in-active-path.active {
-  background: color-mix(in srgb, var(--phase) 15%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--phase) 30%, transparent);
+    background: color-mix(in srgb, var(--phase) 15%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--phase) 30%, transparent);
+}
+
+.hover-pane .children::before,
+.hover-pane .children-nested::before {
+    left: calc(var(--tree-x) + var(--vline-shift-x));
 }
 
 /* Marca la fase come avente un percorso attivo */
