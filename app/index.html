@@ -3,9 +3,13 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Cybersecurity Toolkit</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="sidebar.js"></script>
+    <title>Kali Linux Toolmap</title>
+    <link rel="stylesheet" href="css/sidebar.css">
+    <link rel="stylesheet" href="css/main_section.css">
+    <link rel="stylesheet" href="css/card.css">
+    <script src="js/sidebar.js"></script>
+    <script src="js/js-yaml.min.js"></script>
+    <script src="tools-manager.js"></script>
 </head>
 <body>
 <div class="app">
@@ -49,12 +53,28 @@
     </aside>
 
     <section class="content">
-        <h1>Cybersecurity Toolkit</h1>
-        <p>Questa è la tua suite completa per penetration testing e security assessment. Naviga tra le fasi dell'attacco
-            per accedere agli strumenti specifici organizzati per categoria.</p>
-        <p>Ogni fase contiene tools categorizzati per Infrastructure, Web, AD/Windows e altre specializzazioni. Usa la
-            barra di ricerca per trovare rapidamente lo strumento di cui hai bisogno.</p>
-        <div class="highlight">✨ Frontend only - No backend required</div>
+        <div class="breadcrumb-bar">
+            <div class="breadcrumb" id="breadcrumb">
+                <span class="breadcrumb-item">Select a category</span>
+            </div>
+            <button class="reset-btn" id="resetBtn" title="Reset selection">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Reset
+            </button>
+        </div>
+
+        <div class="tools-grid" id="toolsGrid">
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                <h3>No category selected</h3>
+                <p>Select a category from the sidebar to view available tools</p>
+            </div>
+        </div>
+
     </section>
 </div>
 </body>

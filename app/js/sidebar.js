@@ -78,6 +78,12 @@
         }
     };
 
+    const svg_common =
+        '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<polyline points="4 17 10 11 4 5"></polyline>' +
+        '<line x1="12" x2="20" y1="19" y2="19"></line>' +
+        '</svg>'
+
     const svg_inf_gather =
         '<svg class="icon"  stroke="currentColor" stroke-width="2" viewBox="-0.5 0 25 25" fill="none" >' +
         '<path d="M22 11.8201C22 9.84228 21.4135 7.90885 20.3147 6.26436C19.2159 4.61987 17.6542 3.33813 15.8269 2.58126C13.9996 1.82438 11.9889 1.62637 10.0491 2.01223C8.10927 2.39808 6.32748 3.35052 4.92896 4.74904C3.53043 6.14757 2.578 7.92935 2.19214 9.86916C1.80629 11.809 2.00436 13.8197 2.76123 15.6469C3.51811 17.4742 4.79985 19.036 6.44434 20.1348C8.08883 21.2336 10.0222 21.8201 12 21.8201"/>' +
@@ -119,6 +125,12 @@
         ' c29.74-29.733,69.822-48.948,114.462-51.847v23.053h23.489V77.942c44.616,2.899,84.713,22.123,114.462,51.847' +
         ' c29.732,29.758,48.947,69.839,51.847,114.462h-23.054v23.497H434.058z"/>' +
         '</svg>'
+
+    ICONS.byPrefix['00_Common'] = {
+        open: svg_common,
+        closed: svg_common,
+        terminal: svg_common
+    }
 
     ICONS.byPrefix['01_Information_Gathering'] = {
         open: svg_inf_gather,
