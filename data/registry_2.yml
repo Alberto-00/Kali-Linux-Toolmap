@@ -1,0 +1,30 @@
+- id: ligolo-ng
+  name: Ligolo-ng
+  version: "0.8.2"
+  icon: "../app/icons/metasploit-framework-logo.svg"
+  kind: tool
+  phases: [ "03_Post_Exploitation" ]
+  caps: [ "reverse-tunnel", "tun-interface", "tcp-tls", "autoroute" ]
+  repo: https://github.com/nicocha30/ligolo-ng
+  desc: "Tunneling leggero con interfaccia TUN e supporto TCP/TLS; consente pivot trasparenti e instradamento automatico, pensato per red team multi-host."
+  desc_long: "dd"
+  best_in: "true"
+  category_path: [ "03_Post_Exploitation", "Pivoting" ]
+  notes:
+
+- id: ligolsssso-ng
+  name: Ligolo-ng
+  version: "0.8.2"
+  icon: "../app/icons/metasploit-framework-logo.svg"
+  kind: tool
+  phases: [ "00_Common" ]
+  caps: [ "reverse-tunnel", "tun-interface", "tcp-tls", "autoroute" ]
+  repo: https://github.com/nicocha30/ligolo-ng
+  desc: "Tunneling leggero con interfaccia TUN e supporto TCP/TLS; consente pivot trasparenti e instradamento automatico, pensato per red team multi-host."
+  desc_long: "dd"
+  best_in: "false"
+  category_path: [ "00_Common", "Scripts" ]
+  notes: | 
+    ## titolo
+    prova 123
+    ```codice```
