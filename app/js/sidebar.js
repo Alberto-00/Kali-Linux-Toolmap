@@ -600,7 +600,6 @@
           highlightActivePath(phaseKey);
           expandFromMemoryInContainer(navItem, phaseKey);
 
-          // Se non hai ancora selezionato nulla, il click sulla fase imposta il filtro alla fase
           const current = getActivePathSlash(phaseKey);
           if (!current) {
             const slash = phaseKey; // solo fase

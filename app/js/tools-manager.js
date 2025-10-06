@@ -16,7 +16,7 @@
     };
 
     const state = {
-        scopeAll: true,      // true = mostra tutti i tool
+        scopeAll: false,      // true = mostra tutti i tool
         scopeIds: null,      // array di id (nodo + discendenti)
         pathKey: null,       // "Root>Fase>…>Nodo"
         search: ''           // query testuale
@@ -32,24 +32,6 @@
             document.addEventListener('DOMContentLoaded', fn, {once: true});
         } else {
             (window.queueMicrotask ? queueMicrotask : setTimeout)(fn, 0);
-        }
-    }
-
-// Avvia lo scope "All tools" anche se l'evento iniziale è mancato
-    function kickstartAllToolsOnce() {
-        const loaded = !!(window.Toolmap && window.Toolmap.__loaded);
-        const count = loaded ? Object.keys(window.Toolmap.toolsById || {}).length : 0;
-
-        if (loaded && count > 0) {
-            // forza la vista "tutti"
-            window.dispatchEvent(new CustomEvent('tm:scope:set', {detail: {all: true}}));
-        } else {
-            // aspetta il registry e poi forza
-            window.addEventListener('tm:registry:ready', () => {
-                setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('tm:scope:set', {detail: {all: true}}));
-                }, 0);
-            }, {once: true});
         }
     }
 
