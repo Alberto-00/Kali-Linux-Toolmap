@@ -1,11 +1,5 @@
 // ============================================================================
-// SEARCH MANAGER (sostituzione completa - event-driven, no class)
-// - Debounce su input (300ms)
-// - Persistenza query in localStorage (chiave: tm:search:q)
-// - ESC nel campo: pulisce query e dispatch di filtro vuoto
-// - Shortcut globale "/": mette focus sul campo (se non stai già scrivendo in un input/textarea)
-// - Emette sempre `tm:search:set` con { q } (stringa, anche vuota)
-// - Si azzera su `tm:reset`
+// SEARCH MANAGER
 // ============================================================================
 
 (() => {

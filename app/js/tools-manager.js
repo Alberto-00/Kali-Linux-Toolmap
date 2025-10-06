@@ -23,6 +23,8 @@
     };
 
     let grid, resetBtn, notesModal, detailsModal, rendererAdapter;
+    // Session flags
+    let hasVisitedAnyPhase = false;
 
     // ---------------------------- Bootstrap DOM ----------------------------
 
@@ -66,6 +68,13 @@
             state.scopeAll = !!all || (!ids && !pathKey);
             state.scopeIds = ids || null;
             state.pathKey = pathKey || null;
+
+            // Mark session as 'visited' if a phase path is selected
+            if (state.pathKey && typeof state.pathKey === 'string') {
+                const parts = state.pathKey.split('>').filter(Boolean);
+                const first = (parts[0] && parts[0].toLowerCase() === 'root') ? parts[1] : parts[0];
+                if (first) hasVisitedAnyPhase = true;
+            }
             render();
         });
 
@@ -204,6 +213,18 @@
         if (!grid) return;
 
         const tools = computeVisibleTools();
+
+        // Notify breadcrumb of current context (for 'No tools' rule)
+        try {
+            const summary = {
+                toolsCount: tools.length,
+                scopeAll: !!state.scopeAll,
+                pathKey: state.pathKey || null,
+                hasVisitedAnyPhase: !!hasVisitedAnyPhase
+            };
+            window.dispatchEvent(new CustomEvent('tm:context:summary', {detail: summary}));
+        } catch (__) {
+        }
 
         if (!tools.length) {
             grid.innerHTML = `
@@ -392,6 +413,10 @@
             const phase = tool.phase || (Array.isArray(tool.phases) ? tool.phases[0] : null);
             const phaseColor = tool.phaseColor || phaseColorFromPhase(phase);
 
+            const modalContent = this.modal.querySelector('.modal-content');
+            if (modalContent && phaseColor) modalContent.style.setProperty('--phase', phaseColor);
+
+
             if (title) {
                 const name = tool.name || tool.title || 'Tool Details';
                 title.innerHTML = escapeHtml(name) + (tool.version ? ` <span style="font-size:.85em;color:var(--muted)">v${escapeHtml(tool.version)}</span>` : '');
@@ -442,21 +467,89 @@
             ${Array.isArray(tool.category_path) && tool.category_path.length ? `
               <div class="detail-section">
                 <h3>Category Path</h3>
-                <p class="category-path" style="color:var(--muted);font-size:14px;">${tool.category_path.map(p => escapeHtml(formatLabel(p))).join(' / ')}</p>
+                <div class="category-path-row">
+                    <button class="icon-btn copy-catpath" title="Copy category path" aria-label="Copy category path">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                      <span class="sr-only">Copy category path</span>
+                    </button>
+                    <p class="category-path" style="color:var(--muted);font-size:14px;">${tool.category_path.map(p => escapeHtml(formatLabel(p))).join(' / ')}</p>
+                </div>
               </div>` : ''}
           </div>
         `;
-            }
+                // Post-render: usa il valore originale YAML per il copy e mostra label "umana"
+                const cp = this.modal.querySelector('.category-path');
+                if (cp) {
+                    try {
+                        const raw = Array.isArray(tool.category_path) ? tool.category_path : [];
+                        // dataset.raw = valore originale dal registry (quello che vuoi copiare)
+                        cp.dataset.raw = raw.join('/');
 
+                        // versione "umana" per la UI, come la breadcrumb:
+                        // - rimuove il prefisso "NN_" iniziale (es. "00_", "01_")
+                        // - sostituisce "_" con " "
+                        const humanizeSeg = (seg) =>
+                            String(seg || '')
+                                .replace(/^\d{2}_/, '')
+                                .replace(/_/g, ' ');
+
+                        const human = raw.map(humanizeSeg);
+                        cp.textContent = human.join(' / ');
+                    } catch (e) { /* noop */
+                    }
+                }
+
+                const btnCopyCP = this.modal.querySelector('.copy-catpath');
+                if (cp && btnCopyCP) {
+                    btnCopyCP.addEventListener('click', () => {
+                        const text = (cp.dataset && cp.dataset.raw)
+                            ? cp.dataset.raw
+                            : (cp.textContent || '').trim();
+                        if (!text) return;
+                        navigator.clipboard.writeText(text).then(() => {
+                            // feedback icona check 1.2s (già presente)
+                            const svg = btnCopyCP.querySelector('svg');
+                            if (svg) {
+                                const orig = svg.outerHTML;
+                                svg.outerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+                                setTimeout(() => {
+                                    const s = btnCopyCP.querySelector('svg');
+                                    if (s) s.outerHTML = orig;
+                                }, 1200);
+                            }
+                        });
+                    });
+                }
+            }
             this.modal.style.display = 'flex';
+            this.modal.classList.remove('closing');
+            void this.modal.offsetWidth;      // forza reflow per far partire la transizione
+            this.modal.classList.add('open');
+
             document.body.style.overflow = 'hidden';
         }
 
         hide() {
             if (!this.modal) return;
-            this.modal.style.display = 'none';
-            document.body.style.overflow = '';
+            // animate out
+            this.modal.classList.remove('open');
+            this.modal.classList.add('closing');
+
+            const onEnd = (e) => {
+                // chiudo quando finisce la transizione dell’overlay
+                if (e && e.target && !e.target.classList.contains('modal-overlay')) return;
+                this.modal.removeEventListener('transitionend', onEnd);
+                this.modal.style.display = 'none';
+                this.modal.classList.remove('closing');
+                document.body.style.overflow = '';
+            };
+            this.modal.addEventListener('transitionend', onEnd);
+            // fallback se transitionend non arriva
+            setTimeout(onEnd, 260);
         }
+
 
         _createModal() {
             const html = `
@@ -493,5 +586,4 @@
         };
         return map[phase] || 'var(--accent-2)';
     }
-
 })();

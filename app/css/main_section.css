@@ -67,14 +67,6 @@
     height: 16px;
 }
 
-.show-all-btn:hover {
-    background: rgba(52, 211, 153, .15);
-    border-color: var(--accent);
-    color: var(--accent);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(52, 211, 153, .2);
-}
-
 .copy-path-btn:hover {
     background: rgba(96, 165, 250, .15);
     border-color: var(--accent-2);
@@ -239,4 +231,91 @@
     width: 22px;
     height: 22px;
     stroke-width: 2;
+}
+
+/* Align "Show all" button style to Reset */
+.breadcrumb-actions .show-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s ease;
+    white-space: nowrap;
+}
+
+.breadcrumb-actions .show-all-btn:hover {
+    background: rgba(255, 255, 255, .1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
+}
+
+.breadcrumb-actions .show-all-btn:active {
+    transform: translateY(0);
+}
+
+/* Copy toast */
+.copy-toast {
+    position: fixed;
+    transform: translate(-50%, -10px);
+    background: rgba(0, 0, 0, .8);
+    color: white;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 8px;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 9999;
+    animation: toast-in .2s ease forwards; /* show */
+}
+
+.copy-toast.show {
+    opacity: 1;
+}
+
+.copy-toast.hide {
+    animation: toast-out .2s ease forwards;
+}
+
+/* hide */
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -4px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -10px);
+    }
+}
+
+@keyframes toast-out {
+    from {
+        opacity: 1;
+        transform: translate(-50%, -10px);
+    }
+    to {
+        opacity: 0;
+        transform: translate(-50%, -14px);
+    }
+}
+
+/* Visually hidden but accessible (per aria-live) */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 1px, 1px);
+    white-space: nowrap;
+    border: 0;
 }

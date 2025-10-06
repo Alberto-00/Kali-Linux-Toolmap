@@ -103,7 +103,7 @@
     background: rgba(255, 255, 255, .05);
     border-radius: 8px;
     color: hsl(var(--muted-foreground));
-    font-size: 24px;
+    font-size: 23px;
     line-height: 1;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -306,4 +306,50 @@
     .modal-content {
         animation: none !important;
     }
+}
+
+/* Repo link hover uses phase color when available */
+#detailsModal .modal-content .repo-link:hover {
+  color: var(--phase)!important;
+  text-decoration: underline;
+}
+
+/* Allinea path + bottone su una riga */
+#detailsModal .category-path-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0;
+}
+#detailsModal .category-path {
+  margin: 0;
+}
+#detailsModal .copy-catpath { padding: 8px; }
+
+/* Hover del link repo con colore di fase (già aggiunto in precedenza) */
+#detailsModal .modal-content .repo-link:hover {
+  color: var(--phase);
+  text-decoration: underline;
+}
+
+/* Modal open/close animation */
+.modal-overlay {
+  opacity: 0;
+  transition: opacity .24s cubic-bezier(.4,0,.2,1);
+}
+.modal-overlay.open { opacity: 1; }
+.modal-overlay.closing { opacity: 0; }
+
+.modal-overlay .modal-content {
+  transform: translateY(-6px) scale(.98);
+  opacity: 0;
+  transition: transform .24s cubic-bezier(.4,0,.2,1), opacity .24s cubic-bezier(.4,0,.2,1);
+}
+.modal-overlay.open .modal-content {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.modal-overlay.closing .modal-content {
+  transform: translateY(-6px) scale(.98);
+  opacity: 0;
 }

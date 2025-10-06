@@ -1,299 +1,322 @@
 - id: metasploit-pentest-plugin
   name: Pentest-plugin
   version:
+  icon: "../app/icons/github.svg"
   kind: metasploit
   phases: [ "00_Common" ]
   caps: [ "automation", "workspace", "import-export", "loot-triage" ]
   repo: https://github.com/darkoperator/Metasploit-Plugins
   desc: Plugin che estende msfconsole con comandi per gestire workspace, import/export dei risultati e note operative. Utile per standardizzare i flussi ripetibili e ridurre tempi morti tra ricognizione, exploitation e raccolta evidenze. Semplice da caricare e integrare nel workflow team.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Metasploit_Plugins" ]
   notes:
 
 - id: scipag-vulscan
   name: Vulscan
   version:
+  icon: "../app/icons/github.svg"
   kind: nmap
   phases: [ "00_Common" ]
   caps: [ "service-detection", "vuln-mapping", "cve-correlation" ]
   repo: https://github.com/scipag/vulscan
   desc: Modulo per Nmap che converte l’output di -sV in suggerimenti CVE offline. Fa matching prodotto/versione→vulnerabilità per prioritizzare i servizi a rischio subito dopo la scansione. Ideale come triage rapido prima di vulnerability scanning più pesante.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Scripts" ]
   notes:
 
 - id: adrecon
   name: ADRecon
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "ad-inventory", "reporting", "risk-overview" ]
   repo: https://github.com/sense-of-security/ADRecon
   desc: Colleziona artefatti AD (utenti privilegiati, trust, GPO, deleghe) e genera report completi per una vista olistica dei rischi. Ottimo per baseline iniziale e pianificazione di attacchi/mitigazioni in ambienti Windows enterprise.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: crackmapexec-win
   name: CrackMapExecWin
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "auth-spray", "lateral-movement", "remote-exec", "loot" ]
   repo: https://github.com/maaaaz/CrackMapExecWin
   desc: Port Windows di CME per autenticazioni in massa, enum di condivisioni/local-admins e comandi remoti (SMB/WMI/WinRM). Perfetto per triage veloce, raccolta credenziali e movimento laterale in domini AD.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: domainpasswordspray
   name: DomainPasswordSpray.ps1
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "password-spraying", "user-enum", "opsec" ]
   repo: https://github.com/dafthack/DomainPasswordSpray
   desc: Script PowerShell per password spraying contro domini AD con generazione automatica degli utenti. Rispetta le lockout policy e produce evidenze pulite per initial access a basso rumore in scenari enterprise.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: getuserspns-windows
   name: GetUserSPNs_windows.exe
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "kerberoasting", "spn-enum" ]
   repo: https://github.com/maaaaz/impacket-examples-windows
   desc: Esegue enum degli SPN utente e richiede TGS per attacchi di kerberoasting. I ticket ottenuti possono essere crackati offline per recuperare password di servizio e aprire nuove superfici di escalation.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: group3r
   name: Group3r
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "gpo-audit", "misconfig-detection" ]
   repo: https://github.com/Group3r/Group3r
   desc: Enum veloce di GPO e analisi di misconfigurazioni sfruttabili (script, MSI, percorsi in SYSVOL, ACL rischiose). Aiuta a scoprire writeable path e credenziali esposte utili ad escalation e movimenti laterali.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: inveigh-exe
   name: Inveigh.exe
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "mitm", "llmnr-nbns-mdns", "hash-capture", "relay-support" ]
   repo: https://github.com/Kevin-Robertson/Inveigh
   desc: Strumento .NET per avvelenamento LLMNR/NBNS/mDNS e cattura NTLM. Utile per attivare relay o cracking offline e ottenere credenziali valide nei segmenti Windows poco monitorati.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: inveigh-ps1
   name: Inveigh.ps1
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "mitm", "llmnr-nbns-mdns", "hash-capture" ]
   repo: https://github.com/Kevin-Robertson/Inveigh
   desc: Versione PowerShell di Inveigh per scenari fileless o con restrizioni sui binari. Permette cattura/relay di challenge-response con footprint operativo contenuto.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: kerbrute-win
   name: kerbrute_Windows.exe
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "user-enum", "password-spraying", "kerberos-preauth" ]
   repo: https://github.com/ropnop/kerbrute
   desc: Enum utenti e password spraying via Kerberos pre-auth (AS-REQ/AS-REP) a basso rumore. Ottimo per validare account senza generare traffico SMB/LDAP evidente.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: mimikatz
   name: Mimikatz
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "credential-dumping", "tickets", "pth", "ptt" ]
   repo: https://github.com/gentilkiwi/mimikatz
   desc: Toolkit per dump credenziali (LSA/WDigest/DPAPI) e operazioni Kerberos avanzate (Pass-the-Hash/Ticket, golden/silver). Cardine per consolidare accesso e persistenza in post-exploitation.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: pingcastle
   name: PingCastle
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "ad-health", "risk-scoring", "reporting" ]
   repo: https://www.pingcastle.com/download/
   desc: Valuta salute e rischio dell’AD con indicatori metodologici e report chiari. Evidenzia deleghe rischiose, esposizioni e priorità di remediation per la roadmap difensiva.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: powerupsql
   name: PowerUpSQL
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "mssql-discovery", "audit-weak-config", "priv-esc", "os-cmd" ]
   repo: https://github.com/NetSPI/PowerUpSQL
   desc: Toolkit PowerShell per discovery di istanze SQL Server, audit configurazioni deboli e abusi post-exploitation (esecuzione OS, catene di impersonation/link server) in ambienti Windows.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: powerview-ps1
   name: PowerView.ps1
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "ad-enum", "acl-abuse", "situational-awareness" ]
   repo: https://github.com/PowerShellMafia/PowerSploit
   desc: Modulo PowerShell per mappare oggetti/relazioni AD e individuare ACL/deleghe sfruttabili. Spesso usato per preparare la raccolta dati di BloodHound o percorsi d’escalation.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: responder-windows
   name: Responder-Windows
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "llmnr-nbns-mdns-poisoning", "hash-capture", "relay" ]
   repo: https://github.com/lgandx/Responder-Windows
   desc: Port Windows di Responder per intercettare risoluzioni nomi locali e catturare hash NTLM. Alternativa pratica quando Python non è disponibile sull’host di lavoro.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: rpcdump-windows
   name: rpcdump_windows.exe
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "rpc-enum", "endpoint-mapper" ]
   repo: https://github.com/csandker/RPCDump
   desc: Interroga l’Endpoint Mapper e lista interfacce/UUID/endpoint RPC esposti. Utile per individuare superfici d’attacco poco documentate lato Windows e servizi proprietari.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: rubeus
   name: Rubeus.exe
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "kerberos-abuse", "asreproast", "kerberoast", "ptt", "ticket-management" ]
   repo: https://github.com/GhostPack/Rubeus
   desc: Toolkit Kerberos per AS-REP/Kerberoasting, gestione e abuso di ticket (dump/forge/overpass/PTT). Abilita escalation e persistenza su domini AD ben monitorati.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: securityassessment-ps1
   name: SecurityAssessment.ps1
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "host-baseline", "policy-audit", "inventory" ]
   repo:
   desc: Script per raccogliere baseline di sicurezza (policy, ruoli, servizi, log) e produrre evidenze utili ad hardening e verifiche post-remediation su host Windows gestiti.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: sharphound
   name: SharpHound.exe
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "ad-graph-collection", "bloodhound-ingest" ]
   repo: https://github.com/SpecterOps/SharpHound
   desc: "Collettore per BloodHound: acquisisce relazioni AD (ACL, sessioni, gruppi, SPN, deleghe) e genera pacchetti ingest per tracciare percorsi di escalation nei domini."
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: sharpmapexec
   name: SharpMapExec.exe
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "lateral-movement", "spray", "remote-exec" ]
   repo: https://github.com/cube0x0/SharpMapExec
   desc: Reimplementazione C# in stile CME per esecuzione remota e movimento laterale da host Windows. Indicata per scenari con restrizioni su Python o ambienti locked-down.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: sharpview
   name: SharpView.exe
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "ad-enum", "acl-enum", "situational-awareness" ]
   repo: https://github.com/tevora-threat/SharpView
   desc: Port C# di PowerView per enumerazione AD e analisi ACL quando PowerShell è ristretto/monitorato. Spesso usato per raccolta dati preliminare a BloodHound.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: snaffler
   name: Snaffler.exe
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "fileshare-hunting", "secret-discovery", "regex-content" ]
   repo: https://github.com/SnaffCon/Snaffler
   desc: Scansiona file share alla ricerca di credenziali e dati sensibili usando pattern/regex. Utile per prioritizzare “needle in a haystack” in grandi domini Windows.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: sysinternals-suite
   name: SysinternalsSuite
   version:
+  icon: "../app/icons/github.svg"
   kind: windows
   phases: [ "00_Common" ]
   caps: [ "proc-monitoring", "forensics", "troubleshooting" ]
   repo: https://learn.microsoft.com/en-us/sysinternals/downloads/sysinternals-suite
   desc: Raccolta Microsoft (Autoruns, ProcMon, Sysmon, PsTools, ecc.) per analisi processi, servizi, registry e rete. Indispensabile per DFIR leggero e troubleshooting durante engagement.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
@@ -305,8 +328,8 @@
   caps: [ "italian-words", "mutation-base" ]
   repo: https://github.com/napolux/paroleitaliane
   desc: Dizionari in italiano (nomi, cognomi, termini comuni) per spraying/bruteforce contestuale e generazione di wordlist mutate ad hoc su target locali.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Wordlists" ]
   notes:
 
@@ -318,8 +341,8 @@
   caps: [ "payloads", "fuzzing", "bypass-techniques" ]
   repo: https://github.com/swisskyrepo/PayloadsAllTheThings
   desc: Raccolta curata di payload, bypass e cheat-sheet per molte vulnerabilità (injection, traversal, XXE, XSS, deserializzazione). Riferimento pratico per fuzzing mirato e verifica remediation.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Wordlists" ]
   notes:
 
@@ -331,8 +354,8 @@
   caps: [ "burp-integration", "content-discovery", "intruder" ]
   repo: https://github.com/PortSwigger/wordlist-extractor
   desc: Wordlist e utility integrate all’ecosistema Burp per estrarre/generare dizionari dagli asset dell’app target e alimentarli in Intruder/Extender.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Wordlists" ]
   notes:
 
@@ -344,8 +367,8 @@
   caps: [ "user-passlists", "content-discovery", "fuzzing", "payloads" ]
   repo: https://github.com/danielmiessler/SecLists
   desc: Collezione OWASP di liste per pentest (user/pass, dir/file, fuzzing, pattern sensibili, web-shell). Standard de-facto per discovery, brute force e test mirati.
-  best_in: []
-  best_in_paths: []
+  best_in: [ ]
+  best_in_paths: [ ]
   category_path: [ "00_Common", "Wordlists" ]
   notes:
 
@@ -485,7 +508,7 @@
   desc: Rileva componenti e impronte di installazioni Joomla per individuare estensioni esposte e potenziali superfici attaccabili. Utile per triage mirato prima di verifiche su versioni/plugin.
   best_in: [ "01_Information_Gathering" ]
   best_in_paths:
-    - [ "01_Information_Gathering", "02_Enumeration", "Web", "CMS", "Joomla"]
+    - [ "01_Information_Gathering", "02_Enumeration", "Web", "CMS", "Joomla" ]
   category_path: [ "01_Information_Gathering", "02_Enumeration", "Web", "CMS", "Joomla" ]
   notes:
 
