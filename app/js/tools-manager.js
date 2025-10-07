@@ -184,6 +184,13 @@
             window.dispatchEvent(new CustomEvent('tm:phase:color:apply', {detail: {color}}));
         });
 
+        // Mostra TUTTI i tool ma senza toccare path/sidebars
+        window.addEventListener('tm:tools:showAll', () => {
+            state.scopeAll = true;
+            render();
+        });
+
+
         // Reset globale - CORRETTO
         resetBtn?.addEventListener('click', () => {
             // Imposta flag di reset
@@ -488,8 +495,8 @@
                 countsByPhase[phaseKey] = (countsByPhase[phaseKey] || 0) + 1;
             }
             if (nodesArr.length) {
-   paths.push(nodesArr);
- }
+                paths.push(nodesArr);
+            }
         }
 
         return {

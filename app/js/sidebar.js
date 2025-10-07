@@ -105,7 +105,7 @@
     window.SIDEBAR_ICONS = {
         common: svg_common,
         information_gathering: svg_inf_gather,
-        exploitation: svg_post_exploit,
+        exploitation: svg_exploit,
         post_exploitation: svg_post_exploit,
         miscellaneous: folderSVG
     };
@@ -1312,9 +1312,6 @@
                 if (typeof refreshAllVLinesDebounced === 'function') refreshAllVLinesDebounced();
                 return;
             }
-
-            // 4) Reset memoria espansioni (tutte le fasi)
-            Object.keys(phaseMemory).forEach(k => phaseMemory[k].expanded.clear());
 
             // 5) Apri SOLO la fase del path attivo (header in stato "open")
             const parts = lastSlash.split('/').filter(Boolean);

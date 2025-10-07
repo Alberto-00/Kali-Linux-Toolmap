@@ -21,8 +21,12 @@
 
     // Dispatch helper
     const dispatch = (q) => {
-        window.dispatchEvent(new CustomEvent('tm:search:set', {detail: {q}}));
+        const qq = (q || '').trim();
+        window.dispatchEvent(new CustomEvent('tm:search:set', {
+            detail: {q: qq, hasQuery: !!qq, source: 'search-input'}
+        }));
     };
+
 
     // Debounce helper
     let t = null;
@@ -67,7 +71,6 @@
         localStorage.removeItem(LS_KEY);
         if (had) dispatch('');   // emetti solo se stavi cercando
     });
-
 
     // Init
     if (saved) dispatch(saved);

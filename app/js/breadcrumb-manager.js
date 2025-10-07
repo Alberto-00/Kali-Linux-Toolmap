@@ -186,7 +186,11 @@
         const copyBtn = actionsDiv.querySelector('.copy-path-btn');
 
         showAllBtn?.addEventListener('click', () => {
-            window.dispatchEvent(new CustomEvent('tm:scope:set', {detail: {all: true}}));
+            // Mostra "All tools" nella breadcrumb…
+            currentPathSlash = null;
+            renderCrumb(null);
+            // …ma NON toccare la sidebar: chiedi solo al manager di mostrare tutto
+            window.dispatchEvent(new CustomEvent('tm:tools:showAll'));
         });
 
         copyBtn?.addEventListener('click', () => {

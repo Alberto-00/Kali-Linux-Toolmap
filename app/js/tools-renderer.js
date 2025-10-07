@@ -65,7 +65,7 @@ function _getBestInValue(tool) {
                     card.dataset._boundCard = '1';
                     card.addEventListener('click', (e) => {
                         // Evita conflitto con il bottone note
-                        if (e.target.closest?.('[data-role="notes"]')) return;
+                        if (e.target.closest?.('[data-role="notes"], [data-role="repo"]')) return;
                         if (typeof this.onCardClick === 'function') this.onCardClick(tool);
                         else window.dispatchEvent(new CustomEvent('tm:card:openDetails', {detail: {tool}}));
                     });
@@ -78,6 +78,13 @@ function _getBestInValue(tool) {
                         e.stopPropagation();
                         if (typeof this.onNotesClick === 'function') this.onNotesClick(tool);
                         else window.dispatchEvent(new CustomEvent('tm:card:openNotes', {detail: {tool}}));
+                    });
+                }
+                const repoLink = card.querySelector('[data-role="repo"]');
+                if (repoLink && !repoLink.dataset._boundRepo) {
+                    repoLink.dataset._boundRepo = '1';
+                    repoLink.addEventListener('click', (e) => {
+                        e.stopPropagation();
                     });
                 }
             });
