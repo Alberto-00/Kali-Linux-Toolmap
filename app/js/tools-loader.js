@@ -1,13 +1,5 @@
 // ============================================================================
-// tools-loader.js — supporto SOLO formato "lista piatta di tool" (YAML array)
-// - Ogni item è un tool con: id, name, phases[0], category_path[], ...
-// - Costruisce indici a partire dai category_path (nodi impliciti):
-//     * toolsById: id -> tool (enriched: phase, phaseColor, path[])
-//     * nodeIndex: pathKey -> { tools:[ids diretti], children:[childPathKeys] }
-//     * allToolsUnder: pathKey -> Set(ids di quel nodo + tutti i discendenti)
-// - Eventi emessi:
-//     * tm:registry:ready { totals, keys, rootName: 'Root' }
-//     * tm:scope:set { all: true }  // mostra tutti i tool inizialmente
+// tools-loader.js
 // ============================================================================
 
 (() => {

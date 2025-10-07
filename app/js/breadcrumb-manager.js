@@ -1,12 +1,5 @@
 // ============================================================================
-// BREADCRUMB MANAGER (sostituzione completa - event-driven)
-// - Aggiorna la breadcrumb in base a `tm:scope:set` (usa detail.pathKey)
-// - Clic (e tastiera) su un segmento → filtra fino a quel nodo (nodo + discendenti)
-// - Mostra "All tools" quando non c'è un percorso attivo
-// - Nasconde automaticamente "Root" se presente come primo segmento
-// - Bottone "Show All" per mostrare tutti i tool
-// - Icona copia path corrente
-// - Si resetta su `tm:reset`
+// BREADCRUMB MANAGER
 // ============================================================================
 
 (() => {

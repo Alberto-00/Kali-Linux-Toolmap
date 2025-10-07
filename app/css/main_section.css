@@ -97,22 +97,6 @@
 }
 
 /* RESET BUTTON - con hover dinamico basato sulla fase */
-.reset-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: rgba(255, 255, 255, .06);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .2s ease;
-    white-space: nowrap;
-}
-
 .reset-btn svg {
     width: 16px;
     height: 16px;
@@ -234,7 +218,7 @@
 }
 
 /* Align "Show all" button style to Reset */
-.breadcrumb-actions .show-all-btn {
+.breadcrumb-actions .show-all-btn, .reset-btn {
     display: flex;
     align-items: center;
     gap: 8px;

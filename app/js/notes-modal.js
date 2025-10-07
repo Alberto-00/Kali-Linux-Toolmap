@@ -1,16 +1,22 @@
 // ============================================================================
-// NOTES MODAL (sostituzione completa)
-// - Classe compatibile: new NotesModal(onSave)
-// - Edit/Preview Markdown sicuro (escape HTML + sostituzioni minime)
-// - Focus trap + scorciatoie: Esc (chiudi), Ctrl/Cmd+E (toggle edit), Ctrl/Cmd+S (salva)
-// - Click su backdrop per chiudere, chiusura anche su `tm:reset`
-// - Colora la modale con la fase del tool (se disponibile) via CSS var --phase
-// - "Save & Export": chiama onSave(tool.id, note) e scarica un .md
+// NOTES MODAL
 // ============================================================================
+
+/**
+ * @typedef {Object} Tool
+ * @property {string} [id]
+ * @property {string} [name]
+ * @property {string} [title]
+ * @property {string} [phase]
+ * @property {string[]} [phases]
+ * @property {string} [phaseColor]
+ * @property {string} [notes]
+ */
 
 class NotesModal {
     constructor(onSave) {
         this.onSave = onSave;
+        /** @type {Tool|null} */
         this.currentTool = null;
         this.isEditing = false;
         this.modal = null;
@@ -210,7 +216,7 @@ class NotesModal {
 
         // Titolo
         if (titleEl) {
-            const phase = this._formatPhase(this.currentTool?.phase || this.currentTool?.phases?.[0] || '');
+            const phase = this._getPhase();
             const base = this.currentTool?.name || this.currentTool?.title || 'Tool';
             titleEl.textContent = phase ? `Notes: ${base} — ${phase}` : `Notes: ${base}`;
         }
@@ -223,8 +229,14 @@ class NotesModal {
         }
     }
 
+    /** @returns {string} */
+    _getPhase() {
+        const t = this.currentTool || /** @type {Tool} */ ({});
+        const raw = t.phase || (Array.isArray(t.phases) ? t.phases[0] : '');
+        return this._formatPhase(raw || '');
+    }
+
     _renderMarkdown(text) {
-        // Escape HTML (semplice, sicuro)
         const escapeHtml = (s) =>
             String(s || '')
                 .replace(/&/g, '&amp;')
@@ -236,9 +248,9 @@ class NotesModal {
         let html = escapeHtml(text);
 
         // Blocchi di codice ```lang\n...\n```
-        html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (m, lang = '', code = '') => {
-            return `<pre><code class="language-${lang.trim()}">${code}</code></pre>`;
-        });
+        html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (m, lang = '', code = '') =>
+            `<pre><code class="language-${lang.trim()}">${code}</code></pre>`
+        );
 
         // Header # ## ###
         html = html
@@ -246,17 +258,15 @@ class NotesModal {
             .replace(/^## (.*)$/gim, '<h2>$1</h2>')
             .replace(/^# (.*)$/gim, '<h1>$1</h1>');
 
-        // Bold **text**
+        // Bold / italic / inline code
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
-        // Italic *text* (evita conflitti con liste/asterischi adiacenti)
         html = html.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
-
-        // Inline code `code`
         html = html.replace(/`([^`]+?)`/g, '<code>$1</code>');
 
-        // Links [text](url)
-        html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+        // Links [text](url) — usa callback (niente $1/$2)
+        html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, (m, text, url) =>
+            `<a href="${url}" target="_blank" rel="noopener">${text}</a>`
+        );
 
         // Liste non ordinate "- "
         const lines = html.split('\n');
@@ -280,10 +290,8 @@ class NotesModal {
         if (inList) out.push('</ul>');
         html = out.join('\n');
 
-        // Paragrafi e <br>
-        html = html
-            .replace(/\n{2,}/g, '</p><p>')
-
+        // Paragrafi / <br>
+        html = html.replace(/\n{2,}/g, '</p><p>');
         if (!/^<([a-z]+)([^>]*)>/.test(html)) {
             html = '<p>' + html + '</p>';
         }

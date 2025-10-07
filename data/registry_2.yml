@@ -8,7 +8,7 @@
   repo: https://github.com/nicocha30/ligolo-ng
   desc: "Tunneling leggero con interfaccia TUN e supporto TCP/TLS; consente pivot trasparenti e instradamento automatico, pensato per red team multi-host."
   desc_long: "dd"
-  best_in: "true"
+  best_in: true
   category_path: [ "03_Post_Exploitation", "Pivoting" ]
   notes:
 
@@ -22,7 +22,7 @@
   repo: https://github.com/nicocha30/ligolo-ng
   desc: "Tunneling leggero con interfaccia TUN e supporto TCP/TLS; consente pivot trasparenti e instradamento automatico, pensato per red team multi-host."
   desc_long: "dd"
-  best_in: "false"
+  best_in: false
   category_path: [ "00_Common", "Scripts" ]
   notes: | 
     ## titolo

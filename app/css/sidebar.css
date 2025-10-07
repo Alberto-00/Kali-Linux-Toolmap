@@ -808,3 +808,33 @@ p {
         transition: none !important;
     }
 }
+
+/* === Modalità ricerca: evidenza "ghost" ================================== */
+.sidebar.search-mode .nav-item .folder-leaf.search-hit,
+.sidebar.search-mode .nav-item .leaf.search-hit {
+    color: var(--phase);
+    font-weight: 600;
+    background: color-mix(in srgb, var(--phase) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--phase) 28%, transparent);
+    border-radius: 8px;
+}
+
+/* connettori/linee del ramo "ghost" */
+.sidebar.search-mode .nav-item .children .folder-leaf.search-hit::before,
+.sidebar.search-mode .nav-item .children .leaf.search-hit::before {
+    border-left-color: var(--phase);
+    border-bottom-color: var(--phase);
+}
+
+/* badge conteggio risultati per fase */
+.sidebar .btn .search-badge {
+    margin-left: 8px;
+    padding: 2px 6px;
+    font-size: 11px;
+    line-height: 1;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--phase) 18%, transparent);
+    color: var(--phase);
+    border: 1px solid color-mix(in srgb, var(--phase) 36%, transparent);
+    pointer-events: none;
+}

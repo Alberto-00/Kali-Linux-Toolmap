@@ -1,10 +1,5 @@
 // ============================================================================
-// BACK TO TOP (sostituzione completa)
-// - Crea un unico bottone flottante
-// - Mostra/nasconde in base allo scroll della .tools-grid (fallback: window)
-// - Scorre in top con smooth scroll
-// - Colore fase dinamico via evento `tm:phase:color:apply`
-// - Pulisce il colore su `tm:reset`
+// BACK TO TOP
 // ============================================================================
 
 (() => {

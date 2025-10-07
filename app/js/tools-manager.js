@@ -1,34 +1,59 @@
 // ============================================================================
-// tools-manager.js (sostituzione completa - event-driven, compatibile)
+// tools-manager.js
 // ============================================================================
+
+/**
+ * @typedef {Object} ToolItem
+ * @property {string} id
+ * @property {string=} name
+ * @property {string=} title
+ * @property {string=} phase
+ * @property {string[]=} phases
+ * @property {string[]=} category_path
+ * @property {string[]=} categoryPath
+ * @property {string=} repo
+ * @property {string=} desc
+ * @property {string=} desc_long
+ * @property {string[]=} caps
+ * @property {string[]=} tags
+ * @property {string=} icon
+ * @property {string=} notes
+ * @property {string=} phaseColor
+ * @property {string[]=} path
+ */
 
 (() => {
     'use strict';
 
     const SEL = {
-        grid: 'toolsGrid',
-        resetBtn: 'resetBtn',
-        searchInput: 'searchInput'
+        grid: 'toolsGrid', resetBtn: 'resetBtn', searchInput: 'searchInput'
     };
 
     const MEM = {
-        search: 'tm:search:q'
+        search: 'tm:search:q', pathKey: 'tm:active:path',    // per coerenza con sidebar.js
+        pathSlash: 'tm:active:slash'  // per coerenza con sidebar.js
     };
 
     const state = {
         scopeAll: false,      // true = mostra tutti i tool
-        scopeIds: null,      // array di id (nodo + discendenti)
-        pathKey: null,       // "Root>Fase>…>Nodo"
-        search: ''           // query testuale
+        scopeIds: null,       // array di id (nodo + discendenti)
+        pathKey: null,        // "Root>Fase>…>Nodo"
+        search: '',           // query testuale
+        isResetting: false    // flag per gestire il reset
     };
 
     let grid, resetBtn, notesModal, detailsModal, rendererAdapter;
-    // Session flags
     let hasVisitedAnyPhase = false;
 
-    // ---------------------------- Bootstrap DOM ----------------------------
+    /** @param {Partial<ToolItem>=} t */
+    function getCatPath(t) {
+        if (!t) return [];
+        return Array.isArray(t.category_path) ? t.category_path
+            : Array.isArray(t.categoryPath) ? t.categoryPath
+                : [];
+    }
 
-// --- aggiungi in cima, vicino a state/ready ---
+    // ---------------------------- Bootstrap DOM ----------------------------
     function ready(fn) {
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', fn, {once: true});
@@ -53,17 +78,44 @@
         const input = document.getElementById(SEL.searchInput);
         if (input && savedQ) input.value = savedQ;
 
+        if (savedQ) {
+            window.dispatchEvent(new CustomEvent('tm:search:set', {detail: {q: savedQ, hasQuery: true}}));
+        }
+
+        // Ripristina path salvato (se esiste)
+        const savedPathKey = localStorage.getItem(MEM.pathKey);
+        if (savedPathKey && !savedQ) { // solo se non c'è una ricerca attiva
+            state.pathKey = savedPathKey;
+            state.scopeAll = false;
+            // Risolvi gli IDs dal pathKey
+            const tm = window.Toolmap || {};
+            if (tm.allToolsUnder && tm.allToolsUnder[savedPathKey]) {
+                state.scopeIds = Array.from(tm.allToolsUnder[savedPathKey]);
+            }
+        }
+
         // Wiring eventi app
+        if (__wired) return;
         wireEvents();
 
-        // Primo render (mostra empty o attende tm:scope:set all:true dal loader)
+        // Primo render
         render();
     });
 
     // ----------------------------- Event wiring ----------------------------
+    let __wired = false;
+
     function wireEvents() {
+        if (__wired) return;
+        __wired = true;
+
         // Filtro di scope da sidebar/breadcrumb mini
         window.addEventListener('tm:scope:set', (ev) => {
+            // Se stiamo resettando, ignora eventi di scope che non sono "all"
+            if (state.isResetting && !ev.detail?.all) {
+                return;
+            }
+
             const {all, ids, pathKey} = ev.detail || {};
             state.scopeAll = !!all || (!ids && !pathKey);
             state.scopeIds = ids || null;
@@ -79,134 +131,370 @@
         });
 
         // Ricerca testuale (gestita da search-manager.js)
+        // Ricerca testuale (gestita da search-manager.js)
         window.addEventListener('tm:search:set', (ev) => {
-            state.search = (ev.detail?.q || '');
-            localStorage.setItem(MEM.search, state.search);
+            const newSearch = (ev.detail?.q || '').trim();
+            const hadSearch = !!state.search;
+            const hasSearch = !!newSearch;
+
+            state.search = newSearch;
+
+            if (hasSearch) {
+                localStorage.setItem(MEM.search, state.search);
+            } else {
+                localStorage.removeItem(MEM.search);
+            }
+
+            const ctx = buildSearchContext();
+            window.__lastSearchContext = ctx;
+            window.dispatchEvent(new CustomEvent('tm:search:context', {detail: ctx}));
+
+            // Se passi da "ricerca attiva" a "nessuna ricerca" E non sei in reset
+            // ripristina l'ultimo scope/path salvato (se esiste)
+            if (hadSearch && !hasSearch && !state.isResetting) {
+                const savedPathKey = localStorage.getItem(MEM.pathKey);
+                const savedPathSlash = localStorage.getItem(MEM.pathSlash);
+
+                if (savedPathSlash) {
+                    const tm = window.Toolmap || {};
+                    const pathKey = savedPathKey || `Root>${savedPathSlash.replace(/\//g, '>')}`;
+                    const ids = tm.allToolsUnder?.[pathKey] ? Array.from(tm.allToolsUnder[pathKey]) : [];
+
+                    state.pathKey = pathKey;
+                    state.scopeAll = false;
+                    state.scopeIds = ids;
+
+                    // Notifica il ripristino dello scope
+                    window.dispatchEvent(new CustomEvent('tm:scope:set', {
+                        detail: {pathKey, ids, source: 'search-cleared'}
+                    }));
+                }
+            }
+
             render();
         });
 
-        // Colore di fase (propaga anche a back-to-top)
+        // Colore di fase
         window.addEventListener('tm:phase:color', (ev) => {
             const content = document.querySelector('.content');
             const color = ev.detail?.color || null;
             if (content) {
-                if (color) content.style.setProperty('--hover-color', `color-mix(in srgb, ${color} 100%, transparent)`);
-                else content.style.removeProperty('--hover-color');
+                if (color) content.style.setProperty('--hover-color', `color-mix(in srgb, ${color} 100%, transparent)`); else content.style.removeProperty('--hover-color');
             }
-            // Notifica il bottone "back to top"
             window.dispatchEvent(new CustomEvent('tm:phase:color:apply', {detail: {color}}));
         });
 
-        // Reset globale
+        // Reset globale - CORRETTO
         resetBtn?.addEventListener('click', () => {
+            // Imposta flag di reset
+            state.isResetting = true;
+
+            // 1) Pulisci TUTTO da localStorage (inclusi i path della sidebar!)
             localStorage.removeItem(MEM.search);
+            localStorage.removeItem(MEM.pathKey);
+            localStorage.removeItem(MEM.pathSlash);
+
+            // 2) Reset UI della search
             const input = document.getElementById(SEL.searchInput);
             if (input) input.value = '';
-            // Cascata di reset per sidebar, breadcrumb, search, hover pane, ecc.
+
+            // 3) Reset contesto di ricerca
+            const emptyCtx = {hasQuery: false, phaseKeys: [], paths: [], countsByPhase: {}};
+            window.__lastSearchContext = emptyCtx;
+            window.dispatchEvent(new CustomEvent('tm:search:context', {detail: emptyCtx}));
+
+            // 4) Reset stato locale
+            state.scopeAll = true;
+            state.scopeIds = null;
+            state.pathKey = null;
+            state.search = '';
+            hasVisitedAnyPhase = false;
+
+            // 5) Notifica reset globale (sidebar, hover, etc.)
             window.dispatchEvent(new Event('tm:reset'));
-            // Torna a "tutti i tool"
+
+            // 6) Imposta scope su "all tools"
             window.dispatchEvent(new CustomEvent('tm:scope:set', {detail: {all: true}}));
-            // Rimuovi colore
+
+            // 7) Rimuovi colore di fase
             window.dispatchEvent(new CustomEvent('tm:phase:color', {detail: {color: null}}));
+
+            // 8) Render finale
+            render();
+
+            // 9) Rimuovi flag di reset dopo un tick per evitare race conditions
+            setTimeout(() => {
+                state.isResetting = false;
+            }, 100);
         });
 
-        // Pulizia estetica extra su reset
+        // Listener per reset events da altre parti
         window.addEventListener('tm:reset', () => {
+            if (state.isResetting) return; // Evita loop se siamo già in reset
+
             const content = document.querySelector('.content');
             content?.style.removeProperty('--hover-color');
+
+            // Reset stato solo se non siamo già in reset
+            if (!state.isResetting) {
+                state.scopeAll = true;
+                state.scopeIds = null;
+                state.pathKey = null;
+                hasVisitedAnyPhase = false;
+            }
         });
 
-        // (Opzionale) quando il registry è pronto, se per qualche motivo non arriva tm:scope:set, forziamo "all"
+        // Quando il registry è pronto
         window.addEventListener('tm:registry:ready', () => {
-            // Il tools-loader già emette tm:scope:set { all:true }, quindi qui non serve forzare.
-            // Manteniamo lo hook per estensioni future.
+            // Se c'era un path salvato e il registry ora è pronto, ripristinalo
+            const savedPathKey = localStorage.getItem(MEM.pathKey);
+            if (savedPathKey && !state.search && !state.isResetting) {
+                const tm = window.Toolmap || {};
+                if (tm.allToolsUnder && tm.allToolsUnder[savedPathKey]) {
+                    state.pathKey = savedPathKey;
+                    state.scopeAll = false;
+                    state.scopeIds = Array.from(tm.allToolsUnder[savedPathKey]);
+                    render();
+                }
+            }
         });
 
-        // Eventi di fallback emessi dal renderer (se non sono state passate callback)
+        // Eventi per modali
         window.addEventListener('tm:card:openNotes', (e) => {
             const tool = e.detail?.tool;
             if (tool && notesModal) notesModal.show(tool);
         });
+
         window.addEventListener('tm:card:openDetails', (e) => {
             const tool = e.detail?.tool;
             if (tool && detailsModal) detailsModal.show(tool);
         });
-
     }
 
     // ------------------------------ Rendering ------------------------------
     function getRenderer() {
         if (rendererAdapter) return rendererAdapter;
 
-        // 1) Se esiste la classe → istanziala (così passiamo le callback)
         if (window.ToolsRenderer && typeof window.ToolsRenderer === 'function') {
             try {
-                const inst = new window.ToolsRenderer(
-                    SEL.grid,
-                    (tool) => detailsModal?.show(tool),   // click card
-                    (tool) => notesModal?.show(tool),     // click notes
-                    {activePath: []}
-                );
+                const inst = new window.ToolsRenderer(SEL.grid, (tool) => detailsModal?.show(tool), (tool) => notesModal?.show(tool), {activePath: []});
                 window.toolsRenderer = inst;
                 rendererAdapter = {
-                    kind: 'instance-new',
-                    render: (tools) => inst.render(tools)
+                    kind: 'instance-new', render: (tools) => inst.render(tools)
                 };
                 return rendererAdapter;
-            } catch (_) { /* fallback sotto */
+            } catch (_) { /* fallback */
             }
         }
 
-        // 2) Istanza già esistente
         if (window.toolsRenderer && typeof window.toolsRenderer.render === 'function') {
             rendererAdapter = {
-                kind: 'instance-existing',
-                render: (tools) => window.toolsRenderer.render(tools)
+                kind: 'instance-existing', render: (tools) => window.toolsRenderer.render(tools)
             };
             return rendererAdapter;
         }
 
-        // 3) API statica (senza callback) – lasciata come ultima scelta
         if (window.ToolsRenderer && typeof window.ToolsRenderer.render === 'function') {
             rendererAdapter = {
-                kind: 'static',
-                render: (tools) => window.ToolsRenderer.render(tools, grid)
+                kind: 'static', render: (tools) => window.ToolsRenderer.render(tools, grid)
             };
             return rendererAdapter;
         }
 
-        // 4) Fallback minimale interno
         rendererAdapter = {
-            kind: 'fallback',
-            render: (tools) => fallbackRender(tools)
+            kind: 'fallback', render: (tools) => fallbackRender(tools)
         };
         return rendererAdapter;
     }
 
     function computeVisibleTools() {
-        const toolsById = window.Toolmap?.toolsById || {};
-        let ids = state.scopeAll
-            ? Object.keys(toolsById)
-            : (state.scopeIds || []);
+        const tm = window.Toolmap || {};
+        const toolsById = tm.toolsById || {};
+        const allIds = Object.keys(toolsById);
 
-        // Ricerca
-        const q = (state.search || '').trim().toLowerCase();
-        if (q) {
-            ids = ids.filter(id => {
-                const t = toolsById[id] || {};
-                const hay = [
-                    t.title || t.name || '',
-                    t.desc || t.description || '',
-                    t.desc_long || '',
-                    t.phase || '',
-                    Array.isArray(t.tags) ? t.tags.join(' ') : '',
-                    Array.isArray(t.caps) ? t.caps.join(' ') : ''
-                ].join(' ').toLowerCase();
-                return hay.includes(q);
-            });
+        const qRaw = (state.search || '');
+        const q = norm(qRaw);
+        const tokens = tokenize(q);
+
+        // Base set - CORRETTO: la ricerca è SEMPRE globale
+        let baseIds;
+        if (tokens.length) {
+            // Ricerca attiva: cerca in TUTTI i tool (globale)
+            baseIds = allIds;
+        } else {
+            // Nessuna ricerca: usa lo scope corrente
+            baseIds = state.scopeAll ? allIds : (state.scopeIds || []);
         }
 
-        return ids.map(id => toolsById[id]).filter(Boolean);
+        if (!tokens.length) {
+            return baseIds.map(id => toolsById[id]).filter(Boolean);
+        }
+
+        // Search with ranking
+        const W = {
+            name: 6, caps: 4, tags: 3, desc: 2, desc_long: 2, phase: 5, node: 5
+        };
+
+        const hits = [];
+
+        for (const id of baseIds) {
+            const t = toolsById[id];
+            if (!t) continue;
+
+            const name = norm(t.title || t.name || t.id || '');
+            const nameNS = stripSep(name);
+            const desc = norm((t.desc || t.description || '') + ' ' + (t.desc_long || ''));
+            const descNS = stripSep(desc);
+            const caps = norm(Array.isArray(t.caps) ? t.caps.join(' ') : '');
+            const capsNS = stripSep(caps);
+            const tags = norm(Array.isArray(t.tags) ? t.tags.join(' ') : '');
+            const tagsNS = stripSep(tags);
+            const phaseRaw = t.phase || (Array.isArray(t.phases) ? t.phases[0] : '');
+            const phase = normLabel(phaseRaw);
+            const phaseNS = stripSep(phase);
+            const nodesArr = getCatPath(t);
+            const nodesHuman = nodesArr.map(normLabel);
+            const nodesJoined = nodesHuman.join(' ');
+            const nodesNS = stripSep(nodesJoined);
+
+            let score = 0;
+            let matched = false;
+
+            for (const tok of tokens) {
+                const tokNS = stripSep(tok);
+                let bestTokField = 0;
+
+                if (name.includes(tok) || nameNS.includes(tokNS)) {
+                    matched = true;
+                    bestTokField = Math.max(bestTokField, W.name);
+                    if (name.startsWith(tok) || nameNS.startsWith(tokNS)) score += 1;
+                }
+                if (desc.includes(tok) || descNS.includes(tokNS)) {
+                    matched = true;
+                    bestTokField = Math.max(bestTokField, W.desc);
+                }
+                if (caps.includes(tok) || capsNS.includes(tokNS)) {
+                    matched = true;
+                    bestTokField = Math.max(bestTokField, W.caps);
+                }
+                if (tags.includes(tok) || tagsNS.includes(tokNS)) {
+                    matched = true;
+                    bestTokField = Math.max(bestTokField, W.tags);
+                }
+                if (phase && (phase.includes(tok) || tok === phase || phaseNS.includes(tokNS))) {
+                    matched = true;
+                    bestTokField = Math.max(bestTokField, W.phase);
+                }
+                if (nodesJoined.includes(tok) || nodesNS.includes(tokNS) || nodesHuman.some(n => n === tok)) {
+                    matched = true;
+                    bestTokField = Math.max(bestTokField, W.node);
+                    if (nodesHuman.some(n => n.startsWith(tok)) || nodesNS.startsWith(tokNS)) score += 1;
+                }
+
+                score += bestTokField;
+            }
+
+            if (matched) {
+                hits.push({id, t, score});
+            }
+        }
+
+        hits.sort((a, b) => b.score - a.score || (a.t.title || a.t.name || '').localeCompare(b.t.title || b.t.name || ''));
+        return hits.map(h => h.t);
+    }
+
+    // Search helpers
+    function norm(s) {
+        return String(s || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/\p{Diacritic}/gu, '')
+            .trim();
+    }
+
+    function stripSep(s) {
+        return String(s || '').replace(/[\s_\-\/\\>.:]+/g, '');
+    }
+
+    function normLabel(s) {
+        return norm(String(s || '').replace(/^\d+[_-]*/, '').replace(/_/g, ' '));
+    }
+
+    function tokenize(q) {
+        q = String(q || '').trim();
+        if (!q) return [];
+        const out = [];
+        const re = /"([^"]+)"|'([^']+)'|([A-Za-z0-9_.\-\/\\> ]+)/g;
+        let m;
+        while ((m = re.exec(q)) !== null) {
+            const chunk = m[1] || m[2] || m[3] || '';
+            const parts = chunk.split(/[^A-Za-z0-9]+/).filter(Boolean);
+            for (const p of parts) {
+                const t = norm(p);
+                if (t) out.push(t);
+            }
+        }
+        return out;
+    }
+
+    function buildSearchContext() {
+        const tm = window.Toolmap || {};
+        const toolsById = tm.toolsById || {};
+
+        // La ricerca è SEMPRE globale per il contesto (sidebar needs all matches)
+        const searchIds = Object.keys(toolsById);
+
+        const q = norm(state.search);
+        const tokens = tokenize(q);
+        if (!tokens.length) return {hasQuery: false};
+
+        const phaseSet = new Set();
+        const paths = [];
+        const countsByPhase = {};
+
+        for (const id of searchIds) {
+            const t = toolsById[id];
+            if (!t) continue;
+
+            const name = norm(t.title || t.name || t.id || '');
+            const nameNS = stripSep(name);
+            const desc = norm((t.desc || t.description || '') + ' ' + (t.desc_long || ''));
+            const descNS = stripSep(desc);
+            const caps = norm(Array.isArray(t.caps) ? t.caps.join(' ') : '');
+            const capsNS = stripSep(caps);
+            const tags = norm(Array.isArray(t.tags) ? t.tags.join(' ') : '');
+            const tagsNS = stripSep(tags);
+            const phaseRaw = t.phase || (Array.isArray(t.phases) ? t.phases[0] : '');
+            const phase = normLabel(phaseRaw);
+            const phaseNS = stripSep(phase);
+            const nodesArr = getCatPath(t);
+            const nodesHuman = nodesArr.map(normLabel);
+            const nodesJoined = nodesHuman.join(' ');
+            const nodesNS = stripSep(nodesJoined);
+
+            let ok = false;
+            for (const tok of tokens) {
+                const tokNS = stripSep(tok);
+                if (name.includes(tok) || nameNS.includes(tokNS) || desc.includes(tok) || descNS.includes(tokNS) || caps.includes(tok) || capsNS.includes(tokNS) || tags.includes(tok) || tagsNS.includes(tokNS) || (phase && (phase.includes(tok) || tok === phase || phaseNS.includes(tokNS))) || nodesJoined.includes(tok) || nodesNS.includes(tokNS) || nodesHuman.some(n => n === tok)) {
+                    ok = true;
+                    break;
+                }
+            }
+            if (!ok) continue;
+
+            const phaseKey = nodesArr.length ? nodesArr[0] : (t.phase || null);
+            if (phaseKey) {
+                phaseSet.add(phaseKey);
+                countsByPhase[phaseKey] = (countsByPhase[phaseKey] || 0) + 1;
+            }
+            if (nodesArr.length) {
+   paths.push(nodesArr);
+ }
+        }
+
+        return {
+            hasQuery: true, phaseKeys: Array.from(phaseSet), paths, countsByPhase
+        };
     }
 
     function render() {
@@ -214,7 +502,7 @@
 
         const tools = computeVisibleTools();
 
-        // Notify breadcrumb of current context (for 'No tools' rule)
+        // Notify breadcrumb
         try {
             const summary = {
                 toolsCount: tools.length,
@@ -234,7 +522,7 @@
               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
           </svg>
           <h3>No tools found</h3>
-          <p>Nessun tool disponibile per questo nodo. Cambia nodo o premi <strong>Reset</strong>.</p>
+          <p>${state.search ? 'No matches for your search.' : 'No tools available for this category.'} Try changing your selection or press <strong>Reset</strong>.</p>
         </div>`;
             return;
         }
@@ -242,23 +530,18 @@
         const r = getRenderer();
         r.render(tools);
 
-        // Post-enhance: applica data-phase / --phase alle card se hanno data-tool-id
         enhanceCardsWithPhase(tools);
-
-        // Aggiorna linee se disponibile
         window.refreshAllVLinesDebounced?.();
     }
 
-    // --------------------------- Card enhancements --------------------------
+    // Card enhancements
     function enhanceCardsWithPhase(tools) {
         const byId = {};
         for (const t of tools) byId[t.id] = t;
 
         const cards = grid.querySelectorAll('[data-tool-id], .tool-card');
         cards.forEach(card => {
-            // prova id esplicito
             let id = card.getAttribute?.('data-tool-id');
-            // fallback: se ToolsRenderer mette data-id
             if (!id) id = card.getAttribute?.('data-id');
 
             const t = id ? byId[id] : null;
@@ -268,8 +551,6 @@
             if (phase) card.setAttribute('data-phase', phase);
             if (t.phaseColor) card.style.setProperty('--phase', t.phaseColor);
 
-            // Bind azioni se il renderer non le ha fatte:
-            // - click sul pulsante note
             const btnNotes = card.querySelector?.('[data-role="notes"], [data-action="notes"], .btn-notes');
             if (btnNotes && notesModal) {
                 if (!btnNotes.dataset._boundNotes) {
@@ -280,11 +561,10 @@
                     });
                 }
             }
-            // - click card → dettagli
+
             if (!card.dataset._boundCard) {
                 card.dataset._boundCard = '1';
                 card.addEventListener('click', (e) => {
-                    // evita doppio trigger se hai pulsanti interni
                     if (e.target.closest?.('[data-action="notes"], .btn-notes')) return;
                     detailsModal?.show(t);
                 });
@@ -292,7 +572,7 @@
         });
     }
 
-    // ----------------------------- Fallback UI ------------------------------
+    // Fallback renderer
     function fallbackRender(tools) {
         grid.innerHTML = `
       <div class="tools-grid-inner">
@@ -312,23 +592,20 @@
       </div>
     `;
 
-        // Colora per-fase
         tools.forEach(t => {
             const el = grid.querySelector(`[data-tool-id="${CSS.escape(t.id)}"]`);
             if (el && t.phaseColor) el.style.setProperty('--phase', t.phaseColor);
         });
 
-        // Bind
         enhanceCardsWithPhase(tools);
     }
 
-    // ------------------------------ Notes & Export --------------------------
+    // Notes & Export
     function saveNoteAndExport(toolId, note) {
         const tm = window.Toolmap || {};
         const tool = tm.toolsById?.[toolId];
         if (tool) tool.notes = note;
 
-        // Merge delle note nel registry e export YAML
         const reg = tm.registry ? structuredClone(tm.registry) : null;
         if (!reg || !window.jsyaml) return;
 
@@ -337,7 +614,7 @@
             const yaml = window.jsyaml.dump(reg, {lineWidth: 120});
             downloadFile('registry_2.yml', yaml, 'text/yaml;charset=utf-8');
         } catch (e) {
-            console.error('[tools-manager] Export YAML fallito:', e);
+            console.error('[tools-manager] Export YAML failed:', e);
         }
     }
 
@@ -369,14 +646,10 @@
         URL.revokeObjectURL(url);
     }
 
-    // ------------------------------- Utilities ------------------------------
+    // Utilities
     function escapeHtml(s) {
         return String(s || '').replace(/[&<>"']/g, m => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#39;'
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         }[m]));
     }
 
@@ -395,9 +668,7 @@
             .replace(/\-+/g, '-');
     }
 
-    // ========================================================================
-    // Tool Details Modal (classe compatibile con la tua UI)
-    // ========================================================================
+    // Tool Details Modal
     class ToolDetailsModal {
         constructor() {
             this.modal = null;
@@ -416,10 +687,9 @@
             const modalContent = this.modal.querySelector('.modal-content');
             if (modalContent && phaseColor) modalContent.style.setProperty('--phase', phaseColor);
 
-
             if (title) {
                 const name = tool.name || tool.title || 'Tool Details';
-                title.innerHTML = escapeHtml(name) + (tool.version ? ` <span style="font-size:.85em;color:var(--muted)">v${escapeHtml(tool.version)}</span>` : '');
+                title.innerHTML = escapeHtml(name) + (tool.version ? ` <span style="background: rgba(255, 255, 255, .1);" class="version-chip">v${escapeHtml(tool.version)}</span>` : '');
             }
 
             if (content) {
@@ -464,7 +734,7 @@
                 </a>
               </div>` : ''}
 
-            ${Array.isArray(tool.category_path) && tool.category_path.length ? `
+            ${getCatPath(tool).length ? `
               <div class="detail-section">
                 <h3>Category Path</h3>
                 <div class="category-path-row">
@@ -474,27 +744,20 @@
                     </svg>
                       <span class="sr-only">Copy category path</span>
                     </button>
-                    <p class="category-path" style="color:var(--muted);font-size:14px;">${tool.category_path.map(p => escapeHtml(formatLabel(p))).join(' / ')}</p>
+                    <p class="category-path" style="color:var(--muted);font-size:14px;">${getCatPath(tool).map(p => escapeHtml(formatLabel(p))).join(' / ')}</p>
                 </div>
               </div>` : ''}
           </div>
         `;
-                // Post-render: usa il valore originale YAML per il copy e mostra label "umana"
+
                 const cp = this.modal.querySelector('.category-path');
                 if (cp) {
                     try {
-                        const raw = Array.isArray(tool.category_path) ? tool.category_path : [];
-                        // dataset.raw = valore originale dal registry (quello che vuoi copiare)
+                        const raw = getCatPath(tool);
                         cp.dataset.raw = raw.join('/');
-
-                        // versione "umana" per la UI, come la breadcrumb:
-                        // - rimuove il prefisso "NN_" iniziale (es. "00_", "01_")
-                        // - sostituisce "_" con " "
-                        const humanizeSeg = (seg) =>
-                            String(seg || '')
-                                .replace(/^\d{2}_/, '')
-                                .replace(/_/g, ' ');
-
+                        const humanizeSeg = (seg) => String(seg || '')
+                            .replace(/^\d{2}_/, '')
+                            .replace(/_/g, ' ');
                         const human = raw.map(humanizeSeg);
                         cp.textContent = human.join(' / ');
                     } catch (e) { /* noop */
@@ -504,12 +767,9 @@
                 const btnCopyCP = this.modal.querySelector('.copy-catpath');
                 if (cp && btnCopyCP) {
                     btnCopyCP.addEventListener('click', () => {
-                        const text = (cp.dataset && cp.dataset.raw)
-                            ? cp.dataset.raw
-                            : (cp.textContent || '').trim();
+                        const text = (cp.dataset && cp.dataset.raw) ? cp.dataset.raw : (cp.textContent || '').trim();
                         if (!text) return;
                         navigator.clipboard.writeText(text).then(() => {
-                            // feedback icona check 1.2s (già presente)
                             const svg = btnCopyCP.querySelector('svg');
                             if (svg) {
                                 const orig = svg.outerHTML;
@@ -525,20 +785,17 @@
             }
             this.modal.style.display = 'flex';
             this.modal.classList.remove('closing');
-            void this.modal.offsetWidth;      // forza reflow per far partire la transizione
+            void this.modal.offsetWidth;
             this.modal.classList.add('open');
-
             document.body.style.overflow = 'hidden';
         }
 
         hide() {
             if (!this.modal) return;
-            // animate out
             this.modal.classList.remove('open');
             this.modal.classList.add('closing');
 
             const onEnd = (e) => {
-                // chiudo quando finisce la transizione dell’overlay
                 if (e && e.target && !e.target.classList.contains('modal-overlay')) return;
                 this.modal.removeEventListener('transitionend', onEnd);
                 this.modal.style.display = 'none';
@@ -546,10 +803,8 @@
                 document.body.style.overflow = '';
             };
             this.modal.addEventListener('transitionend', onEnd);
-            // fallback se transitionend non arriva
             setTimeout(onEnd, 260);
         }
-
 
         _createModal() {
             const html = `

@@ -1,121 +1,117 @@
 // ============================================================================
-// tools-renderer.js — renderer unico (classe + metodo statico)                |
-// - Card con data-tool-id e var CSS --phase per hover per-fase                |
-// - Supporto best_in (stelle) con activePath opzionale                        |
-// - Integrazione con window.SIDEBAR_ICONS per le icone di fase                |
-// - API: new ToolsRenderer(gridId, onCardClick?, onNotesClick?, {activePath}) |
-// - API statica: ToolsRenderer.render(tools, containerElOrId)                 |
+// tools-renderer.js
 // ============================================================================
 
+function _getBestInValue(tool) {
+    if (!tool || typeof tool !== 'object') return undefined;
+    // bracket notation evita l'errore "unresolved property"
+    const anyTool = /** @type {any} */ (tool);
+    return anyTool['best_in'] ?? anyTool['bestIn'] ?? anyTool['best-in'] ?? anyTool['best'];
+}
+
 (function () {
-  'use strict';
+    'use strict';
 
-  const PHASE_COLORS = {
-    '00_Common':                'var(--color-common)',
-    '01_Information_Gathering': 'var(--color-info)',
-    '02_Exploitation':          'var(--color-exploit)',
-    '03_Post_Exploitation':     'var(--color-post)',
-    '04_Miscellaneous':         'var(--color-misc)'
-  };
+    const PHASE_COLORS = {
+        '00_Common': 'var(--color-common)',
+        '01_Information_Gathering': 'var(--color-info)',
+        '02_Exploitation': 'var(--color-exploit)',
+        '03_Post_Exploitation': 'var(--color-post)',
+        '04_Miscellaneous': 'var(--color-misc)'
+    };
 
-  // Mappa alternative → chiave canonica per le icone (SIDEBAR_ICONS)
-  const CANON_MAP = {
-    common: 'common', general: 'common',
-    information: 'information_gathering', info: 'information_gathering',
-    reconnaissance: 'information_gathering', recon: 'information_gathering',
-    enumeration: 'information_gathering', discovery: 'information_gathering',
-    information_gathering: 'information_gathering',
-    exploit: 'exploitation', exploitation: 'exploitation',
-    post: 'post_exploitation', 'post-exploitation': 'post_exploitation', post_exploitation: 'post_exploitation',
-    misc: 'miscellaneous', miscellaneous: 'miscellaneous', other: 'miscellaneous'
-  };
+    // Mappa alternative → chiave canonica per le icone (SIDEBAR_ICONS)
+    const CANON_MAP = {
+        common: 'common', general: 'common',
+        information: 'information_gathering', info: 'information_gathering',
+        reconnaissance: 'information_gathering', recon: 'information_gathering',
+        enumeration: 'information_gathering', discovery: 'information_gathering',
+        information_gathering: 'information_gathering',
+        exploit: 'exploitation', exploitation: 'exploitation',
+        post: 'post_exploitation', 'post-exploitation': 'post_exploitation', post_exploitation: 'post_exploitation',
+        misc: 'miscellaneous', miscellaneous: 'miscellaneous', other: 'miscellaneous'
+    };
 
-  // Se true, mostra la stella solo se l'activePath è prefisso del category_path del tool
-  const REQUIRE_CONTEXT_MATCH = false;
+    // Se true, mostra la stella solo se l'activePath è prefisso del category_path del tool
+    const REQUIRE_CONTEXT_MATCH = false;
 
-  class ToolsRenderer {
-    constructor(gridId, onCardClick, onNotesClick, options = {}) {
-      this.grid = typeof gridId === 'string' ? document.getElementById(gridId) : gridId;
-      this.onCardClick = onCardClick;
-      this.onNotesClick = onNotesClick;
-      this.activePath = this._normalizeActivePath(options.activePath);
-    }
-
-    setContext({ activePath } = {}) {
-      if (activePath !== undefined) {
-        this.activePath = this._normalizeActivePath(activePath);
-      }
-    }
-
-    render(tools, containerOverride) {
-      const container = containerOverride
-        ? (typeof containerOverride === 'string' ? document.getElementById(containerOverride) : containerOverride)
-        : this.grid;
-
-      if (!container) return;
-      if (!Array.isArray(tools) || tools.length === 0) {
-        container.innerHTML = this._emptyHTML();
-        return;
-      }
-
-      container.innerHTML = tools.map(t => this._cardHTML(t)).join('');
-
-      // Bind azioni (card + notes)
-      const cards = Array.from(container.querySelectorAll('.card[data-tool-id]'));
-      cards.forEach((card, i) => {
-        const tool = tools[i];
-        // Click card → dettagli
-        if (!card.dataset._boundCard) {
-          card.dataset._boundCard = '1';
-          card.addEventListener('click', (e) => {
-            // Evita conflitto con il bottone note
-            if (e.target.closest?.('[data-role="notes"]')) return;
-            if (typeof this.onCardClick === 'function') this.onCardClick(tool);
-            else window.dispatchEvent(new CustomEvent('tm:card:openDetails', { detail: { tool } }));
-          });
+    class ToolsRenderer {
+        constructor(gridId, onCardClick, onNotesClick, options = {}) {
+            this.grid = typeof gridId === 'string' ? document.getElementById(gridId) : gridId;
+            this.onCardClick = onCardClick;
+            this.onNotesClick = onNotesClick;
+            this.activePath = this._normalizeActivePath(options.activePath);
         }
-        // Click note → NotesModal
-        const notesBtn = card.querySelector('[data-role="notes"]');
-        if (notesBtn && !notesBtn.dataset._boundNotes) {
-          notesBtn.dataset._boundNotes = '1';
-          notesBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (typeof this.onNotesClick === 'function') this.onNotesClick(tool);
-            else window.dispatchEvent(new CustomEvent('tm:card:openNotes', { detail: { tool } }));
-          });
+
+        render(tools, containerOverride) {
+            const container = containerOverride
+                ? (typeof containerOverride === 'string' ? document.getElementById(containerOverride) : containerOverride)
+                : this.grid;
+
+            if (!container) return;
+            if (!Array.isArray(tools) || tools.length === 0) {
+                container.innerHTML = this._emptyHTML();
+                return;
+            }
+
+            container.innerHTML = tools.map(t => this._cardHTML(t)).join('');
+
+            // Bind azioni (card + notes)
+            const cards = Array.from(container.querySelectorAll('.card[data-tool-id]'));
+            cards.forEach((card, i) => {
+                const tool = tools[i];
+                // Click card → dettagli
+                if (!card.dataset._boundCard) {
+                    card.dataset._boundCard = '1';
+                    card.addEventListener('click', (e) => {
+                        // Evita conflitto con il bottone note
+                        if (e.target.closest?.('[data-role="notes"]')) return;
+                        if (typeof this.onCardClick === 'function') this.onCardClick(tool);
+                        else window.dispatchEvent(new CustomEvent('tm:card:openDetails', {detail: {tool}}));
+                    });
+                }
+                // Click note → NotesModal
+                const notesBtn = card.querySelector('[data-role="notes"]');
+                if (notesBtn && !notesBtn.dataset._boundNotes) {
+                    notesBtn.dataset._boundNotes = '1';
+                    notesBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (typeof this.onNotesClick === 'function') this.onNotesClick(tool);
+                        else window.dispatchEvent(new CustomEvent('tm:card:openNotes', {detail: {tool}}));
+                    });
+                }
+            });
         }
-      });
-    }
 
-    // ---------------------------- Markup ---------------------------------
+        // ---------------------------- Markup ---------------------------------
 
-    _cardHTML(tool) {
-      const phase = tool?.phase || (Array.isArray(tool?.phases) ? tool.phases[0] : null) || '00_Common';
-      const phaseColor = this._phaseColor(phase);
-      const title = tool?.title || tool?.name || tool?.id || 'Unknown Tool';
-      const version = tool?.version ? String(tool.version) : '';
-      const desc = (tool?.desc || tool?.description || '').trim();
+        _cardHTML(tool) {
+            const phase = tool?.phase || (Array.isArray(tool?.phases) ? tool.phases[0] : null) || '00_Common';
+            const phaseColor = this._phaseColor(phase);
+            const title = tool?.title || tool?.name || tool?.id || 'Unknown Tool';
+            const version = tool?.version ? String(tool.version) : '';
+            const desc = (tool?.desc || tool?.description || '').trim();
 
-      const imgStyle = tool?.icon
-        ? `background-image:url('${this._escAttr(tool.icon)}');background-size:contain;background-position:center;background-repeat:no-repeat;background-color:color-mix(in srgb, ${phaseColor} 10%, transparent);`
-        : `background:linear-gradient(135deg, color-mix(in srgb, ${phaseColor} 22%, transparent), color-mix(in srgb, ${phaseColor} 11%, transparent));`;
+            const imgStyle = tool?.icon
+                ? `background-image:url('${this._escAttr(tool.icon)}');background-size:contain;background-position:center;background-repeat:no-repeat;background-color:color-mix(in srgb, ${phaseColor} 10%, transparent);`
+                : `background:linear-gradient(135deg, color-mix(in srgb, ${phaseColor} 22%, transparent), color-mix(in srgb, ${phaseColor} 11%, transparent));`;
 
-      const bestStars = this._bestStars(tool);
+            const bestStars = this._bestStars(tool);
 
-      const repoBtn = tool?.repo ? `
+            const repoBtn = tool?.repo ? `
         <a href="${this._escAttr(tool.repo)}" target="_blank" rel="noopener noreferrer"
            class="repo-link icon-btn" data-role="repo" title="Repository" aria-label="Open repository">
           ${this._iconRepo()}<b>Repo</b>
         </a>` : '';
 
-      const notesBtn = `
+            const notesBtn = `
         <button class="notes-btn icon-btn" data-role="notes" type="button" title="View/Edit Notes" aria-label="View or edit notes">
           ${this._iconNotes()}<b>Notes</b>
         </button>`;
 
-      const phaseIcon = this._phaseIcon(phase);
+            const phaseIcon = this._phaseIcon(phase);
 
-      return `
+            return `
         <article class="card tool-card" data-tool-id="${this._escAttr(tool?.id ?? '')}" data-phase="${this._escAttr(phase)}" style="--phase:${phaseColor}">
           <div class="card-badges">${bestStars}</div>
 
@@ -144,10 +140,10 @@
           </div>
         </article>
       `;
-    }
+        }
 
-    _emptyHTML() {
-      return `
+        _emptyHTML() {
+            return `
         <div class="empty-state" style="color:var(--muted);text-align:center;padding:2rem;">
           <svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true">
             <path fill="currentColor" d="M4 4h10l4 4v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm12 1H5v14h12V9h-3a2 2 0 0 1-2-2V5z"/>
@@ -155,66 +151,66 @@
           <h3 style="margin:.6rem 0 0 0;">No tools found</h3>
           <p style="margin:.2rem 0 0 0;">Try selecting a different category or adjusting your search</p>
         </div>`;
-    }
+        }
 
-    // -------------------------- Best-in / Stars ---------------------------
+        // -------------------------- Best-in / Stars ---------------------------
 
-    _bestStars(tool) {
-      if (!this._isTruthyBestIn(tool)) return '';
-      if (REQUIRE_CONTEXT_MATCH) {
-        const act = this._normalizePathArray(this.activePath);
-        const cat = this._normalizePathArray(tool?.category_path);
-        if (!(act.length && cat.length && this._isPrefix(act, cat))) return '';
-      }
-      const cat = Array.isArray(tool?.category_path) ? tool.category_path : [];
-      const label = cat.length ? cat[cat.length - 1] : 'Best in category';
-      const ph = (cat.length ? cat[0] : (tool?.phase || tool?.phases?.[0])) || '04_Miscellaneous';
-      return this._starSVG(this._phaseColor(ph), label);
-    }
+        _bestStars(tool) {
+            if (!this._isTruthyBestIn(tool)) return '';
+            if (REQUIRE_CONTEXT_MATCH) {
+                const act = this._normalizePathArray(this.activePath);
+                const cat = this._normalizePathArray(tool?.category_path);
+                if (!(act.length && cat.length && this._isPrefix(act, cat))) return '';
+            }
+            const cat = Array.isArray(tool?.category_path) ? tool.category_path : [];
+            const label = cat.length ? cat[cat.length - 1] : 'Best in category';
+            const ph = (cat.length ? cat[0] : (tool?.phase || tool?.phases?.[0])) || '04_Miscellaneous';
+            return this._starSVG(this._phaseColor(ph), label);
+        }
 
-    _isTruthyBestIn(tool) {
-      const v = tool?.best_in;
-      if (v === true) return true;
-      if (typeof v === 'number') return v === 1;
-      if (typeof v === 'string') {
-        const s = v.trim().toLowerCase();
-        return s === 'true' || s === '1' || s === 'yes';
-      }
-      return false;
-    }
+        _isTruthyBestIn(tool) {
+            const v = _getBestInValue(tool);
+            if (v === true) return true;
+            if (v === 1 || v === '1') return true;
+            if (typeof v === 'string') {
+                const s = v.trim().toLowerCase();
+                return s === 'true' || s === 'yes' || s === 'y';
+            }
+            return false;
+        }
 
-    _normalizePathArray(path) {
-      if (!path) return [];
-      if (Array.isArray(path)) return path.map(p => this._normKey(p)).filter(Boolean);
-      if (typeof path === 'string') return path.split(/[\/>]/).map(p => this._normKey(p)).filter(Boolean);
-      return [];
-    }
+        _normalizePathArray(path) {
+            if (!path) return [];
+            if (Array.isArray(path)) return path.map(p => this._normKey(p)).filter(Boolean);
+            if (typeof path === 'string') return path.split(/[\/>]/).map(p => this._normKey(p)).filter(Boolean);
+            return [];
+        }
 
-    _isPrefix(a = [], b = []) {
-      if (!a.length || !b.length) return false;
-      const n = Math.min(a.length, b.length);
-      for (let i = 0; i < n; i++) if (a[i] !== b[i]) return false;
-      return true;
-    }
+        _isPrefix(a = [], b = []) {
+            if (!a.length || !b.length) return false;
+            const n = Math.min(a.length, b.length);
+            for (let i = 0; i < n; i++) if (a[i] !== b[i]) return false;
+            return true;
+        }
 
-    // ----------------------------- Icone ---------------------------------
+        // ----------------------------- Icone ---------------------------------
 
-    _phaseIcon(phase) {
-      // Usa SIDEBAR_ICONS se disponibile
-      const canon = this._canonPhaseKey(phase);
-      const iconMap = (typeof window !== 'undefined' && window.SIDEBAR_ICONS) ? window.SIDEBAR_ICONS : null;
-      if (iconMap && iconMap[canon]) return iconMap[canon];
+        _phaseIcon(phase) {
+            // Usa SIDEBAR_ICONS se disponibile
+            const canon = this._canonPhaseKey(phase);
+            const iconMap = (typeof window !== 'undefined' && window.SIDEBAR_ICONS) ? window.SIDEBAR_ICONS : null;
+            if (iconMap && iconMap[canon]) return iconMap[canon];
 
-      // Fallback interni
-      if (canon === 'information_gathering') return this._iconSearch();
-      if (canon === 'exploitation') return this._iconBolt();
-      if (canon === 'post_exploitation') return this._iconGear();
-      if (canon === 'common') return this._iconGrid();
-      return this._iconDots();
-    }
+            // Fallback interni
+            if (canon === 'information_gathering') return this._iconSearch();
+            if (canon === 'exploitation') return this._iconBolt();
+            if (canon === 'post_exploitation') return this._iconGear();
+            if (canon === 'common') return this._iconGrid();
+            return this._iconDots();
+        }
 
-    _iconRepo() {
-      return `
+        _iconRepo() {
+            return `
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
              viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -222,10 +218,10 @@
           <path d="M15 3h6v6"></path><path d="M10 14 21 3"></path>
           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
         </svg>`;
-    }
+        }
 
-    _iconNotes() {
-      return `
+        _iconNotes() {
+            return `
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
              viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -234,107 +230,107 @@
           <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
           <path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path>
         </svg>`;
-    }
+        }
 
-    _iconGrid() {
-      return `
+        _iconGrid() {
+            return `
         <svg class="phase-icon" viewBox="0 0 24 24" aria-hidden="true">
           <path fill="currentColor" d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/>
         </svg>`;
-    }
+        }
 
-    _iconSearch() {
-      return `
+        _iconSearch() {
+            return `
         <svg class="phase-icon" viewBox="0 0 24 24" aria-hidden="true">
           <path fill="currentColor" d="M10 2a8 8 0 105.3 14l4.1 4.1 1.4-1.4-4.1-4.1A8 8 0 0010 2zm0 2a6 6 0 110 12A6 6 0 0110 4z"/>
         </svg>`;
-    }
+        }
 
-    _iconBolt() {
-      return `
+        _iconBolt() {
+            return `
         <svg class="phase-icon" viewBox="0 0 24 24" aria-hidden="true">
           <path fill="currentColor" d="M13 2L4 14h6l-2 8 9-12h-6l2-8z"/>
         </svg>`;
-    }
+        }
 
-    _iconGear() {
-      return `
+        _iconGear() {
+            return `
         <svg class="phase-icon" viewBox="0 0 24 24" aria-hidden="true">
           <path fill="currentColor" d="M12 8a4 4 0 100 8 4 4 0 000-8zm8.7 3.4l-1.7-.3a6.7 6.7 0 00-.8-1.8l1-1.4-1.4-1.4-1.4 1a6.7 6.7 0 00-1.8-.8l-.3-1.7h-2l-.3 1.7a6.7 6.7 0 00-1.8.8l-1.4-1-1.4 1.4 1 1.4a6.7 6.7 0 00-.8 1.8l-1.7.3v2l1.7.3c.2.6.5 1.2.8 1.8l-1 1.4 1.4 1.4 1.4-1a6.7 6.7 0 001.8.8l.3 1.7h2l.3-1.7a6.7 6.7 0 001.8-.8l1.4 1 1.4-1.4-1-1.4c.3-.6.6-1.2.8-1.8l1.7-.3v-2z"/>
         </svg>`;
-    }
+        }
 
-    _iconDots() {
-      return `
+        _iconDots() {
+            return `
         <svg class="phase-icon" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/>
         </svg>`;
-    }
+        }
 
-    _starSVG(color, label) {
-      const title = label ? `<title>${this._escHTML(label)}</title>` : '';
-      const aria = label ? `aria-label="${this._escAttr(label)}"` : `aria-hidden="true"`;
-      return `
+        _starSVG(color, label) {
+            const title = label ? `<title>${this._escHTML(label)}</title>` : '';
+            const aria = label ? `aria-label="${this._escAttr(label)}"` : `aria-hidden="true"`;
+            return `
         <svg class="best-star" viewBox="0 0 24 24" ${aria}>
           ${title}
           <path fill="${color}" d="M12 2.5l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.4l1.1-6.5L2.6 9.3l6.5-.9L12 2.5z"/>
         </svg>`;
+        }
+
+        // ---------------------------- Helpers --------------------------------
+
+        _phaseColor(phase) {
+            return PHASE_COLORS[phase] || 'var(--accent-2)';
+        }
+
+        _canonPhaseKey(phase) {
+            const k = this._normKey(phase);
+            return CANON_MAP[k] || k || 'miscellaneous';
+        }
+
+        _formatLabel(s) {
+            return String(s || '').replace(/^\d+[_-]*/, '').replace(/_/g, ' ').trim() || 'Common';
+        }
+
+        _normKey(s) {
+            return String(s || '')
+                .toLowerCase()
+                .replace(/^\d+[\s_-]*/, '')
+                .replace(/[^\w\s\/-]+/g, '')
+                .replace(/[\s-]+/g, '_')
+                .replace(/_+/g, '_')
+                .replace(/^_+|_+$/g, '');
+        }
+
+        _normalizeActivePath(activePath) {
+            if (!activePath) return [];
+            if (typeof activePath === 'string') {
+                return activePath.split(/[\/>]/).map(s => s.trim()).filter(Boolean);
+            }
+            return Array.isArray(activePath) ? activePath : [];
+        }
+
+        _escHTML(str) {
+            return String(str).replace(/[&<>"']/g, s => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[s]));
+        }
+
+        _escAttr(str) {
+            return this._escHTML(str).replace(/"/g, '&quot;');
+        }
+
+        // ------------------------ API statica helper -------------------------
+
+        static render(tools, containerElOrId) {
+            const el = typeof containerElOrId === 'string'
+                ? document.getElementById(containerElOrId)
+                : containerElOrId;
+            const inst = new ToolsRenderer(el, null, null, {});
+            return inst.render(tools, el);
+        }
     }
 
-    // ---------------------------- Helpers --------------------------------
-
-    _phaseColor(phase) {
-      return PHASE_COLORS[phase] || 'var(--accent-2)';
-    }
-
-    _canonPhaseKey(phase) {
-      const k = this._normKey(phase);
-      return CANON_MAP[k] || k || 'miscellaneous';
-    }
-
-    _formatLabel(s) {
-      return String(s || '').replace(/^\d+[_-]*/, '').replace(/_/g, ' ').trim() || 'Common';
-    }
-
-    _normKey(s) {
-      return String(s || '')
-        .toLowerCase()
-        .replace(/^\d+[\s_-]*/, '')
-        .replace(/[^\w\s\/-]+/g, '')
-        .replace(/[\s-]+/g, '_')
-        .replace(/_+/g, '_')
-        .replace(/^_+|_+$/g, '');
-    }
-
-    _normalizeActivePath(activePath) {
-      if (!activePath) return [];
-      if (typeof activePath === 'string') {
-        return activePath.split(/[\/>]/).map(s => s.trim()).filter(Boolean);
-      }
-      return Array.isArray(activePath) ? activePath : [];
-    }
-
-    _escHTML(str) {
-      return String(str).replace(/[&<>"']/g, s => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[s]));
-    }
-
-    _escAttr(str) {
-      return this._escHTML(str).replace(/"/g, '&quot;');
-    }
-
-    // ------------------------ API statica helper -------------------------
-
-    static render(tools, containerElOrId) {
-      const el = typeof containerElOrId === 'string'
-        ? document.getElementById(containerElOrId)
-        : containerElOrId;
-      const inst = new ToolsRenderer(el, null, null, {});
-      return inst.render(tools, el);
-    }
-  }
-
-  // Esporta globalmente (classe con metodo statico .render)
-  window.ToolsRenderer = ToolsRenderer;
+    // Esporta globalmente (classe con metodo statico .render)
+    window.ToolsRenderer = ToolsRenderer;
 })();
