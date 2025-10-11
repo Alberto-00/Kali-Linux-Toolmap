@@ -1242,7 +1242,14 @@
                     btn.querySelector('.search-badge')?.remove();
                     const n = countsByPhase[phase] || 0;
                     if (n > 0) {
-                        btn.insertAdjacentHTML('beforeend', `<span class="search-badge" aria-label="${n} risultati">${n}</span>`);
+                        // Insert search-badge BEFORE the chevron, keep it close
+                        const chev = btn.querySelector('.chev');
+                        const sb = document.createElement('span');
+                        sb.className = 'search-badge';
+                        sb.setAttribute('aria-label', `${n} risultati`);
+                        sb.textContent = String(n);
+                        if (chev) btn.insertBefore(sb, chev);
+                        else btn.appendChild(sb);
                     }
                 }
 
@@ -1755,6 +1762,94 @@
         refreshAllVLinesDebounced();
         window.SidebarAutoGrow?.schedule();
     });
+
+
+    // ==========================================================================
+    // SEZIONE Z · PHASE TOOL COUNT BADGE (numero tool per fase attiva)
+    // Mostra il badge solo con sidebar aperta, solo sulla fase con path attivo,
+    // si aggiorna su tm:context:summary. Niente badge in reset/show-all/search.
+    // ==========================================================================
+    (function PhaseBadgeModule() {
+        function isSidebarOpen() {
+            const sb = document.getElementById('sidebar');
+            return !!sb && !sb.classList.contains('collapsed');
+        }
+
+        function removeBadges(phaseKey) {
+            const sel = phaseKey
+                ? `.nav-item[data-phase="${phaseKey}"] .btn .phase-badge`
+                : `.nav-item .btn .phase-badge`;
+            document.querySelectorAll(sel).forEach(n => n.remove());
+        }
+
+        function placeBeforeChevron(btn, badge) {
+            const chev = btn.querySelector('.chev');
+            if (chev) btn.insertBefore(badge, chev);
+            else btn.appendChild(badge);
+        }
+
+        function updateBadge(phaseKey, count) {
+            if (!isSidebarOpen()) {
+                removeBadges();
+                return;
+            }
+            // Pulisci badge di altre fasi
+            document.querySelectorAll('.nav-item .btn .phase-badge').forEach(b => {
+                const owner = b.closest('.nav-item');
+                if (!owner || owner.dataset.phase !== phaseKey) b.remove();
+            });
+            const navItem = document.querySelector(`.nav-item[data-phase="${phaseKey}"]`);
+            if (!navItem) return;
+            if (!navItem.classList.contains('has-active-path')) {
+                removeBadges(phaseKey);
+                return;
+            }
+            const btn = navItem.querySelector('.btn');
+            if (!btn) return;
+
+            let badge = btn.querySelector('.phase-badge');
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'phase-badge';
+                placeBeforeChevron(btn, badge);
+            } else {
+                // assicurati che sia PRIMA della chevron
+                const chev = btn.querySelector('.chev');
+                if (chev && badge.nextElementSibling !== chev) placeBeforeChevron(btn, badge);
+            }
+            badge.textContent = String(count);
+        }
+
+        window.addEventListener('tm:context:summary', (ev) => {
+            const d = ev.detail || {};
+            const scopeAll = !!d.scopeAll;
+            const pathKey = d.pathKey || '';
+            const count = Number(d.toolsCount || 0);
+
+            if (!isSidebarOpen() || scopeAll || !pathKey) {
+                removeBadges();
+                return;
+            }
+
+            const parts = String(pathKey).split('>');
+            const phaseKey = parts.length >= 2 ? parts[1] : null;
+            if (!phaseKey) {
+                removeBadges();
+                return;
+            }
+
+            updateBadge(phaseKey, count);
+        });
+
+        window.addEventListener('tm:sidebar:toggle', (ev) => {
+            if (ev.detail?.collapsed) removeBadges();
+        });
+        window.addEventListener('tm:reset', () => removeBadges());
+        window.addEventListener('tm:search:set', (ev) => {
+            const hasQuery = !!(ev.detail && ev.detail.hasQuery);
+            if (hasQuery) removeBadges();
+        });
+    })();
 
 })(); // end IIFE principale
 

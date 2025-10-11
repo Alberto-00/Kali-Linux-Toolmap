@@ -838,3 +838,58 @@ p {
     border: 1px solid color-mix(in srgb, var(--phase) 36%, transparent);
     pointer-events: none;
 }
+
+/* ==========================================================================
+   PHASE TOOL COUNT BADGE (shown only on open sidebar & active path)
+   ========================================================================== */
+.nav-item .btn .phase-badge {
+    margin-left: auto;
+    padding: 3px 9px;
+    min-width: 20px;
+    text-align: center;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    background: color-mix(in srgb, var(--phase) 22%, transparent);
+    color: var(--phase);
+    border: 1px solid color-mix(in srgb, var(--phase) 42%, transparent);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .15), 0 2px 6px rgba(0, 0, 0, .25);
+    user-select: none;
+    pointer-events: none;
+    animation: badgePulse 0.4s ease;
+}
+
+.nav-item .btn .phase-badge + .chev { margin-left: -6px !important; }
+
+#sidebar.collapsed .phase-badge {
+    display: none !important;
+}
+
+/* Align number just before the chevron and keep it close */
+.nav-item .btn .phase-badge {
+    margin-left: auto;
+    margin-right: 5px;
+}
+
+/* push tail (badge+chev) to the right */
+.nav-item .btn .phase-badge + .chev {
+    margin-left: -6px !important;
+}
+
+/* Search-mode badge: place near chevron just like phase-badge */
+.nav-item .btn .search-badge {
+  margin-left: auto;
+  padding: 3px 8px;
+  min-width: 20px;
+  text-align: center;
+  border-radius: 999px;
+  font-size: 11px;
+    animation: badgePulse 0.4s ease;
+  font-weight: 800;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+}
+.nav-item .btn .search-badge + .chev { margin-left: -6px !important; }
+#sidebar.collapsed .search-badge{ display:none !important; }

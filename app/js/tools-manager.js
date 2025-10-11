@@ -651,7 +651,7 @@
                 return `${indent}notes: |\n` + text.split('\n').map(l => pad + l).join('\n');
             });
 
-            downloadFile('registry_2.yml', yaml, 'text/yaml;charset=utf-8');
+            downloadFile('registry.yml', yaml, 'text/yaml;charset=utf-8');
         } catch (e) {
             console.error('[tools-manager] Export YAML failed:', e);
         }

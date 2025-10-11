@@ -186,21 +186,6 @@
     filter: drop-shadow(0 0 3px color-mix(in srgb, var(--accent, #00d9ff) 50%, transparent));
 }
 
-/* Badge conteggio risultati per fase */
-.search-badge {
-    margin-left: auto;
-    padding: 3px 8px;
-    background: var(--accent, #00d9ff);
-    color: var(--bg, #0a0e27);
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1;
-    animation: badgePulse 0.4s ease;
-    min-width: 20px;
-    text-align: center;
-}
-
 @keyframes badgePulse {
     0%, 100% {
         transform: scale(1);
