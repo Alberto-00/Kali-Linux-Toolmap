@@ -160,7 +160,7 @@
     text-align: center;
     font-size: .875rem;
     line-height: 1.625;
-    margin: .6em 1.1em 0;
+    margin: 1.3em 1.1em 0; /* prima era .6em 1.1em 0 */
     flex: 1;
     position: relative;
     z-index: 10;

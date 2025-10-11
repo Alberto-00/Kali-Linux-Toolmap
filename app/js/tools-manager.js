@@ -611,33 +611,49 @@
     function saveNoteAndExport(toolId, note) {
         const tm = window.Toolmap || {};
         const tool = tm.toolsById?.[toolId];
-        if (tool) tool.notes = note;
+        if (tool) tool.notes = note ?? '';
 
-        const reg = tm.registry ? structuredClone(tm.registry) : null;
-        if (!reg || !window.jsyaml) return;
+        const registry = tm.registry ? structuredClone(tm.registry) : null;
+        if (!registry || !window.jsyaml) return;
 
-        injectNotesIntoRegistry(reg, tm.toolsById || {});
         try {
-            const yaml = window.jsyaml.dump(reg, {lineWidth: 120});
+            const DUMP_OPTS = {
+                lineWidth: -1,       // niente >- / piegature
+                noRefs: true,
+                sortKeys: false,
+                flowLevel: 2,        // array di proprietà in flow: [ ... ]
+                quotingType: '"',    // usa doppi apici
+                forceQuotes: true    // forza virgolette su tutte le stringhe
+            };
+
+            let yaml = window.jsyaml.dump(registry, DUMP_OPTS);
+
+            // Riga vuota tra gli item top-level
+            yaml = yaml.replace(/\n- /g, '\n\n- ');
+
+            // Se notes è vuoto, torna a "notes:" nudo (invece di notes: "")
+            yaml = yaml.replace(/^(\s*)notes:\s*""\s*$/gm, '$1notes:');
+
+            // Converte SOLO notes multilinea da "escaped" a block scalar |
+            // (così puoi scrivere markdown leggibile)
+            yaml = yaml.replace(/^(\s*)notes:\s*"([\s\S]*?)"$/gm, (m, indent, body) => {
+                // se non contiene \n, lascia le virgolette
+                if (!/\\n/.test(body)) return m;
+
+                // de-escape: \\  \"  \n  \t
+                const text = body
+                    .replace(/\\\\/g, '\\')
+                    .replace(/\\"/g, '"')
+                    .replace(/\\n/g, '\n')
+                    .replace(/\\t/g, '\t');
+
+                const pad = indent + '  ';
+                return `${indent}notes: |\n` + text.split('\n').map(l => pad + l).join('\n');
+            });
+
             downloadFile('registry_2.yml', yaml, 'text/yaml;charset=utf-8');
         } catch (e) {
             console.error('[tools-manager] Export YAML failed:', e);
-        }
-    }
-
-    function injectNotesIntoRegistry(node, toolsById) {
-        if (!node) return;
-        if (Array.isArray(node.tools)) {
-            node.tools.forEach(t => {
-                const nid = normalizeId(t.id || t.name || t.title);
-                const src = toolsById[nid];
-                if (src && Object.prototype.hasOwnProperty.call(src, 'notes')) {
-                    t.notes = src.notes || '';
-                }
-            });
-        }
-        if (Array.isArray(node.children)) {
-            node.children.forEach(child => injectNotesIntoRegistry(child, toolsById));
         }
     }
 
@@ -666,13 +682,6 @@
 
     function formatLabel(s) {
         return String(s || '').replace(/^\d+[_-]*/, '').replace(/_/g, ' ').trim();
-    }
-
-    function normalizeId(s) {
-        return String(s || '').trim().toLowerCase()
-            .replace(/[^\w\- ]+/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/\-+/g, '-');
     }
 
     // Tool Details Modal
@@ -716,7 +725,9 @@
 
             <div class="detail-section">
               <h3>Description</h3>
-              <p>${escapeHtml(description)}</p>
+              <div class="rt">
+              ${description}
+              </div>
             </div>
 
             ${(phasesHtml && phasesHtml.trim()) ? `
@@ -730,6 +741,16 @@
                 <h3>Capabilities</h3>
                 <div class="caps-tags">
                   ${tool.caps.map(cap => `<span class="cap-tag" style="background:rgba(255,255,255,.05);border:1px solid var(--border);padding:6px 12px;border-radius:8px;font-size:13px;color:var(--muted);display:inline-block;margin:4px;">${escapeHtml(cap)}</span>`).join('')}
+                </div>
+              </div>` : ''}
+            
+            ${tool.kind ? `
+              <div class="detail-section">
+                <h3>Kind</h3>
+                <div class="kind-tag"
+                     style="display:inline-block;background:rgba(255,255,255,.05);border:1px solid var(--border);
+                            padding:6px 12px;border-radius:8px;font-size:13px;color:var(--muted);">
+                  ${escapeHtml(tool.kind)}
                 </div>
               </div>` : ''}
 

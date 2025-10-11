@@ -171,6 +171,78 @@
     margin: 0;
 }
 
+/* ---------- Rich text dentro .detail-section ---------- */
+.detail-section .rt {
+  font-size: 15px;
+  line-height: 1.75;
+  color: hsl(var(--foreground));
+}
+
+/* Titoli secondari */
+.detail-section .rt h4 {
+  margin: 16px 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+/* Paragrafi e ritmo verticale */
+.detail-section .rt p {
+  margin: 8px 0 0; /* niente top sul primo paragrafo dopo h4 */
+}
+.detail-section .rt p:first-child {
+  margin-top: 0;
+}
+
+/* Liste */
+.detail-section .rt ul,
+.detail-section .rt ol {
+  margin: 10px 0 10px 1.25rem;
+  padding: 0;
+}
+.detail-section .rt li { margin: 6px 0; }
+
+/* Inline code e block code */
+.detail-section .rt code {
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 0.92em;
+  color: hsl(var(--accent));
+  overflow-wrap: anywhere;          /* evita overflow di stringhe lunghe */
+  word-break: break-word;           /* fallback */
+}
+.detail-section .rt pre {
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  padding: 14px;
+  overflow-x: auto;
+  margin: 10px 0 12px;
+}
+.detail-section .rt pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: hsl(var(--foreground));
+  font-size: 0.95em;
+}
+
+/* Spazio tra blocchi diversi (paragrafo <-> lista <-> pre) */
+.detail-section .rt :is(ul, ol, pre) + :is(p, ul, ol, pre, h4) {
+  margin-top: 12px;
+}
+
+/* Variante cromatica per sottotitoli (se vuoi riprendere i colori inline) */
+.detail-section .rt .rt-blue   { color: #3b82f6; }
+.detail-section .rt .rt-purple { color: #8b5cf6; }
+.detail-section .rt .rt-green  { color: #10b981; }
+.detail-section .rt .rt-amber  { color: #f59e0b; }
+.detail-section .rt .rt-red    { color: #ef4444; }
+
+
 /* NOTES MODAL SPECIFIC */
 .notes-textarea {
     width: 100%;
@@ -266,7 +338,8 @@
 }
 
 .edit-btn,
-.save-btn {
+.save-btn,
+.back-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -282,12 +355,13 @@
 }
 
 .edit-btn svg,
-.save-btn svg {
+.save-btn svg,
+.back-btn svg {
     width: 16px;
     height: 16px;
 }
 
-.edit-btn:hover {
+.edit-btn:hover, .back-btn:hover {
     background: hsl(var(--secondary) / .15);
     border-color: hsl(var(--secondary));
     color: hsl(var(--secondary));

@@ -552,7 +552,7 @@ nav::-webkit-scrollbar-thumb:hover {
     pointer-events: none;
     transition: all .2s cubic-bezier(.4, 0, .2, 1);
     min-width: 200px;
-    max-width: 280px;
+    max-width: none;
     background: rgba(18, 18, 24, .98);
     border: 1px solid var(--border);
     border-radius: 12px;

@@ -114,6 +114,12 @@ class NotesModal {
               </svg>
               Edit
             </button>
+            <button class="back-btn" type="button" title="Back to preview" aria-label="Back to preview" style="display:none;margin-right:8px;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Back
+              </button>
             <button class="save-btn" type="button" style="display:none;">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -135,7 +141,9 @@ class NotesModal {
         const editBtn = this._qs('.edit-btn');
         const saveBtn = this._qs('.save-btn');
         const textarea = this._qs('.notes-textarea');
+        const backBtn = this._qs('.back-btn');
 
+        backBtn?.addEventListener('click', () => this._toggleEdit(false));
         closeBtn?.addEventListener('click', () => this.hide());
 
         // Click sul backdrop per chiudere
@@ -193,18 +201,21 @@ class NotesModal {
         const preview = this._qs('.notes-preview');
         const editBtn = this._qs('.edit-btn');
         const saveBtn = this._qs('.save-btn');
+        const backBtn  = this._qs('.back-btn');
 
         if (this.isEditing) {
             textarea && (textarea.style.display = 'block');
             preview && (preview.style.display = 'none');
             editBtn && (editBtn.style.display = 'none');
             saveBtn && (saveBtn.style.display = 'inline-flex');
+            backBtn  && (backBtn.style.display  = 'inline-flex');
             textarea?.focus();
         } else {
             textarea && (textarea.style.display = 'none');
             preview && (preview.style.display = 'block');
             editBtn && (editBtn.style.display = 'inline-flex');
             saveBtn && (saveBtn.style.display = 'none');
+            backBtn  && (backBtn.style.display  = 'none');
         }
         this._updatePreview();
     }
@@ -308,7 +319,7 @@ class NotesModal {
         }
 
         // 2) Export .md
-        this._exportMarkdown(note);
+        // this._exportMarkdown(note);
 
         // 3) Torna in preview
         this._toggleEdit(false);

@@ -6,37 +6,76 @@
     // ==========================================================================
     const taxonomy = {
         "00_Common": {
-            "Metasploit_Plugins": {}, "Scripts": {}, "Tools_Windows": {}, "Wordlists": {}
+            "Metasploit_Plugins": {},
+            "Scripts": {},
+            "Tools_Windows": {},
+            "Wordlists": {}
         },
         "01_Information_Gathering": {
             "01_Recon": {
-                "Infrastructure": {"DNS_Subdomains": {}},
+                "Infrastructure": {
+                    "DNS_Subdomains": {}
+                },
                 "Web": {
                     "Content_Discovery": {},
-                    "Fingerprinting": {"Visual_Recon": {}, "WAF": {}},
+                    "Fingerprinting": {
+                        "Visual_Recon": {},
+                        "WAF": {}
+                    },
                     "Params_Discovery": {}
                 }
             },
             "02_Enumeration": {
-                "Infrastructure": {"SMB": {}},
-                "Web": {"API": {}, "CMS": {"Joomla": {}}, "Crawling": {"Active": {}}}
+                "Infrastructure": {
+                    "SMB": {}
+                },
+                "Web": {
+                    "API": {},
+                    "CMS": {
+                        "Joomla": {}
+                    },
+                    "Crawling": {
+                        "Active": {}
+                    }
+                }
             }
         },
         "02_Exploitation": {
             "General": {},
-            "Infrastructure": {"RTSP": {}},
+            "Infrastructure": {
+                "RTSP": {}
+            },
             "Web": {
-                "CMS_Exploits": {"Drupal": {}, "Joomla": {}, "WordPress": {}},
+                "CMS_Exploits": {
+                    "Drupal": {},
+                    "Joomla": {},
+                    "WordPress": {}
+                },
                 "File_Upload": {},
-                "Injection": {"LFI": {}, "XSS": {}, "XXE": {}},
+                "Injection": {
+                    "LFI": {},
+                    "XSS": {},
+                    "XXE": {}
+                },
                 "Next_js": {},
                 "Tomcat": {}
             }
         },
         "03_Post_Exploitation": {
-            "AD_Windows": {"Kerberos_ADCS_Relay": {}, "Recon_Health": {}},
-            "Credentials": {"Credentials_Hunting": {}, "Passwords_Cracking": {}},
-            "Evasion": {}, "Pivoting": {}, "Privilege_Escalation": {"Linux": {}}, "Reverse_Engineering": {}
+            "AD_Windows": {
+                "Kerberos_ADCS_Relay": {},
+                "Recon_Health": {}
+            },
+            "Credentials": {
+                "Credentials_Hunting": {},
+                "Passwords_Cracking": {}
+            },
+            "Evasion": {},
+            "Pivoting": {},
+            "Privilege_Escalation": {
+                "Linux": {}
+            },
+            "Reverse_Engineering": {}
         },
         "04_Miscellaneous": {}
     };
@@ -514,6 +553,7 @@
         } else {
             highlightActivePath(phaseKey);
         }
+        window.SidebarAutoGrow?.schedule();
     }
 
     // ==========================================================================
@@ -596,8 +636,8 @@
                         highlightActivePath(phaseKey);
                         collapseSubtree(phaseKey, pathSlash);
                         refreshAllVLinesDebounced();
+                        window.SidebarAutoGrow?.schedule();
                     }, {once: true});
-
                     return;
                 }
 
@@ -631,6 +671,7 @@
                     highlightActivePath(phaseKey);
                     expandBranch(phaseKey, pathSlash);
                     refreshAllVLinesDebounced();
+                    window.SidebarAutoGrow?.schedule();
                 };
                 nest.addEventListener('transitionend', onOpenEnd);
 
@@ -679,6 +720,7 @@
                     // ripulisci nested stantii, poi ricostruisci da memoria
                     navItem.querySelectorAll('.children-nested').forEach(n => n.remove());
                     expandFromMemoryInContainer(navItem, phaseKey);
+                    window.SidebarAutoGrow?.schedule();
 
                     const current = getActivePathSlash(phaseKey);
                     if (current && typeof current === 'string') {
@@ -857,6 +899,7 @@
             clearAllPathHighlights();
             Object.keys(phaseMemory).forEach(k => phaseMemory[k].expanded.clear());
             refreshAllVLinesDebounced();
+            window.SidebarAutoGrow?.schedule();
         });
 
         expandAllBtn?.addEventListener('click', () => {
@@ -962,6 +1005,7 @@
                             markLastVisible(leaf.parentElement);
                             collapseSubtree(phaseKey, pathSlash);
                             refreshAllVLinesDebounced(hoverPane);
+                            window.SidebarAutoGrow?.schedule();
                             const cur = getActivePathSlash(phaseKey);
                             highlightPathInContainer(hoverPane, null);
                             void hoverPane.offsetHeight;
@@ -998,6 +1042,7 @@
                         }
                         expandBranch(phaseKey, pathSlash);
                         refreshAllVLinesDebounced(hoverPane);
+                        window.SidebarAutoGrow?.schedule();
                         const cur = getActivePathSlash(phaseKey);
                         highlightPathInContainer(hoverPane, null);
                         void hoverPane.offsetHeight;
@@ -1007,6 +1052,7 @@
                     nest.addEventListener('transitionend', onOpenEnd);
                 } else {
                     refreshAllVLinesDebounced(hoverPane);
+                    window.SidebarAutoGrow?.schedule();
                     const cur = getActivePathSlash(phaseKey);
                     highlightPathInContainer(hoverPane, null);
                     void hoverPane.offsetHeight;
@@ -1019,7 +1065,19 @@
     }
 
     function hideHoverPane() {
-        if (hoverPane) hoverPane.classList.remove('active');
+        if (hoverPane) {
+            hoverPane.classList.remove('active');
+            hoverPane.style.removeProperty('width');
+        }
+
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar && sidebar.classList.contains('collapsed')) {
+            window.SidebarAutoGrow?.reset();
+            // Resetta anche la misurazione dell'hover
+            if (window.SidebarAutoGrow?.apply?._last) {
+                window.SidebarAutoGrow.apply._last = {key: null, value: null};
+            }
+        }
     }
 
     function ensureHoverPaneStyles() {
@@ -1065,7 +1123,18 @@
         void pane.offsetHeight;
 
         expandFromMemoryInContainer(pane, phaseKey);
-        setTimeout(() => pane.classList.add('active'), 40);
+
+        // Attiva il pane e triggera subito l'auto-grow
+        setTimeout(() => {
+            pane.classList.add('active');
+            // Triggera auto-grow dopo che il pane è visibile
+            if (window.SidebarAutoGrow) {
+                window.SidebarAutoGrow.schedule();
+                // Secondo trigger per sicurezza dopo le animazioni
+                setTimeout(() => window.SidebarAutoGrow.schedule(), 100);
+            }
+        }, 40);
+
         window.dispatchEvent(new Event('tm:hover:show'));
 
         // Se siamo in ricerca, applica anche le hit e NON evidenziare path attivi
@@ -1105,6 +1174,7 @@
                 }
             }
             refreshAllVLines(pane);
+            window.SidebarAutoGrow?.schedule();
         });
     }
 
@@ -1132,8 +1202,8 @@
                     el.classList.remove('search-hit');
                 });
             }
-
             refreshAllVLinesDebounced();
+            window.SidebarAutoGrow?.schedule();
         }
 
         function applySearchGhost(detail) {
@@ -1206,8 +1276,8 @@
             if (hoverPane && hoverPane.classList.contains('active')) {
                 applySearchToHoverPane(detail);
             }
-
             refreshAllVLinesDebounced(NAV);
+            window.SidebarAutoGrow?.schedule();
         }
 
         function applySearchToHoverPane(detail) {
@@ -1263,6 +1333,8 @@
 
         // Quando hover-pane diventa attivo, applica search se presente
         window.addEventListener('tm:hover:show', () => {
+            window.SidebarAutoGrow?.schedule();
+
             const lastContext = window.__lastSearchContext;
             if (lastContext && lastContext.hasQuery) {
                 setTimeout(() => window.applySearchToHoverPane && window.applySearchToHoverPane(lastContext), 50);
@@ -1362,6 +1434,8 @@
             if (typeof refreshAllVLinesDebounced === 'function') {
                 refreshAllVLinesDebounced(phaseItem || nav);
             }
+            window.SidebarAutoGrow?.schedule();
+
             // cleanup memoria di ricerca e riallinea lo stato persistente
             try {
                 if (lastSlash) localStorage.setItem(MEM.pathSlash, lastSlash);
@@ -1426,7 +1500,6 @@
             }
         });
 
-        // Reset globale: sblocca tutto
         // Reset globale: azzera tutto (memoria path/expanded/hover + ricerca + DOM)
         window.addEventListener('tm:reset', () => {
             // 0) Memoria globale
@@ -1468,6 +1541,7 @@
 
             // 6) Refresh linee
             refreshAllVLinesDebounced();
+            window.SidebarAutoGrow?.schedule();
         });
 
     })();
@@ -1528,6 +1602,27 @@
             // Evidenzia path attivo (guardata da highlightActivePath)
             setActivePathSlash(phaseKey, slash);
             highlightActivePath(phaseKey);
+
+            if (navItem && !isCollapsed) {
+                // Assicurati che la catena sia montata (se l’evento non viene dalla sidebar)
+                if (!fromSidebar) {
+                    let acc = [];
+                    for (const p of parts) {
+                        acc.push(p);
+                        ensureExpandedInContainer(navItem, acc.join('/'));
+                    }
+                }
+                // Rimuovi vecchi 'active' e imposta quello giusto
+                navItem.querySelectorAll('.folder-leaf.active, .leaf.active, .section-title.active')
+                    .forEach(n => n.classList.remove('active'));
+                const activeEl = navItem.querySelector(
+                    `.folder-leaf[data-path="${slash}"], .leaf[data-path="${slash}"]`
+                );
+                if (activeEl) activeEl.classList.add('active');
+                // Ritocca linee verticali e auto-grow
+                if (typeof refreshAllVLinesDebounced === 'function') refreshAllVLinesDebounced(navItem);
+                window.SidebarAutoGrow?.schedule();
+            }
 
             // --- SYNC anche Hover Pane quando la sidebar è collassata ---
             try {
@@ -1658,6 +1753,7 @@
         clearAllPathHighlights();
         hideHoverPane();
         refreshAllVLinesDebounced();
+        window.SidebarAutoGrow?.schedule();
     });
 
 })(); // end IIFE principale
@@ -1810,7 +1906,9 @@ if (document.readyState === 'loading') {
         safety: 20,
         maxVW: 0.90,
         minPathWidth: 320,
-        textSelectors: ".btn .label, .folder-leaf > .label, .leaf > span, .section-title > span"
+        hoverMinWidth: 200,
+        hoverBaseWidth: 320,
+        textSelectors: ".btn .label, .folder-leaf > span:not(.node-icon), .leaf > span, .section-title > span"
     };
 
     const ready = (fn) => (document.readyState === "loading")
@@ -1829,6 +1927,15 @@ if (document.readyState === 'loading') {
         const leftNoTransform = (el) => {
             let x = 0, n = el;
             while (n && n !== sidebar) {
+                x += n.offsetLeft || 0;
+                n = n.offsetParent;
+            }
+            return x;
+        };
+
+        const leftInContainer = (el, container) => {
+            let x = 0, n = el;
+            while (n && n !== container) {
                 x += n.offsetLeft || 0;
                 n = n.offsetParent;
             }
@@ -1856,7 +1963,7 @@ if (document.readyState === 'loading') {
             const depth = parts.length - 1;
             const gutter = 28;
             const indentation = depth * gutter;
-            const span = el.querySelector(".label");
+            const span = el.querySelector(':scope > span:not(.node-icon)');
             const textWidth = span ? (span.scrollWidth || span.offsetWidth) : 0;
             const iconWidth = 16;
             const gap = 8;
@@ -1864,33 +1971,47 @@ if (document.readyState === 'loading') {
         };
 
         const computeNeeded = () => {
-            if (isCollapsed()) return null;
+            const hover = document.querySelector('.hover-pane.active');
+            const useHover = isCollapsed() && hover;
 
-            const padR = parseFloat(getComputedStyle(sidebar).paddingRight) || 0;
-            let needed = CFG.base;
+            // Consenti l'auto-grow se l'hover è attivo, anche quando sidebar è collapsed
+            if (isCollapsed() && !hover) return null;
 
-            const labels = (nav || document).querySelectorAll(CFG.textSelectors);
+            const sourceRoot = useHover ? hover : nav;
+            const sourceStyle = getComputedStyle(useHover ? hover : sidebar);
+            const padL = parseFloat(sourceStyle.paddingLeft) || 0;
+            const padR = parseFloat(sourceStyle.paddingRight) || 0;
+
+            let needed = useHover ? CFG.hoverMinWidth : CFG.base;
+
+            const labels = sourceRoot.querySelectorAll(CFG.textSelectors);
+
             for (const el of labels) {
                 if (!el || !el.offsetParent) continue;
 
                 const parent = el.closest(".folder-leaf, .leaf, .btn, .section-title");
                 if (!parent) continue;
 
-                if (!isInOpenTree(parent)) continue;
+                const isFromHover = !!(hover && hover.contains(el));
 
-                const left = leftNoTransform(el);
-                const textWidth = el.scrollWidth || el.offsetWidth || 0;
+                // Quando misuri dall'hover, non filtrare per "albero aperto"
+                if (!isFromHover && !isInOpenTree(parent)) continue;
 
-                if (parent.classList.contains("folder-leaf")) {
+                // Calcola indentazione per path
+                if (parent.classList.contains("folder-leaf") || parent.classList.contains("leaf")) {
                     const pathWidth = getPathWidth(parent);
-                    needed = Math.max(needed, pathWidth + padR);
+                    needed = Math.max(needed, pathWidth + padL + padR);
                 }
 
+                // Misura testo
+                const left = isFromHover ? leftInContainer(el, hover) : leftNoTransform(el);
+                const textWidth = el.scrollWidth || el.offsetWidth || 0;
                 const requiredWidth = Math.ceil(left + textWidth + padR + CFG.safety);
                 needed = Math.max(needed, requiredWidth);
             }
 
-            needed = Math.max(needed, CFG.minPathWidth);
+            const minWidth = useHover ? CFG.hoverMinWidth : CFG.minPathWidth;
+            needed = Math.max(needed, minWidth);
             return Math.min(needed, cap());
         };
 
@@ -1898,21 +2019,50 @@ if (document.readyState === 'loading') {
             const target = computeNeeded();
             if (target == null) return;
 
+            const hover = document.querySelector('.hover-pane.active');
+            const key = (isCollapsed() && hover) ? 'hover' : 'sidebar';
+
+            if (!apply._last) apply._last = {key: null, value: null};
+
+            // Se sidebar COLLAPSED + hover attivo => ridimensiona l'HOVER PANE
+            if (key === 'hover') {
+                if (!hover) return;
+
+                const current = Math.round(parseFloat(getComputedStyle(hover).width) || hover.offsetWidth || CFG.hoverBaseWidth);
+
+                // Previeni loop se già applicato
+                if (apply._last.key === 'hover' && Math.abs(apply._last.value - target) <= 2) return;
+                if (Math.abs(current - target) <= 2) {
+                    apply._last = {key, value: target};
+                    return;
+                }
+
+                // Applica la nuova larghezza
+                hover.style.width = target + 'px';
+                apply._last = {key, value: target};
+
+                // Aggiorna le V-lines dopo un frame
+                requestAnimationFrame(() => {
+                    if (typeof window.refreshAllVLines === "function") {
+                        window.refreshAllVLines(hover);
+                    }
+                });
+                return;
+            }
+
+            // Sidebar APERTA => comportamento originale (ridimensiona la sidebar)
             const current = Math.round(parseFloat(getComputedStyle(sidebar).width));
-            if (lastApplied !== null && Math.abs(lastApplied - target) <= 1) return;
+            if (apply._last.key === 'sidebar' && Math.abs(apply._last.value - target) <= 1) return;
             if (Math.abs(current - target) <= 1) {
-                lastApplied = target;
+                apply._last = {key, value: target};
                 return;
             }
 
             sidebar.style.width = target + "px";
-            lastApplied = target;
+            apply._last = {key, value: target};
 
-            if (typeof window.refreshAllVLinesDebounced === "function") {
-                window.refreshAllVLinesDebounced();
-            } else if (typeof window.refreshAllVLines === "function") {
-                window.refreshAllVLines();
-            }
+            if (typeof window.refreshAllVLinesDebounced === "function") window.refreshAllVLinesDebounced();
+            else if (typeof window.refreshAllVLines === "function") window.refreshAllVLines();
         };
 
         let ticking = false;
@@ -1921,14 +2071,28 @@ if (document.readyState === 'loading') {
             ticking = true;
             requestAnimationFrame(() => {
                 ticking = false;
-                if (!isCollapsed()) apply();
+                const hoverActive = !!document.querySelector('.hover-pane.active');
+                // Sidebar aperta => applica; Sidebar chiusa => applica solo se c'è hover attivo
+                if (!isCollapsed() || hoverActive) apply();
             });
+        };
+
+        const reset = () => {
+            sidebar.style.removeProperty("width");
+            const hover = document.querySelector('.hover-pane');
+            if (hover) hover.style.removeProperty("width");
+            if (apply._last) apply._last = {key: null, value: null};
+            lastApplied = null;
         };
 
         const onCollapseChange = () => {
             if (isCollapsed()) {
-                sidebar.style.removeProperty("width");
-                lastApplied = null;
+                const hover = document.querySelector('.hover-pane.active');
+                if (!hover) {
+                    reset();        // se non c'è hover, torna alle dimensioni minime
+                } else {
+                    setTimeout(schedule, 0);    // se c'è hover, calcola subito l'auto-grow
+                }
             } else {
                 setTimeout(schedule, 0);
                 setTimeout(schedule, 220);
@@ -1941,6 +2105,41 @@ if (document.readyState === 'loading') {
             childList: true,
             attributes: true,
             attributeFilter: ["class", "style", "data-open", "aria-expanded"]
+        });
+
+        // Observer per hover-pane (se esiste)
+        const observeHoverPane = () => {
+            const hover = document.querySelector('.hover-pane');
+            if (hover && !hover.dataset.observed) {
+                hover.dataset.observed = 'true';
+                const moHover = new MutationObserver(schedule);
+                moHover.observe(hover, {
+                    subtree: true,
+                    childList: true,
+                    attributes: true,
+                    attributeFilter: ["class", "style"]
+                });
+
+                const roHover = new ResizeObserver(schedule);
+                roHover.observe(hover);
+            }
+        };
+
+        // Osserva quando viene aggiunto l'hover-pane al DOM
+        const moBody = new MutationObserver(() => {
+            const hover = document.querySelector('.hover-pane');
+            if (hover && !hover.dataset.observed) {
+                observeHoverPane();
+            }
+        });
+        moBody.observe(document.body, {childList: true, subtree: false});
+
+        // Listener per evento custom di show hover
+        window.addEventListener('tm:hover:show', () => {
+            observeHoverPane();
+            setTimeout(schedule, 0);
+            setTimeout(schedule, 50);
+            setTimeout(schedule, 150);
         });
 
         const moSidebar = new MutationObserver(muts => {
@@ -1968,6 +2167,6 @@ if (document.readyState === 'loading') {
         setTimeout(schedule, 300);
         setTimeout(schedule, 600);
 
-        window.SidebarAutoGrow = {schedule, apply, computeNeeded};
+        window.SidebarAutoGrow = {schedule, apply, computeNeeded, reset};
     });
 })();

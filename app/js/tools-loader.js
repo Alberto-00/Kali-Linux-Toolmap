@@ -11,14 +11,14 @@
   const Toolmap = window.Toolmap = window.Toolmap || {};
   const ROOT = 'Root';
 
-  // Percorsi possibili (in base alla tua struttura: index.html in /app, registry in /data)
+  // Percorsi possibili
   const CANDIDATES = [
-    '../data/registry_2.yml',   // <-- principale per /app/index.html
-    '../../data/registry_2.yml',
-    './data/registry_2.yml',
-    '/data/registry_2.yml',
-    'data/registry_2.yml',
-    'registry_2.yml'
+    '../data/registry.yml',
+    '../../data/registry.yml',
+    './data/registry.yml',
+    '/data/registry.yml',
+    'data/registry.yml',
+    'registry.yml'
   ];
 
   // ---- Utilità --------------------------------------------------------------
