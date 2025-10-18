@@ -1141,7 +1141,7 @@
     aggiuntive</li></ul><p>Tuttavia SubBrute rimane valido per scenario con rate-limit
     aggressivo grazie a resolver distribution. Best practice: combinare SubBrute (active)
     con Amass/Subfinder (passive) per coverage completa subdomain discovery.</p>"
-  best_in: true
+  best_in: false
   category_path: ["01_Information_Gathering", "01_Recon", "Infrastructure", "DNS_Subdomains"]
   notes:
 
@@ -1189,7 +1189,7 @@
     se necessario. Rispettare rate-limit e robots.txt quando appropriato. False positive
     comuni su CMS con URL rewriting: validare manualmente finding interessanti. Per
     API testing, considerare extension-less scanning con wordlist API-specific.</p>"
-  best_in: true
+  best_in: false
   category_path: ["01_Information_Gathering", "01_Recon", "Web", "Content_Discovery"]
   notes:
 
@@ -1236,7 +1236,7 @@
     di host), considerare rate limiting e parallelizzare con GNU parallel. Report
     HTML può diventare pesante: segmentare scan per subnet o scope. Integrare con
     crawler (katana, gospider) post-triage per deep discovery sugli interessanti identificati.</p>"
-  best_in: true
+  best_in: false
   category_path: ["01_Information_Gathering", "01_Recon", "Web", "Fingerprinting",
     "Visual_Recon"]
   notes:
@@ -1278,7 +1278,7 @@
     negative possibili su WAF custom o configurazioni non standard. Complementare
     con test manuali e fuzzing controllato. Output bypass suggestions sono punto di
     partenza, non garanzia di successo.</p>"
-  best_in: true
+  best_in: false
   category_path: ["01_Information_Gathering", "01_Recon", "Web", "Fingerprinting",
     "WAF"]
   notes:
@@ -1325,7 +1325,7 @@
     con httpx prima di fuzzing pesante. Rispettare robots.txt e terms of service di
     archivi web. ParamSpider output contiene potenzialmente sensitive info: proteggere
     file results appropriatamente.</p>"
-  best_in: true
+  best_in: false
   category_path: ["01_Information_Gathering", "01_Recon", "Web", "Params_Discovery"]
   notes:
 
@@ -1380,7 +1380,7 @@
     evidenze strutturate, documentare tutti accessi per reporting. Mitigazioni difensive:
     disable null session, enable SMB signing, restrict anonymous access, monitor eventi
     4624/4625/529.</p>"
-  best_in: true
+  best_in: false
   category_path: ["01_Information_Gathering", "02_Enumeration", "Infrastructure",
     "SMB"]
   notes:
@@ -1431,7 +1431,7 @@
     run collection.json -e environment.json</code></p><p>Proxy integration: Configure
     Postman proxy settings per routing via Burp per analysis approfondita. Import
     HAR files da browser DevTools per quick collection creation.</p>"
-  best_in: true
+  best_in: false
   category_path: ["01_Information_Gathering", "02_Enumeration", "Web", "API"]
   notes:
 
@@ -1479,7 +1479,7 @@
     patterns. Tool genera multiple requests rilevabili: limitare su target production.
     Validare finding con scanner dedicati prima di exploitation. Non sempre aggiornato
     con latest CMS versions: complementare con manual verification.</p>"
-  best_in: true
+  best_in: false
   category_path: ["01_Information_Gathering", "02_Enumeration", "Web", "CMS"]
   notes:
 
@@ -1530,7 +1530,7 @@
     con <code>-U P</code> (update plugins) o <code>-U PC</code> (CMSmap e plugins).
     Validare finding con scanner verticali (WPScan, JoomScan) prima di exploitation.
     Usage su target senza consenso è illegale.</p>"
-  best_in: true
+  best_in: false
   category_path: ["01_Information_Gathering", "02_Enumeration", "Web", "CMS"]
   notes:
 
@@ -1570,7 +1570,7 @@
     feed CVE e scanner verticali. Non sostituisce JoomScan completo ma offre quick
     triage. Validare componenti emersi con accesso manuale per evitare false positive.
     Tool specifico per Joomla: usare CMSmap o CMSeeK per detection multi-CMS.</p>"
-  best_in: true
+  best_in: false
   category_path: ["01_Information_Gathering", "02_Enumeration", "Web", "CMS", "Joomla"]
   notes:
 
@@ -1592,7 +1592,7 @@
     depth e deduplica.</li><li>Output JSON/STDOUT integrabile con nuclei/ffuf/httpx.</li></ul><h4
     class=\"rt-blue\">Uso e OPSEC</h4><p>Limitare lo scope, rispettare robots e impostare
     throttle per evitare eccessivo rumore nei log target.</p>"
-  best_in: true
+  best_in: false
   category_path: ["01_Information_Gathering", "02_Enumeration", "Web", "Crawling",
     "Active"]
   notes:
@@ -1635,7 +1635,7 @@
     testing. Preferire Metasploit modules quando disponibili per stabilità. GitHub
     results richiedono code review prima di execution. Documentare exploit source
     e version per reporting compliance.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "General"]
   notes:
 
@@ -1678,7 +1678,7 @@
     accessibility completa. Digest auth richiede libcurl con CURLAUTH_DIGEST: verificare
     build dependencies. Operare solo su target autorizzati: unauthorized camera access
     è reato.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
   notes:
 
@@ -1719,7 +1719,7 @@
     patchata in firmware post-2017: verificare version prima di test. HikPwn è PoC
     educazionale: uso production richiede cautela estrema. Coordinare con owner device
     per minimizzare downtime e rischi operativi.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
   notes:
 
@@ -1755,7 +1755,7 @@
     prima di assumption accessibility. Integrare risultati con screenshot/recording
     per documentation visuale. Manufacturer-specific routes hanno higher success rate:
     prioritizzare in base a fingerprint device.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
   notes:
 
@@ -1791,7 +1791,7 @@
     RTSP possono avere lockout o reboot su tentativi eccessivi. Coordinare timing
     con finestre di test autorizzate. Output strutturato facilita parsing per reporting
     e integrazione con altri tool di exploitation.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
   notes:
 
@@ -1813,7 +1813,7 @@
     stream e screenshot opzionali.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Rispettare
     limiti legali; molti dispositivi espongono stream sensibili. Limitare i thread
     e usare scope autorizzato.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
   notes:
 
@@ -1834,7 +1834,7 @@
     wordlist e percorsi stream.</li><li>Timeout/jitter configurabili per ridurre il
     rumore.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Eseguire solo su infrastrutture
     autorizzate; monitorare account lockout e impatto di rete.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
   notes:
 
@@ -1855,7 +1855,7 @@
     multiple per path e protocolli RTSP comuni.</li><li>Risultati esportabili per
     revisione manuale.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Strumento
     ad alto impatto: regolare thread/timeout, rispettare privacy e limiti legali.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
   notes:
 
@@ -1891,7 +1891,7 @@
     Output structure facilita parsing automatico. Python class mode permette custom
     logic (filtering, notification, database storage). Rispettare privacy e regulations
     quando scanning video devices.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
   notes:
 
@@ -1929,7 +1929,7 @@
     access logs</p><p><strong>Prevention:</strong> Drupal 7.32+, WAF rules, regular
     patching, security monitoring. Testing drupalgeddon exploits solo in lab isolato
     con scope chiaro: exploitation produce permanent database changes.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "CMS_Exploits", "Drupal"]
   notes:
 
@@ -1974,7 +1974,7 @@
     rilevabili: monitor WAF/IDS logs. Remediation: immediate patching a versioni fixed,
     WAF virtual patching se update impossibile, review access logs per IOC exploitation
     attempts.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "CMS_Exploits", "Drupal"]
   notes:
 
@@ -2019,7 +2019,7 @@
     behavioral analysis). Alternative: se credential stuffing viable, usare leaked
     databases invece brute-force blind. Se password policies strong, brute-force ineffective:
     focus su other vectors.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "CMS_Exploits", "Joomla"]
   notes:
 
@@ -2059,7 +2059,7 @@
     non production. Non exfiltrare dati sensibili oltre proof necessario. Documentare
     endpoint/parametri/path specifici. Verificare patch effectiveness con same vectors
     post-remediation. Coordinate con development team per comprehensive fix validation.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "CMS_Exploits", "Joomla"]
   notes:
 
@@ -2081,7 +2081,7 @@
     e riferimenti a patch/aggiornamenti.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Testare
     in staging o con autorizzazione scritta. Applicare update del plugin oltre 4.24.11
     e limitare accessi.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "CMS_Exploits", "WordPress"]
   notes:
 
@@ -2102,7 +2102,7 @@
     e trigger della shell.</li><li>Verifica delle versioni vulnerabili (7.0–7.0.4).</li><li>Note
     di mitigazione e detection nei log.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Limitare
     l’uso a asset autorizzati; aggiornare il plugin e rimuovere artefatti post test.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "CMS_Exploits", "WordPress"]
   notes:
 
@@ -2123,7 +2123,7 @@
     delle risposte XML‑RPC per false‑positive ridotte.</li><li>CLI semplice, output
     pulito per follow‑up.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Rispettare
     rate‑limit e policy; preferire account canary e window autorizzate dal cliente.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "CMS_Exploits", "WordPress"]
   notes:
 
@@ -2144,7 +2144,7 @@
     con molte versioni WordPress.</li><li>Esempi e template per casi pratici.</li></ul><h4
     class=\"rt-blue\">Uso e OPSEC</h4><p>Usare su istanze di prova; rimuovere utenti/artefatti
     creati. Coordinarsi con Blue per detection use‑cases.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "CMS_Exploits", "WordPress"]
   notes:
 
@@ -2191,7 +2191,7 @@
     ma è easily detectable: consider reverse shell o C2 framework per operations prolungate.
     In pentesting autorizzato, phpbash è rapid evidence collection tool, non production
     persistence mechanism.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "File_Upload"]
   notes:
 
@@ -2240,7 +2240,7 @@
     ports (80, 443, 53). Alternative moderne: meterpreter payloads, C2 frameworks
     offrono più features ma php-reverse-shell rimane simple, reliable, widely compatible
     classic per quick access.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "File_Upload"]
   notes:
 
@@ -2291,7 +2291,7 @@
     notification richiesta post-discovery. Alternative: se Tomcat Manager accessible,
     deploy WAR con backdoor è method più sofisticato con cleanup più controllato (undeploy
     application vs file system manipulation).</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "File_Upload"]
   notes:
 
@@ -2347,7 +2347,7 @@
     separation. Wwwolf-php-webshell rimane valido per quick operations, lab environments,
     o scenarios dove C2 infrastructure impractical, ma production engagements dovrebbero
     favor purpose-built tools con security considerations.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "File_Upload"]
   notes:
 
@@ -2402,7 +2402,7 @@
     /etc/passwd, config file structure without credentials). LFI spesso gateway a
     più serious compromises: treat discovery as critical e communicate immediate per
     defensive response coordination.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "Injection", "LFI"]
   notes:
 
@@ -2455,7 +2455,7 @@
     approach: manual exploitation con better control over ogni step vs automated tool
     che può cause collateral issues. Balance automation convenience con operational
     safety requirements per specific engagement.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "Injection", "LFI"]
   notes:
 
@@ -2509,7 +2509,7 @@
     senza need per extensive post-exploitation. Liffy è educational tool primarily:
     production environments richiedono manual validation di automated results per
     verify accuracy e prevent false positive-driven actions.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "Injection", "LFI"]
   notes:
 
@@ -2563,7 +2563,7 @@
     measures present. Treat findings come leads requiring validation piuttosto che
     guaranteed vulnerabilities: context matters significantly in XSS exploitability
     assessment.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "Injection", "XSS"]
   notes:
 
@@ -2585,7 +2585,7 @@
     interattiva e scriptabile.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Isolare
     i listener OOB e limitare i path provati; rispettare i confini autorizzati del
     test.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "Injection", "XXE"]
   notes:
 
@@ -2606,7 +2606,7 @@
     controlli del middleware.</li><li>Indicazioni su detection e mitigazioni.</li><li>Compatibilità
     con build locali per riprodurre il bug.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Usare
     solo su app di test o con consenso; aggiornare Next.js alle versioni patchate.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "Next_js"]
   notes:
 
@@ -2627,7 +2627,7 @@
     diretto di risorse e traversal comuni.</li><li>Output chiaro per triage e reporting.</li></ul><h4
     class=\"rt-blue\">Uso e OPSEC</h4><p>Eseguire solo su istanze autorizzate. Aggiornare/mitigare
     il connettore AJP secondo le linee guida del vendor.</p>"
-  best_in: true
+  best_in: false
   category_path: ["02_Exploitation", "Web", "Tomcat"]
   notes:
 
@@ -2685,7 +2685,7 @@
     può essere fingerprinted, consider compilation from source con customization per
     evasion in red team operations. Alternative detection: behavioral analytics identificano
     pattern enum anche quando individual requests appear legitimate.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]
   notes:
 
@@ -2736,7 +2736,7 @@
     prerequisite. Modern defenses (LDAP channel binding, SMB signing enforcement)
     significatively reduce relay attack surface: expect lower success rate in hardened
     environments versus legacy AD deployments.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]
   notes:
 
@@ -2789,7 +2789,7 @@
     client authorization su non-production domains. Exploitation risk: può destabilize
     authentication flows se mal eseguito, può leave forensics artifacts requiring
     extensive cleanup.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]
   notes:
 
@@ -2811,7 +2811,7 @@
     abusi PKI correlati.</li><li>Integrazione con impacket, certipy e tool AD.</li></ul><h4
     class=\"rt-blue\">Uso e OPSEC</h4><p>Richiede forte coordinamento con Blue Team.
     Limitare la persistenza dei materiali chiave e bonificarli a fine test.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]
   notes:
 
@@ -2877,7 +2877,7 @@
     binary precompilato può essere fingerprinted, consider compilation from source
     con customization per evasion in red team operations. Alternative detection: behavioral
     analytics identificano pattern enum anche quando individual requests appear legitimate.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]
   notes:
 
@@ -2923,7 +2923,7 @@
     ma bash scripts mantengono valore per: learning Kerberos mechanics, custom workflows,
     environments dove installing tools problematic, quick one-off testing senza overhead
     tool installation.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "AD_Windows", "Recon_Health"]
   notes:
 
@@ -2951,7 +2951,7 @@
     - Password spraying<br><code>kerbrute bruteuser -d domain.local passwords.txt
     admin</code> - Single user brute (sconsigliato)</p><p>Per documentation completa,
     vedere entry kerbrute-linux-amd64 e kerbrute-win in questo registry.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "AD_Windows", "Recon_Health"]
   notes:
 
@@ -3005,7 +3005,7 @@
     API per breach notification, BreachDirectory per public breach search con limitations.
     DeHashed value proposition: comprehensive database, detailed metadata, API automation
     capability per large-scale assessments.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]
   notes:
 
@@ -3057,7 +3057,7 @@
     Manager) not hardcoded in scripts. Logging: comprehensive audit trail di queries
     executed, results obtained, actions taken based su findings per compliance e incident
     review.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]
   notes:
 
@@ -3111,7 +3111,7 @@
     sanitize actual passwords in final reports, document credential existence e associated
     URLs/services senza full credential disclosure. Tool è investigation aid: operator
     ensures lawful authorized access a profiles analyzed.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]
   notes:
 
@@ -3134,7 +3134,7 @@
     precompilati.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Limitare la raccolta
     a ciò che serve e proteggere l’output con cifratura/trasporto sicuro. Richiede
     contesto locale dell’utente.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]
   notes:
 
@@ -3156,7 +3156,7 @@
     su MFA/IMAP/SMTP e supporto password spraying con safe‑timers.</li></ul><h4 class=\"\
     rt-blue\">Uso e OPSEC</h4><p>Regolare rate‑limit e sleep per evitare lockout.
     Usare scopi strettamente autorizzati su tenant test.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]
   notes:
 
@@ -3179,7 +3179,7 @@
     interfaccia o offline da PCAP.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Catturare
     solo quanto autorizzato e minimizzare il dwell time. Preferire filtri BPF per
     ridurre il rumore.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]
   notes:
 
@@ -3200,7 +3200,7 @@
     pronto per Hashcat (NTLMv1/v2, Kerberos etype23).</li><li>Modalità Docker e script
     Python standalone.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Applicare
     filtri BPF e conservare i log in modo sicuro. Solo su reti/catture autorizzate.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]
   notes:
 
@@ -3221,7 +3221,7 @@
     web comuni.</li><li>Rotazione IP/proxy, jitter e safe‑timers per evitare lockouts.</li><li>Report
     degli account validati e stati MFA.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Applicare
     sleep/cohorting, rispettare policy del cliente e limitare tentativi per utente.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]
   notes:
 
@@ -3242,7 +3242,7 @@
     con DPAPI/CryptUnprotectData.</li><li>Esportazione in CSV/STDOUT per uso operativo.</li></ul><h4
     class=\"rt-blue\">Uso e OPSEC</h4><p>Richiede contesto utente. Conservare gli
     output in modo sicuro e rispettare policy di gestione segreti.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]
   notes:
 
@@ -3263,7 +3263,7 @@
     subdomini.</li><li>Compatibili con ffuf, gobuster, hydra, wfuzz.</li><li>Complementare
     a OWASP SecLists e raccolte community.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Valutare
     l’impatto sui rate‑limit. Filtrare e deduplicare per ridurre richieste superflue.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]
   notes:
 
@@ -3284,7 +3284,7 @@
     Okta, custom web).</li><li>Gestione di rate‑limit, proxy, jitter e finestra lockout.</li><li>Esportazione
     risultati per follow‑up (CSV/JSON).</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Pianificare
     le finestre di spraying e segmentare le liste utenti per conformità alle policy.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]
   notes:
 
@@ -3305,7 +3305,7 @@
     caratteri e deduplica.</li><li>Integrazione semplice in pipeline CLI.</li></ul><h4
     class=\"rt-blue\">Uso e OPSEC</h4><p>Allineare i formati all’azienda target per
     ridurre il rumore e il footprint durante l’enumerazione.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]
   notes:
 
@@ -3326,7 +3326,7 @@
     regole.</li><li>Filtri per lunghezza, charset e deduplica.</li><li>Output a riga
     singola/CSV per tool downstream.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Usare
     dataset minimi per evitare liste inutilmente grandi; combinare con OSINT aziendale.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]
   notes:
 
@@ -3347,7 +3347,7 @@
     per varianti non deterministiche.</li><li>Output portabile con minime dipendenze.</li></ul><h4
     class=\"rt-blue\">Uso e OPSEC</h4><p>Usare su script propri e in ambienti controllati.
     Documentare le trasformazioni per analisi post‑test.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Evasion"]
   notes:
 
@@ -3372,7 +3372,7 @@
     per operazioni silenziose (no NDIS install), si esegue dal user‑space. Configurare
     filtri e rotte solo per gli obiettivi necessari e preferire TLS/mTLS per proteggere
     i canali.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Pivoting"]
   notes:
 
@@ -3395,7 +3395,7 @@
     follow‑up manuale.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Eseguire
     con output su file per analisi offline. Limitare i check rumorosi in ambienti
     sensibili.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Privilege_Escalation", "Linux"]
   notes:
 
@@ -3417,7 +3417,7 @@
     riproducibile per dimostrare impatto.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Usare
     in ambienti di test. Richiede condizioni specifiche (permessi/logrotate config
     vulnerabile).</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Privilege_Escalation", "Linux"]
   notes:
 
@@ -3438,7 +3438,7 @@
     file libc o BuildID; output raw/pretty/JSON.</li><li>Supporto a ordinamento per
     distanza da funzioni/GOT.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Utile
     in CTF e ricerca; mantenere mapping tra binari/libc per riproducibilità.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Privilege_Escalation", "Linux"]
   notes:
 
@@ -3461,7 +3461,7 @@
     disponibili per diverse architetture.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Eseguire
     dal path dell’utente per ridurre indicatori. Filtrare il rumore con pattern per
     isolare processi interessanti.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Privilege_Escalation", "Linux"]
   notes:
 
@@ -3482,7 +3482,7 @@
     con istanze on‑prem autogestite.</li><li>Base per verifiche di esposizione e remediation.</li></ul><h4
     class=\"rt-blue\">Uso e OPSEC</h4><p>Da usare esclusivamente per validare sistemi
     propri/consentiti. Aggiornare immediatamente le istanze vulnerabili.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Privilege_Escalation", "Linux"]
   notes:
 
@@ -3503,7 +3503,7 @@
     artefatti e colori per priorità.</li><li>Parser per esportazioni strutturate.</li></ul><h4
     class=\"rt-blue\">Uso e OPSEC</h4><p>Eseguire versioni aggiornate dai release
     ufficiali e limitare i check potenzialmente rumorosi.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Privilege_Escalation"]
   notes:
 
@@ -3525,7 +3525,7 @@
     eseguibili.</li><li>Integrazione di script, extensions e server collaborative.</li></ul><h4
     class=\"rt-blue\">Uso e OPSEC</h4><p>Isolare i sample, usare progetti separati
     e versionare gli script di analisi.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Reverse_Engineering"]
   notes:
 
@@ -3546,7 +3546,7 @@
     di RPATH/interpreter con patchelf.</li><li>Template personalizzabile per pwntools.</li></ul><h4
     class=\"rt-blue\">Uso e OPSEC</h4><p>Usare in ambienti lab/CTF. Conservare gli
     artefatti originali separati da quelli patchati.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Reverse_Engineering"]
   notes:
 
@@ -3567,7 +3567,7 @@
     per connessioni locali/remote, SSH e tubes.</li><li>Utilità per packing/unpacking,
     cyclic, fmtstr, libcdb.</li></ul><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Orientato
     a laboratorio/ricerca; mantenere versioni note per riproducibilità dei write‑up.</p>"
-  best_in: true
+  best_in: false
   category_path: ["03_Post_Exploitation", "Reverse_Engineering"]
   notes:
 

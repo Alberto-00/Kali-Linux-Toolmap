@@ -16,8 +16,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 16px 24px;
-    background: linear-gradient(180deg, rgba(24, 24, 32, .85), rgba(20, 20, 25, .7));
-    border: 1px solid var(--border);
+    background: hsl(0 0% 17%);
+    border: 1px solid hsl(0 0% 28%);
     border-radius: var(--radius);
     margin-bottom: 24px;
     backdrop-filter: blur(8px);
@@ -41,7 +41,8 @@
 }
 
 .show-all-btn,
-.copy-path-btn {
+.copy-path-btn,
+.download-registry-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -57,17 +58,20 @@
     white-space: nowrap;
 }
 
-.copy-path-btn {
+.copy-path-btn,
+.download-registry-btn {
     padding: 10px;
 }
 
 .show-all-btn svg,
-.copy-path-btn svg {
+.copy-path-btn svg,
+.download-registry-btn svg {
     width: 16px;
     height: 16px;
 }
 
-.copy-path-btn:hover {
+.copy-path-btn:hover,
+.download-registry-btn:hover {
     background: rgba(96, 165, 250, .15);
     border-color: var(--accent-2);
     color: var(--accent-2);

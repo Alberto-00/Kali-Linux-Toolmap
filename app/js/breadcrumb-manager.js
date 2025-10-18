@@ -155,7 +155,7 @@
         return base.concat(visibleParts.slice(0, takeCount));
     }
 
-    // Crea i bottoni "Show All" e "Copy Path" nella breadcrumb-bar
+    // Crea i bottoni "Show All", "Download Registry" e "Copy Path" nella breadcrumb-bar
     function ensureBreadcrumbButtons() {
         const bar = document.querySelector('.breadcrumb-bar');
         if (!bar) return;
@@ -166,23 +166,29 @@
         const actionsDiv = document.createElement('div');
         actionsDiv.className = 'breadcrumb-actions';
         actionsDiv.innerHTML = `
-      <button class="show-all-btn icon-btn" type="button" title="Show all tools" aria-label="Show all tools">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
-        <b>Show All</b>
-      </button>
-      <button class="copy-path-btn icon-btn copy-path-icon" type="button" title="Copy current path" aria-label="Copy current path">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-        </svg>
-      </button>
-    `;
+          <button class="show-all-btn icon-btn" type="button" title="Show all tools" aria-label="Show all tools">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+            <b>Show All</b>
+          </button>
+          <button class="copy-path-btn icon-btn copy-path-icon" type="button" title="Copy current path" aria-label="Copy current path">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+          </button>
+          <button class="download-registry-btn icon-btn" type="button" title="Download updated registry" aria-label="Download registry">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+          </button>
+        `;
 
         bar.appendChild(actionsDiv);
 
         // Bind eventi
         const showAllBtn = actionsDiv.querySelector('.show-all-btn');
+        const downloadBtn = actionsDiv.querySelector('.download-registry-btn');
         const copyBtn = actionsDiv.querySelector('.copy-path-btn');
 
         showAllBtn?.addEventListener('click', () => {
@@ -191,6 +197,10 @@
             renderCrumb(null);
             // …ma NON toccare la sidebar: chiedi solo al manager di mostrare tutto
             window.dispatchEvent(new CustomEvent('tm:tools:showAll'));
+        });
+
+        downloadBtn?.addEventListener('click', () => {
+            window.dispatchEvent(new CustomEvent('tm:registry:download'));
         });
 
         copyBtn?.addEventListener('click', () => {

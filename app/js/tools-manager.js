@@ -26,13 +26,57 @@
     'use strict';
 
     const SEL = {
-        grid: 'toolsGrid', resetBtn: 'resetBtn', searchInput: 'searchInput'
+        grid: 'toolsGrid',
+        resetBtn: 'resetBtn',
+        searchInput: 'searchInput'
     };
 
+    // Chiavi di "memoria" per la sessione del TAB
     const MEM = {
-        search: 'tm:search:q', pathKey: 'tm:active:path',    // per coerenza con sidebar.js
-        pathSlash: 'tm:active:slash'  // per coerenza con sidebar.js
+        search: 'tm:search:q',
+        pathKey: 'tm:active:path',     // coerente con sidebar.js
+        pathSlash: 'tm:active:slash',    // coerente con sidebar.js
+        stars: 'tm:stars',           // mappa { [id]: true|false }
+        sessYAML: 'tm:session:registry-yaml' // YAML completo corrente per reload
     };
+
+    // Wrapper sessionStorage (evita errori in ambienti restrittivi)
+    function mget(k) {
+        try {
+            return sessionStorage.getItem(k);
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function mset(k, v) {
+        try {
+            sessionStorage.setItem(k, v);
+        } catch (_) {
+        }
+    }
+
+    function mremove(k) {
+        try {
+            sessionStorage.removeItem(k);
+        } catch (_) {
+        }
+    }
+
+    function loadStars() {
+        try {
+            return JSON.parse(mget(MEM.stars) || '{}') || {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function saveStars(map) {
+        try {
+            mset(MEM.stars, JSON.stringify(map || {}));
+        } catch (_) {
+        }
+    }
 
     const state = {
         scopeAll: false,      // true = mostra tutti i tool
@@ -44,6 +88,33 @@
 
     let grid, resetBtn, notesModal, detailsModal, rendererAdapter;
     let hasVisitedAnyPhase = false;
+
+    function readBestInFlag(t) {
+        if (!t || typeof t !== 'object') return false;
+        const any = /** @type {any} */ (t);
+        return !!(any['best_in'] ?? any['bestIn'] ?? any['best-in'] ?? any['best']);
+    }
+
+    function _toolName(t) {
+        return (t?.title || t?.name || t?.id || '').toString();
+    }
+
+    function _compareByName(a, b) {
+        return _toolName(a).localeCompare(_toolName(b), undefined, {sensitivity: 'base'});
+    }
+
+    function _primaryPhase(t) {
+        if (t?.phase) return t.phase;
+        if (Array.isArray(t?.phases) && t.phases.length) return t.phases[0];
+        if (Array.isArray(t?.category_path) && t.category_path.length) return t.category_path[0];
+        return '';
+    }
+
+    function _phaseGroupKey(t) {
+        const p = _primaryPhase(t) || '';
+        const m = /^(\d{2,})\D/.exec(p);
+        return m ? {num: parseInt(m[1], 10), str: ''} : {num: 9998, str: p.toLowerCase()};
+    }
 
     /** @param {Partial<ToolItem>=} t */
     function getCatPath(t) {
@@ -72,8 +143,8 @@
         }
         detailsModal = new ToolDetailsModal();
 
-        // Ripristina search salvata (se esiste)
-        const savedQ = localStorage.getItem(MEM.search) || '';
+        // Ripristina search salvata (sessione)
+        const savedQ = mget(MEM.search) || '';
         state.search = savedQ;
         const input = document.getElementById(SEL.searchInput);
         if (input && savedQ) input.value = savedQ;
@@ -82,9 +153,9 @@
             window.dispatchEvent(new CustomEvent('tm:search:set', {detail: {q: savedQ, hasQuery: true}}));
         }
 
-        // Ripristina path salvato (se esiste)
-        const savedPathKey = localStorage.getItem(MEM.pathKey);
-        if (savedPathKey && !savedQ) { // solo se non c'è una ricerca attiva
+        // Ripristina path salvato (sessione) solo se non c'è ricerca attiva
+        const savedPathKey = mget(MEM.pathKey);
+        if (savedPathKey && !savedQ) {
             state.pathKey = savedPathKey;
             state.scopeAll = false;
             // Risolvi gli IDs dal pathKey
@@ -112,9 +183,7 @@
         // Filtro di scope da sidebar/breadcrumb mini
         window.addEventListener('tm:scope:set', (ev) => {
             // Se stiamo resettando, ignora eventi di scope che non sono "all"
-            if (state.isResetting && !ev.detail?.all) {
-                return;
-            }
+            if (state.isResetting && !ev.detail?.all) return;
 
             const {all, ids, pathKey} = ev.detail || {};
             state.scopeAll = !!all || (!ids && !pathKey);
@@ -130,7 +199,32 @@
             render();
         });
 
-        // Ricerca testuale (gestita da search-manager.js)
+        // Toggle stella (proveniente dal renderer)
+        window.addEventListener('tm:tool:toggleStar', (ev) => {
+            const id = ev.detail?.id;
+            const val = !!ev.detail?.value;
+            if (!id) return;
+
+            const tm = window.Toolmap || {};
+            const map = loadStars();
+            map[id] = val;
+            saveStars(map);
+
+            // Aggiorna stato runtime
+            if (tm.toolsById?.[id]) tm.toolsById[id]._starred = val;
+
+            // Aggiorna anche il record in registry per coerenza (best_in)
+            const rec = (tm.registry || []).find(x => x && x.id === id);
+            if (rec) rec.best_in = !!val;
+
+            // Aggiorna la copia YAML salvata in sessione (senza scaricare)
+            const newYAML = serializeFullRegistryYAML();
+            if (newYAML) mset(MEM.sessYAML, newYAML);
+
+            // Rerender per riordinare
+            render();
+        });
+
         // Ricerca testuale (gestita da search-manager.js)
         window.addEventListener('tm:search:set', (ev) => {
             const newSearch = (ev.detail?.q || '').trim();
@@ -140,20 +234,20 @@
             state.search = newSearch;
 
             if (hasSearch) {
-                localStorage.setItem(MEM.search, state.search);
+                mset(MEM.search, state.search);
             } else {
-                localStorage.removeItem(MEM.search);
+                mremove(MEM.search);
             }
 
             const ctx = buildSearchContext();
             window.__lastSearchContext = ctx;
             window.dispatchEvent(new CustomEvent('tm:search:context', {detail: ctx}));
 
-            // Se passi da "ricerca attiva" a "nessuna ricerca" E non sei in reset
-            // ripristina l'ultimo scope/path salvato (se esiste)
+            // Se passi da "ricerca attiva" a "nessuna ricerca" E non sei in reset,
+            // ripristina l'ultimo scope/path salvato (sessione)
             if (hadSearch && !hasSearch && !state.isResetting) {
-                const savedPathKey = localStorage.getItem(MEM.pathKey);
-                const savedPathSlash = localStorage.getItem(MEM.pathSlash);
+                const savedPathKey = mget(MEM.pathKey);
+                const savedPathSlash = mget(MEM.pathSlash);
 
                 if (savedPathSlash) {
                     const tm = window.Toolmap || {};
@@ -179,7 +273,8 @@
             const content = document.querySelector('.content');
             const color = ev.detail?.color || null;
             if (content) {
-                if (color) content.style.setProperty('--hover-color', `color-mix(in srgb, ${color} 100%, transparent)`); else content.style.removeProperty('--hover-color');
+                if (color) content.style.setProperty('--hover-color', `color-mix(in srgb, ${color} 100%, transparent)`);
+                else content.style.removeProperty('--hover-color');
             }
             window.dispatchEvent(new CustomEvent('tm:phase:color:apply', {detail: {color}}));
         });
@@ -190,16 +285,16 @@
             render();
         });
 
-
-        // Reset globale - CORRETTO
+        // Reset globale
         resetBtn?.addEventListener('click', () => {
             // Imposta flag di reset
             state.isResetting = true;
 
-            // 1) Pulisci TUTTO da localStorage (inclusi i path della sidebar!)
-            localStorage.removeItem(MEM.search);
-            localStorage.removeItem(MEM.pathKey);
-            localStorage.removeItem(MEM.pathSlash);
+            // 1) Pulisci TUTTO dalla sessione (inclusi i path della sidebar)
+            mremove(MEM.search);
+            mremove(MEM.pathKey);
+            mremove(MEM.pathSlash);
+            // NB: NON rimuoviamo MEM.sessYAML: è la fonte per il reload
 
             // 2) Reset UI della search
             const input = document.getElementById(SEL.searchInput);
@@ -242,19 +337,16 @@
             const content = document.querySelector('.content');
             content?.style.removeProperty('--hover-color');
 
-            // Reset stato solo se non siamo già in reset
-            if (!state.isResetting) {
-                state.scopeAll = true;
-                state.scopeIds = null;
-                state.pathKey = null;
-                hasVisitedAnyPhase = false;
-            }
+            state.scopeAll = true;
+            state.scopeIds = null;
+            state.pathKey = null;
+            hasVisitedAnyPhase = false;
         });
 
         // Quando il registry è pronto
         window.addEventListener('tm:registry:ready', () => {
             // Se c'era un path salvato e il registry ora è pronto, ripristinalo
-            const savedPathKey = localStorage.getItem(MEM.pathKey);
+            const savedPathKey = mget(MEM.pathKey);
             if (savedPathKey && !state.search && !state.isResetting) {
                 const tm = window.Toolmap || {};
                 if (tm.allToolsUnder && tm.allToolsUnder[savedPathKey]) {
@@ -264,6 +356,11 @@
                     render();
                 }
             }
+        });
+
+        // Download registry completo (breadcrumb)
+        window.addEventListener('tm:registry:download', () => {
+            exportFullRegistryYAML();
         });
 
         // Eventi per modali
@@ -286,31 +383,23 @@
             try {
                 const inst = new window.ToolsRenderer(SEL.grid, (tool) => detailsModal?.show(tool), (tool) => notesModal?.show(tool), {activePath: []});
                 window.toolsRenderer = inst;
-                rendererAdapter = {
-                    kind: 'instance-new', render: (tools) => inst.render(tools)
-                };
+                rendererAdapter = {kind: 'instance-new', render: (tools) => inst.render(tools)};
                 return rendererAdapter;
             } catch (_) { /* fallback */
             }
         }
 
         if (window.toolsRenderer && typeof window.toolsRenderer.render === 'function') {
-            rendererAdapter = {
-                kind: 'instance-existing', render: (tools) => window.toolsRenderer.render(tools)
-            };
+            rendererAdapter = {kind: 'instance-existing', render: (tools) => window.toolsRenderer.render(tools)};
             return rendererAdapter;
         }
 
         if (window.ToolsRenderer && typeof window.ToolsRenderer.render === 'function') {
-            rendererAdapter = {
-                kind: 'static', render: (tools) => window.ToolsRenderer.render(tools, grid)
-            };
+            rendererAdapter = {kind: 'static', render: (tools) => window.ToolsRenderer.render(tools, grid)};
             return rendererAdapter;
         }
 
-        rendererAdapter = {
-            kind: 'fallback', render: (tools) => fallbackRender(tools)
-        };
+        rendererAdapter = {kind: 'fallback', render: (tools) => fallbackRender(tools)};
         return rendererAdapter;
     }
 
@@ -323,13 +412,11 @@
         const q = norm(qRaw);
         const tokens = tokenize(q);
 
-        // Base set - CORRETTO: la ricerca è SEMPRE globale
+        // Base set: la ricerca è SEMPRE globale
         let baseIds;
         if (tokens.length) {
-            // Ricerca attiva: cerca in TUTTI i tool (globale)
             baseIds = allIds;
         } else {
-            // Nessuna ricerca: usa lo scope corrente
             baseIds = state.scopeAll ? allIds : (state.scopeIds || []);
         }
 
@@ -338,10 +425,7 @@
         }
 
         // Search with ranking
-        const W = {
-            name: 6, caps: 4, tags: 3, desc: 2, desc_long: 2, phase: 5, node: 5
-        };
-
+        const W = {name: 6, caps: 4, tags: 3, desc: 2, desc_long: 2, phase: 5, node: 5};
         const hits = [];
 
         for (const id of baseIds) {
@@ -401,9 +485,7 @@
                 score += bestTokField;
             }
 
-            if (matched) {
-                hits.push({id, t, score});
-            }
+            if (matched) hits.push({id, t, score});
         }
 
         hits.sort((a, b) => b.score - a.score || (a.t.title || a.t.name || '').localeCompare(b.t.title || b.t.name || ''));
@@ -447,9 +529,7 @@
     function buildSearchContext() {
         const tm = window.Toolmap || {};
         const toolsById = tm.toolsById || {};
-
-        // La ricerca è SEMPRE globale per il contesto (sidebar needs all matches)
-        const searchIds = Object.keys(toolsById);
+        const searchIds = Object.keys(toolsById); // SEMPRE globale
 
         const q = norm(state.search);
         const tokens = tokenize(q);
@@ -482,7 +562,12 @@
             let ok = false;
             for (const tok of tokens) {
                 const tokNS = stripSep(tok);
-                if (name.includes(tok) || nameNS.includes(tokNS) || desc.includes(tok) || descNS.includes(tokNS) || caps.includes(tok) || capsNS.includes(tokNS) || tags.includes(tok) || tagsNS.includes(tokNS) || (phase && (phase.includes(tok) || tok === phase || phaseNS.includes(tokNS))) || nodesJoined.includes(tok) || nodesNS.includes(tokNS) || nodesHuman.some(n => n === tok)) {
+                if (name.includes(tok) || nameNS.includes(tokNS) ||
+                    desc.includes(tok) || descNS.includes(tokNS) ||
+                    caps.includes(tok) || capsNS.includes(tokNS) ||
+                    tags.includes(tok) || tagsNS.includes(tokNS) ||
+                    (phase && (phase.includes(tok) || tok === phase || phaseNS.includes(tokNS))) ||
+                    nodesJoined.includes(tok) || nodesNS.includes(tokNS) || nodesHuman.some(n => n === tok)) {
                     ok = true;
                     break;
                 }
@@ -494,20 +579,41 @@
                 phaseSet.add(phaseKey);
                 countsByPhase[phaseKey] = (countsByPhase[phaseKey] || 0) + 1;
             }
-            if (nodesArr.length) {
-                paths.push(nodesArr);
-            }
+            if (nodesArr.length) paths.push(nodesArr);
         }
 
-        return {
-            hasQuery: true, phaseKeys: Array.from(phaseSet), paths, countsByPhase
-        };
+        return {hasQuery: true, phaseKeys: Array.from(phaseSet), paths, countsByPhase};
     }
 
     function render() {
         if (!grid) return;
 
         const tools = computeVisibleTools();
+
+        // Applica starred effettivo (session override > registry) e ordina
+        const starsMap = loadStars() || {};
+        for (const t of tools) {
+            const local = Object.prototype.hasOwnProperty.call(starsMap, t.id) ? !!starsMap[t.id] : undefined;
+            const reg = readBestInFlag(t);
+            t._starred = (local !== undefined) ? local : reg;
+        }
+
+        // Ordinamento UNIVERSALE: Fase → Stellati → Nome
+        tools.sort((a, b) => {
+            // 1) FASE
+            const ka = _phaseGroupKey(a), kb = _phaseGroupKey(b);
+            if (ka.num !== kb.num) return ka.num - kb.num;
+            if (ka.str !== kb.str) {
+                const c = ka.str.localeCompare(kb.str, undefined, {sensitivity: 'base'});
+                if (c !== 0) return c;
+            }
+            // 2) STATO (stellati prima)
+            const sa = a._starred ? 0 : 1;
+            const sb = b._starred ? 0 : 1;
+            if (sa !== sb) return sa - sb;
+            // 3) NOME (alfabetico)
+            return _compareByName(a, b);
+        });
 
         // Notify breadcrumb
         try {
@@ -541,7 +647,74 @@
         window.refreshAllVLinesDebounced?.();
     }
 
-    // Card enhancements
+    // ------------------------- YAML serialize & export -------------------------
+    function serializeFullRegistryYAML() {
+        const tm = window.Toolmap || {};
+        const stars = loadStars();
+        const registry = tm.registry ? structuredClone(tm.registry) : null;
+        if (!registry || !window.jsyaml) return '';
+
+        for (const item of registry) {
+            const id = item?.id;
+            if (!id) continue;
+            const t = tm.toolsById?.[id];
+            if (!t) continue;
+
+            // notes dal runtime
+            item.notes = (t.notes || '');
+
+            // best_in: session override > registry
+            const local = Object.prototype.hasOwnProperty.call(stars, id) ? !!stars[id] : undefined;
+            const reg = !!(item['best_in'] ?? item['bestIn'] ?? item['best-in'] ?? item['best']);
+            const on = (local !== undefined) ? local : reg;
+
+            // pulizia alias
+            delete item['bestIn'];
+            delete item['best-in'];
+            delete item['best'];
+            item['best_in'] = !!on;
+        }
+
+        const DUMP_OPTS = {
+            lineWidth: -1, noRefs: true, sortKeys: false, flowLevel: 2,
+            quotingType: '"', forceQuotes: true
+        };
+
+        let yaml = window.jsyaml.dump(registry, DUMP_OPTS);
+
+        // --- Normalizzazioni & spaziatura leggibile ---
+
+        // 1) notes: ""  ->  notes:
+        yaml = yaml.replace(/^(\s*)notes:\s*""\s*$/gm, '$1notes:');
+
+        // 2) Se le note contengono \n, usa block scalar | (mantiene leggibilità)
+        yaml = yaml.replace(/^(\s*)notes:\s*"([\s\S]*?)"$/gm, (m, indent, body) => {
+            if (!/\\n/.test(body)) return m;
+            const text = body
+                .replace(/\\\\/g, '\\')
+                .replace(/\\"/g, '"')
+                .replace(/\\n/g, '\n')
+                .replace(/\\t/g, '\t');
+            const pad = indent + '  ';
+            return `${indent}notes: |\n` + text.split('\n').map(l => pad + l).join('\n');
+        });
+
+        // 3) Assicura SEMPRE una riga vuota tra record top-level:
+        //    sostituisce 1+ newline prima di una riga che inizia con "-" con esattamente due newline
+        yaml = yaml.replace(/(\r?\n)+(?=^- )/gm, '\n\n');
+
+        return yaml;
+    }
+
+    function exportFullRegistryYAML() {
+        const yaml = serializeFullRegistryYAML();
+        if (!yaml) return;
+        // aggiorna la sessione con la versione *nuova* (per reload dello stesso tab)
+        mset(MEM.sessYAML, yaml);
+        downloadFile('registry.yml', yaml, 'text/yaml;charset=utf-8');
+    }
+
+    // ------------------------------ Card enhancements ------------------------------
     function enhanceCardsWithPhase(tools) {
         const byId = {};
         for (const t of tools) byId[t.id] = t;
@@ -579,7 +752,7 @@
         });
     }
 
-    // Fallback renderer
+    // ------------------------------ Fallback renderer ------------------------------
     function fallbackRender(tools) {
         grid.innerHTML = `
       <div class="tools-grid-inner">
@@ -607,54 +780,12 @@
         enhanceCardsWithPhase(tools);
     }
 
-    // Notes & Export
+    // ------------------------------ Notes & Export ------------------------------
     function saveNoteAndExport(toolId, note) {
         const tm = window.Toolmap || {};
         const tool = tm.toolsById?.[toolId];
         if (tool) tool.notes = note ?? '';
-
-        const registry = tm.registry ? structuredClone(tm.registry) : null;
-        if (!registry || !window.jsyaml) return;
-
-        try {
-            const DUMP_OPTS = {
-                lineWidth: -1,       // niente >- / piegature
-                noRefs: true,
-                sortKeys: false,
-                flowLevel: 2,        // array di proprietà in flow: [ ... ]
-                quotingType: '"',    // usa doppi apici
-                forceQuotes: true    // forza virgolette su tutte le stringhe
-            };
-
-            let yaml = window.jsyaml.dump(registry, DUMP_OPTS);
-
-            // Riga vuota tra gli item top-level
-            yaml = yaml.replace(/\n- /g, '\n\n- ');
-
-            // Se notes è vuoto, torna a "notes:" nudo (invece di notes: "")
-            yaml = yaml.replace(/^(\s*)notes:\s*""\s*$/gm, '$1notes:');
-
-            // Converte SOLO notes multilinea da "escaped" a block scalar |
-            // (così puoi scrivere markdown leggibile)
-            yaml = yaml.replace(/^(\s*)notes:\s*"([\s\S]*?)"$/gm, (m, indent, body) => {
-                // se non contiene \n, lascia le virgolette
-                if (!/\\n/.test(body)) return m;
-
-                // de-escape: \\  \"  \n  \t
-                const text = body
-                    .replace(/\\\\/g, '\\')
-                    .replace(/\\"/g, '"')
-                    .replace(/\\n/g, '\n')
-                    .replace(/\\t/g, '\t');
-
-                const pad = indent + '  ';
-                return `${indent}notes: |\n` + text.split('\n').map(l => pad + l).join('\n');
-            });
-
-            downloadFile('registry.yml', yaml, 'text/yaml;charset=utf-8');
-        } catch (e) {
-            console.error('[tools-manager] Export YAML failed:', e);
-        }
+        exportFullRegistryYAML(); // scarica + aggiorna YAML in sessione
     }
 
     function downloadFile(name, content, mime) {
@@ -669,7 +800,7 @@
         URL.revokeObjectURL(url);
     }
 
-    // Utilities
+    // ------------------------------ Utilities ------------------------------
     function escapeHtml(s) {
         return String(s || '').replace(/[&<>"']/g, m => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -684,7 +815,7 @@
         return String(s || '').replace(/^\d+[_-]*/, '').replace(/_/g, ' ').trim();
     }
 
-    // Tool Details Modal
+    // ------------------------------ Tool Details Modal ------------------------------
     class ToolDetailsModal {
         constructor() {
             this.modal = null;
@@ -743,7 +874,7 @@
                   ${tool.caps.map(cap => `<span class="cap-tag" style="background:rgba(255,255,255,.05);border:1px solid var(--border);padding:6px 12px;border-radius:8px;font-size:13px;color:var(--muted);display:inline-block;margin:4px;">${escapeHtml(cap)}</span>`).join('')}
                 </div>
               </div>` : ''}
-            
+
             ${tool.kind ? `
               <div class="detail-section">
                 <h3>Kind</h3>
@@ -768,7 +899,7 @@
                 <div class="category-path-row">
                     <button class="icon-btn copy-catpath" title="Copy category path" aria-label="Copy category path">
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2z"></path>
                     </svg>
                       <span class="sr-only">Copy category path</span>
                     </button>
