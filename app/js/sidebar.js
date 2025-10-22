@@ -279,14 +279,14 @@
     }
 
     function phaseToColor(phase) {
-        const map = {
-            '00_Common': 'var(--color-common)',
-            '01_Information_Gathering': 'var(--color-info)',
-            '02_Exploitation': 'var(--color-exploit)',
-            '03_Post_Exploitation': 'var(--color-post)',
-            '04_Miscellaneous': 'var(--color-misc)'
+        const PHASE_COLORS = {
+            '00_Common': 'hsl(270 91% 65%)',
+            '01_Information_Gathering': 'hsl(210 100% 62%)',
+            '02_Exploitation': 'hsl(4 85% 62%)',
+            '03_Post_Exploitation': 'hsl(32 98% 55%)',
+            '04_Miscellaneous': 'hsl(158 64% 52%)'
         };
-        return map[phase] || 'var(--accent-2)';
+        return PHASE_COLORS[phase] || 'hsl(var(--accent))';
     }
 
     function derivePhaseColor(phaseKey, ids) {
@@ -854,7 +854,6 @@
 
         function applyCollapsedStyle() {
             const isColl = sidebar.classList.contains('collapsed');
-            if (headerActions) headerActions.style.gap = isColl ? '0px' : '6px';
             sidebar.querySelectorAll('.btn').forEach(b => {
                 b.style.gap = isColl ? '0px' : '10px';
             });

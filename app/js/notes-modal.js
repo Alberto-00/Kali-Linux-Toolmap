@@ -40,7 +40,8 @@ class NotesModal {
 
         if (content) {
             // Imposta il colore di fase sulla modale (se definito)
-            if (tool?.phaseColor) content.style.setProperty('--phase', tool.phaseColor);
+            const phaseColor = tool?.phaseColor || this._derivePhaseColor(tool);
+            if (phaseColor) content.style.setProperty('--phase', phaseColor);
             else content.style.removeProperty('--phase');
         }
 
@@ -91,6 +92,18 @@ class NotesModal {
         });
 
         setTimeout(onEnd, 280);
+    }
+
+    _derivePhaseColor(tool) {
+        const PHASE_COLORS = {
+            '00_Common': 'hsl(270 91% 65%)',
+            '01_Information_Gathering': 'hsl(210 100% 62%)',
+            '02_Exploitation': 'hsl(4 85% 62%)',
+            '03_Post_Exploitation': 'hsl(32 98% 55%)',
+            '04_Miscellaneous': 'hsl(158 64% 52%)'
+        };
+        const phase = tool?.phase || (Array.isArray(tool?.phases) ? tool.phases[0] : null);
+        return PHASE_COLORS[phase] || 'hsl(var(--accent))';
     }
 
     // ---------- Private ----------
@@ -201,21 +214,21 @@ class NotesModal {
         const preview = this._qs('.notes-preview');
         const editBtn = this._qs('.edit-btn');
         const saveBtn = this._qs('.save-btn');
-        const backBtn  = this._qs('.back-btn');
+        const backBtn = this._qs('.back-btn');
 
         if (this.isEditing) {
             textarea && (textarea.style.display = 'block');
             preview && (preview.style.display = 'none');
             editBtn && (editBtn.style.display = 'none');
             saveBtn && (saveBtn.style.display = 'inline-flex');
-            backBtn  && (backBtn.style.display  = 'inline-flex');
+            backBtn && (backBtn.style.display = 'inline-flex');
             textarea?.focus();
         } else {
             textarea && (textarea.style.display = 'none');
             preview && (preview.style.display = 'block');
             editBtn && (editBtn.style.display = 'inline-flex');
             saveBtn && (saveBtn.style.display = 'none');
-            backBtn  && (backBtn.style.display  = 'none');
+            backBtn && (backBtn.style.display = 'none');
         }
         this._updatePreview();
     }
@@ -259,9 +272,10 @@ class NotesModal {
         let html = escapeHtml(text);
 
         // Blocchi di codice ```lang\n...\n```
-        html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (m, lang = '', code = '') =>
-            `<pre><code class="language-${lang.trim()}">${code}</code></pre>`
-        );
+        html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (m, lang = '', code = '') => {
+            const langLabel = lang.trim();
+            return `<pre style="background:hsl(var(--muted));border:1px solid hsl(var(--border));border-radius:8px;padding:14px;overflow-x:auto;margin:10px 0;"><code class="language-${langLabel}" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:0.92em;color:hsl(var(--foreground));">${code}</code></pre>`;
+        });
 
         // Header # ## ###
         html = html

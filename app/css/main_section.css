@@ -1,6 +1,6 @@
-/* ========================================================================== */
-/* CONTENT AREA STYLES - FIXED */
-/* ========================================================================== */
+/* ============================================================================
+   MAIN_SECTION.CSS - Content Area & Tools Grid
+   ============================================================================ */
 
 .content {
     flex: 1;
@@ -10,14 +10,17 @@
     overflow: hidden;
 }
 
-/* BREADCRUMB BAR */
+/* ============================================================================
+   BREADCRUMB BAR
+   ============================================================================ */
+
 .breadcrumb-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 16px 24px;
-    background: hsl(0 0% 17%);
-    border: 1px solid hsl(0 0% 28%);
+    background: var(--panel);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
     margin-bottom: 24px;
     backdrop-filter: blur(8px);
@@ -38,45 +41,6 @@
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
-}
-
-.show-all-btn,
-.copy-path-btn,
-.download-registry-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    background: rgba(255, 255, 255, .06);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .2s ease;
-    white-space: nowrap;
-}
-
-.copy-path-btn,
-.download-registry-btn {
-    padding: 10px;
-}
-
-.show-all-btn svg,
-.copy-path-btn svg,
-.download-registry-btn svg {
-    width: 16px;
-    height: 16px;
-}
-
-.copy-path-btn:hover,
-.download-registry-btn:hover {
-    background: rgba(96, 165, 250, .15);
-    border-color: var(--accent-2);
-    color: var(--accent-2);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(96, 165, 250, .2);
 }
 
 .breadcrumb-item {
@@ -100,23 +64,119 @@
     margin: 0 4px;
 }
 
-/* RESET BUTTON - con hover dinamico basato sulla fase */
+.breadcrumb-item.search-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-2) 25%, transparent);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    animation: searchBreadcrumbIn 0.3s ease;
+    cursor: default;
+}
+
+.breadcrumb-item.search-breadcrumb svg {
+    color: var(--accent-2);
+    flex-shrink: 0;
+}
+
+.breadcrumb-item.search-breadcrumb strong {
+    color: var(--accent-2);
+    font-weight: 600;
+}
+
+@keyframes searchBreadcrumbIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Disabilita copy-path durante search */
+body:has(.breadcrumb-item.search-breadcrumb) .copy-path-btn {
+    opacity: 0.4;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+/* Effetto hover disabilitato */
+body:has(.breadcrumb-item.search-breadcrumb) .copy-path-btn:hover {
+    background: rgba(255, 255, 255, .06);
+    border-color: var(--border);
+    color: var(--text);
+    transform: none;
+    box-shadow: none;
+}
+
+/* ============================================================================
+   ACTION BUTTONS
+   ============================================================================ */
+
+.show-all-btn,
+.copy-path-btn,
+.download-registry-btn,
+.reset-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s ease;
+    white-space: nowrap;
+}
+
+.copy-path-btn,
+.download-registry-btn {
+    padding: 10px;
+}
+
+.show-all-btn svg,
+.copy-path-btn svg,
+.download-registry-btn svg,
 .reset-btn svg {
     width: 16px;
     height: 16px;
 }
 
+.copy-path-btn:hover,
+.download-registry-btn:hover {
+    background: rgba(96, 165, 250, .15);
+    border-color: var(--accent-2);
+    color: var(--accent-2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(96, 165, 250, .2);
+}
+
+.show-all-btn:hover,
 .reset-btn:hover {
     background: rgba(255, 255, 255, .1);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
 }
 
+.show-all-btn:active,
 .reset-btn:active {
     transform: translateY(0);
 }
 
-/* TOOLS GRID */
+/* ============================================================================
+   TOOLS GRID
+   ============================================================================ */
+
 .tools-grid {
     flex: 1;
     overflow-y: auto;
@@ -124,24 +184,14 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(273px, 1fr));
     grid-auto-rows: max-content;
-    gap: 18px;
+    gap: 35px; /*prima era 18*/
     align-content: start;
 }
 
-.tools-grid::-webkit-scrollbar {
-    width: 8px;
-}
+/* ============================================================================
+   EMPTY STATE
+   ============================================================================ */
 
-.tools-grid::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.tools-grid::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, .1);
-    border-radius: 4px;
-}
-
-/* EMPTY STATE */
 .empty-state {
     grid-column: 1 / -1;
     display: flex;
@@ -172,7 +222,10 @@
     max-width: 400px;
 }
 
-/* BACK TO TOP - con colore dinamico basato sulla fase */
+/* ============================================================================
+   BACK TO TOP BUTTON
+   ============================================================================ */
+
 .back-to-top {
     position: fixed;
     right: 16px;
@@ -182,15 +235,12 @@
     height: 48px;
     border-radius: 9999px;
     border: none;
-
     background: var(--phase-color, #6b7280);
     color: #fff;
-
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 6px 16px rgba(0, 0, 0, .25);
-
     opacity: 0;
     transform: translateY(8px) scale(.98);
     transition: opacity .2s, transform .2s, box-shadow .2s, background .2s;
@@ -212,7 +262,8 @@
 
 .back-to-top:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, .7), 0 0 0 6px color-mix(in srgb, var(--phase-color, #6b7280) 50%, transparent);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, .7),
+    0 0 0 6px color-mix(in srgb, var(--phase-color, #6b7280) 50%, transparent);
 }
 
 .back-to-top svg {
@@ -221,34 +272,10 @@
     stroke-width: 2;
 }
 
-/* Align "Show all" button style to Reset */
-.breadcrumb-actions .show-all-btn, .reset-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: rgba(255, 255, 255, .06);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .2s ease;
-    white-space: nowrap;
-}
+/* ============================================================================
+   COPY TOAST
+   ============================================================================ */
 
-.breadcrumb-actions .show-all-btn:hover {
-    background: rgba(255, 255, 255, .1);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
-}
-
-.breadcrumb-actions .show-all-btn:active {
-    transform: translateY(0);
-}
-
-/* Copy toast */
 .copy-toast {
     position: fixed;
     transform: translate(-50%, -10px);
@@ -260,7 +287,7 @@
     pointer-events: none;
     opacity: 0;
     z-index: 9999;
-    animation: toast-in .2s ease forwards; /* show */
+    animation: toast-in .2s ease forwards;
 }
 
 .copy-toast.show {
@@ -270,8 +297,6 @@
 .copy-toast.hide {
     animation: toast-out .2s ease forwards;
 }
-
-/* hide */
 
 @keyframes toast-in {
     from {
@@ -293,17 +318,4 @@
         opacity: 0;
         transform: translate(-50%, -14px);
     }
-}
-
-/* Visually hidden but accessible (per aria-live) */
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 1px, 1px);
-    white-space: nowrap;
-    border: 0;
 }

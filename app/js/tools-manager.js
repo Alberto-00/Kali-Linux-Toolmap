@@ -836,7 +836,7 @@
 
             if (title) {
                 const name = tool.name || tool.title || 'Tool Details';
-                title.innerHTML = escapeHtml(name) + (tool.version ? ` <span style="background: rgba(255, 255, 255, .1);" class="version-chip">v${escapeHtml(tool.version)}</span>` : '');
+                title.innerHTML = escapeHtml(name) + (tool.version ? ` <span style="background: hsl(var(--muted);" class="version-chip">v${escapeHtml(tool.version)}</span>` : '');
             }
 
             if (content) {
@@ -844,14 +844,14 @@
                 const phasesHtml = (tool.phases && tool.phases.length ? tool.phases : (phase ? [phase] : []))
                     .map(ph => `
             <span class="phase-tag"
-              style="--phase:${phaseColorFromPhase(ph)};background:color-mix(in srgb, ${phaseColorFromPhase(ph)} 15%, transparent);color:${phaseColorFromPhase(ph)};padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;display:inline-block;margin:4px;">
+              style="border: 1px solid;--phase:${phaseColorFromPhase(ph)};background:color-mix(in srgb, ${phaseColorFromPhase(ph)} 12%, hsl(var(--card)));color:${phaseColorFromPhase(ph)};padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;display:inline-block;margin:4px;">
               ${escapeHtml(formatLabel(ph))}
             </span>`).join('');
 
                 content.innerHTML = `
           <div class="tool-details">
             ${tool.icon ? `
-              <div class="tool-icon" style="background-image:url('${escapeAttr(tool.icon)}');background-size:contain;background-position:center;background-repeat:no-repeat;width:80px;height:80px;margin:0 auto 20px;border-radius:12px;border:1px solid var(--border);background-color:${phaseColor ? `${phaseColor}10` : 'transparent'};"></div>
+              <div class="tool-icon" style="background-image:url('${escapeAttr(tool.icon)}');background-size:contain;background-position:center;background-repeat:no-repeat;width:80px;height:80px;margin:0 auto 20px;"></div>
             ` : ''}
 
             <div class="detail-section">
@@ -871,7 +871,7 @@
               <div class="detail-section">
                 <h3>Capabilities</h3>
                 <div class="caps-tags">
-                  ${tool.caps.map(cap => `<span class="cap-tag" style="background:rgba(255,255,255,.05);border:1px solid var(--border);padding:6px 12px;border-radius:8px;font-size:13px;color:var(--muted);display:inline-block;margin:4px;">${escapeHtml(cap)}</span>`).join('')}
+                  ${tool.caps.map(cap => `<span class="cap-tag" style="background:hsl(var(--muted));border:1px solid var(--border);padding:6px 12px;border-radius:8px;font-size:13px;color:var(--muted);display:inline-block;margin:4px;">${escapeHtml(cap)}</span>`).join('')}
                 </div>
               </div>` : ''}
 
@@ -879,7 +879,7 @@
               <div class="detail-section">
                 <h3>Kind</h3>
                 <div class="kind-tag"
-                     style="display:inline-block;background:rgba(255,255,255,.05);border:1px solid var(--border);
+                     style="display:inline-block;background:hsl(var(--muted));border:1px solid var(--border);
                             padding:6px 12px;border-radius:8px;font-size:13px;color:var(--muted);">
                   ${escapeHtml(tool.kind)}
                 </div>
@@ -888,7 +888,7 @@
             ${tool.repo ? `
               <div class="detail-section">
                 <h3>Repository</h3>
-                <a href="${escapeAttr(tool.repo)}" target="_blank" rel="noopener noreferrer" class="repo-link" style="color:var(--accent);text-decoration:none;word-break:break-all;">
+                <a href="${escapeAttr(tool.repo)}" target="_blank" rel="noopener noreferrer" class="repo-link" style="color:var(--accent-2);text-decoration:none;word-break:break-all;">
                   ${escapeHtml(tool.repo)}
                 </a>
               </div>` : ''}
@@ -968,7 +968,7 @@
         _createModal() {
             const html = `
         <div class="modal-overlay" id="detailsModal" style="display:none;">
-          <div class="modal-content" style="max-width:600px;">
+          <div class="modal-content" style="max-width:750px;">
             <div class="modal-header">
               <h2 class="modal-title"></h2>
               <button class="modal-close" title="Close">&times;</button>
@@ -991,13 +991,13 @@
     }
 
     function phaseColorFromPhase(phase) {
-        const map = {
-            '00_Common': 'var(--color-common)',
-            '01_Information_Gathering': 'var(--color-info)',
-            '02_Exploitation': 'var(--color-exploit)',
-            '03_Post_Exploitation': 'var(--color-post)',
-            '04_Miscellaneous': 'var(--color-misc)'
+        const PHASE_COLORS = {
+            '00_Common': 'hsl(270 91% 65%)',
+            '01_Information_Gathering': 'hsl(210 100% 62%)',
+            '02_Exploitation': 'hsl(4 85% 62%)',
+            '03_Post_Exploitation': 'hsl(32 98% 55%)',
+            '04_Miscellaneous': 'hsl(158 64% 52%)'
         };
-        return map[phase] || 'var(--accent-2)';
+        return PHASE_COLORS[phase] || 'hsl(var(--accent))';
     }
 })();

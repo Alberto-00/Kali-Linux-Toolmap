@@ -23,11 +23,11 @@ function _isStarredEffective(tool) {
     'use strict';
 
     const PHASE_COLORS = {
-        '00_Common': 'var(--color-common)',
-        '01_Information_Gathering': 'var(--color-info)',
-        '02_Exploitation': 'var(--color-exploit)',
-        '03_Post_Exploitation': 'var(--color-post)',
-        '04_Miscellaneous': 'var(--color-misc)'
+        '00_Common': 'hsl(270 91% 65%)',
+        '01_Information_Gathering': 'hsl(210 100% 62%)',
+        '02_Exploitation': 'hsl(4 85% 62%)',
+        '03_Post_Exploitation': 'hsl(32 98% 55%)',
+        '04_Miscellaneous': 'hsl(158 64% 52%)'
     };
 
     // Mappa alternative → chiave canonica per le icone (SIDEBAR_ICONS)
@@ -125,7 +125,7 @@ function _isStarredEffective(tool) {
             const desc = (tool?.desc || tool?.description || '').trim();
 
             const imgStyle = tool?.icon
-                ? `background-image:url('${this._escAttr(tool.icon)}');background-size:contain;background-position:center;background-repeat:no-repeat;background-color:color-mix(in srgb, ${phaseColor} 10%, transparent);`
+                ? `background-image:url('${this._escAttr(tool.icon)}');`
                 : `background:linear-gradient(135deg, color-mix(in srgb, ${phaseColor} 22%, transparent), color-mix(in srgb, ${phaseColor} 11%, transparent));`;
 
             const bestStars = this._bestStars(tool);
@@ -207,8 +207,8 @@ function _isStarredEffective(tool) {
                 <path
                   d="M12 2.5l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.4l1.1-6.5L2.6 9.3l6.5-.9L12 2.5z"
                   style="${isOn
-                            ? `fill:${activeColor};stroke:none;`
-                            : `fill:${mutedFill};stroke:none;`}"
+                ? `fill:${activeColor};stroke:none;`
+                : `fill:${mutedFill};stroke:none;`}"
                 />
               </svg>`;
         }
@@ -288,7 +288,7 @@ function _isStarredEffective(tool) {
 
         // ---------------------------- Helpers --------------------------------
         _phaseColor(phase) {
-            return PHASE_COLORS[phase] || 'var(--accent-2)';
+            return PHASE_COLORS[phase] || 'hsl(var(--accent))';
         }
 
         _canonPhaseKey(phase) {

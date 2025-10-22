@@ -1,0 +1,438 @@
+/* ============================================================================
+   BASE.CSS - Unified Foundation
+   Variabili globali, reset, utilità comuni e classi condivise
+   ============================================================================ */
+
+:root {
+    /* Colors - Palette scura corretta dal sidebar monolitico */
+    --bg: #0b0b10;
+    --panel: #181820;
+    --panel-2: #141419;
+    --text: #e5e7eb;
+    --muted: #a1a1aa;
+    --border: rgba(255, 255, 255, .08);
+    --accent: #34d399;
+    --accent-2: #60a5fa;
+    --shadow: rgba(0, 0, 0, .5);
+
+    /* Phase Colors */
+    --color-common: #A655F7;
+    --color-info: #3D9EFF;
+    --color-exploit: #F0574C;
+    --color-post: #FD941C;
+    --color-misc: #36D399;
+
+    /* HSL Variants (necessari per card.css e compatibilità shadcn) */
+    --background: 0 0% 4%;
+    --foreground: 0 0% 91%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 91%;
+    --primary: 210 100% 62%;
+    --secondary: 174 75% 58%;
+    --muted-hsl: 0 0% 8%;
+    --muted-foreground: 0 0% 63%;
+    --input: 0 0% 9%;
+    --ring: 210 100% 62%;
+
+    /* Spacing & Layout */
+    --radius: 16px;
+    --radius-lg: 22px;
+    --gutter: 28px;
+
+    /* Tree Navigation */
+    --tree-x: 10px;
+    --tree-w: 2px;
+    --elbow-w: 16px;
+    --elbow-h: 12px;
+    --elbow-gap: 10px;
+    --elbow-top: 35%;
+    --tree-stroke: rgba(255, 255, 255, .12);
+    --tree-stroke-fade: rgba(255, 255, 255, .08);
+    --elbow-shift-x: 0px;
+    --elbow-w-tweak: 0px;
+    --vline-shift-x: 0px;
+
+    /* Transitions */
+    --transition-smooth: all .28s cubic-bezier(.4, 0, .2, 1);
+    --transition-fast: all .2s ease;
+}
+
+/* ============================================================================
+   RESET & BASE STYLES
+   ============================================================================ */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
+    Cantarell, "Noto Sans", sans-serif;
+    color: var(--text);
+    background: radial-gradient(1000px 500px at 85% 20%, rgba(99, 102, 241, .08), transparent),
+    radial-gradient(1200px 600px at 15% 10%, rgba(56, 189, 248, .08), transparent),
+    var(--bg);
+}
+
+/* ============================================================================
+   LAYOUT WRAPPER
+   ============================================================================ */
+
+.app {
+    max-width: 130rem;
+    margin: 0 auto;
+    padding: 40px 24px;
+    display: flex;
+    gap: 40px;
+    height: 100vh;
+}
+
+/* ============================================================================
+   TYPOGRAPHY
+   ============================================================================ */
+
+h1 {
+    margin: 0 0 10px;
+    font-size: 32px;
+    background: linear-gradient(135deg, #fff, #a8b3cf);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+p {
+    color: #cbd5e1;
+    line-height: 1.7;
+    margin-bottom: 16px;
+    letter-spacing: 0.03em;
+}
+
+/* ============================================================================
+   COMMON BUTTON STYLES
+   ============================================================================ */
+
+.btn,
+.icon-btn,
+.toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    letter-spacing: 0.03em;
+    font-size: 13px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    text-decoration: none;
+    line-height: 1;
+}
+
+.btn:hover,
+.icon-btn:hover,
+.toggle:hover {
+    background: rgba(255, 255, 255, .1);
+    transform: translateY(-1px);
+}
+
+.btn:active,
+.icon-btn:active,
+.toggle:active {
+    transform: translateY(0);
+}
+
+.icon-btn {
+    padding: 8px;
+    justify-content: center;
+}
+
+.icon-btn svg {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+}
+
+.toggle,
+.icon-btn {
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.toggle:hover,
+.icon-btn:hover {
+    transform: scale(1.05);
+}
+
+.toggle svg,
+.icon-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* ============================================================================
+   COMMON ICON SIZES
+   ============================================================================ */
+
+.icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+svg.search-icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* ============================================================================
+   FOCUS STATES
+   ============================================================================ */
+
+.btn:focus-visible,
+.icon-btn:focus-visible,
+button:focus-visible,
+a:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--panel) 70%, transparent),
+    0 0 0 6px color-mix(in srgb, var(--accent-2) 35%, transparent);
+}
+
+/* ============================================================================
+   SCROLLBAR STYLES
+   ============================================================================ */
+
+.scrollable,
+nav,
+.content,
+.tools-grid,
+.modal-body,
+.flyout {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, .1) transparent;
+}
+
+.scrollable::-webkit-scrollbar,
+nav::-webkit-scrollbar,
+.content::-webkit-scrollbar,
+.tools-grid::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar,
+.flyout::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.scrollable::-webkit-scrollbar-track,
+nav::-webkit-scrollbar-track,
+.content::-webkit-scrollbar-track,
+.tools-grid::-webkit-scrollbar-track,
+.modal-body::-webkit-scrollbar-track,
+.flyout::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.scrollable::-webkit-scrollbar-thumb,
+nav::-webkit-scrollbar-thumb,
+.content::-webkit-scrollbar-thumb,
+.tools-grid::-webkit-scrollbar-thumb,
+.modal-body::-webkit-scrollbar-thumb,
+.flyout::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, .1);
+    border-radius: 3px;
+}
+
+.scrollable::-webkit-scrollbar-thumb:hover,
+nav::-webkit-scrollbar-thumb:hover,
+.content::-webkit-scrollbar-thumb:hover,
+.tools-grid::-webkit-scrollbar-thumb:hover,
+.modal-body::-webkit-scrollbar-thumb:hover,
+.flyout::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, .15);
+}
+
+/* ============================================================================
+   BADGE STYLES
+   ============================================================================ */
+
+.badge,
+.phase-badge,
+.search-badge,
+.version-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    min-width: 20px;
+    text-align: center;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    user-select: none;
+    pointer-events: none;
+}
+
+.phase-badge,
+.search-badge {
+    background: color-mix(in srgb, var(--phase) 22%, transparent);
+    color: var(--phase);
+    border: 1px solid color-mix(in srgb, var(--phase) 42%, transparent);
+    animation: badgePulse 0.4s ease;
+}
+
+@keyframes badgePulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+}
+
+.version-chip {
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid var(--border);
+    padding: 2px 10px;
+    font-size: .7em;
+    font-weight: 600;
+    color: var(--muted);
+    transition: var(--transition-fast);
+}
+
+/* ============================================================================
+   PHASE COLOR ASSIGNMENTS
+   ============================================================================ */
+
+[data-phase="00_Common"] {
+    --phase: var(--color-common);
+}
+
+[data-phase="01_Information_Gathering"] {
+    --phase: var(--color-info);
+}
+
+[data-phase="02_Exploitation"] {
+    --phase: var(--color-exploit);
+}
+
+[data-phase="03_Post_Exploitation"] {
+    --phase: var(--color-post);
+}
+
+[data-phase="04_Miscellaneous"] {
+    --phase: var(--color-misc);
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes chipIn {
+    from {
+        opacity: 0;
+        transform: scale(0.7) translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes card-pop {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ============================================================================
+   UTILITY CLASSES
+   ============================================================================ */
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 1px, 1px);
+    white-space: nowrap;
+    border: 0;
+}
+
+.highlight {
+    display: inline-block;
+    background: rgba(52, 211, 153, .1);
+    color: var(--accent);
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 20px;
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .leaf::before,
+    .folder-leaf::before,
+    .section-title::before {
+        transition: none !important;
+    }
+}
