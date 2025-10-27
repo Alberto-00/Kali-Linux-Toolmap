@@ -1,77 +1,192 @@
 // ============================================================================
-// SEARCH MANAGER
+// search-manager.js
 // ============================================================================
 
 (() => {
     'use strict';
 
+    // Prevent double initialization
     if (window.__SearchManagerInit) return;
     window.__SearchManagerInit = true;
 
-    const INPUT_ID = 'searchInput';
-    const LS_KEY = 'tm:search:q';
-    const DEBOUNCE = 300;
+    // ============================================================================
+    // CONSTANTS
+    // ============================================================================
 
-    const input = document.getElementById(INPUT_ID);
-    if (!input) return;
-
-    // Ripristina valore salvato
-    const saved = localStorage.getItem(LS_KEY) || '';
-    if (saved) input.value = saved;
-
-    // Dispatch helper
-    const dispatch = (q) => {
-        const qq = (q || '').trim();
-        window.dispatchEvent(new CustomEvent('tm:search:set', {
-            detail: {q: qq, hasQuery: !!qq, source: 'search-input'}
-        }));
+    const CONFIG = {
+        inputId: 'searchInput',
+        storageKey: 'tm:search:q',
+        debounceDelay: 300
     };
 
-
-    // Debounce helper
-    let t = null;
-    const debounced = (fn, ms) => (...args) => {
-        clearTimeout(t);
-        t = setTimeout(() => fn(...args), ms);
+    const KEYS = {
+        escape: 'Escape',
+        slash: '/'
     };
 
-    // Input handler (debounced)
-    const onInput = debounced(() => {
-        const q = input.value.trim();
-        localStorage.setItem(LS_KEY, q);
-        dispatch(q);
-    }, DEBOUNCE);
+    // ============================================================================
+    // DOM ELEMENTS
+    // ============================================================================
 
-    input.addEventListener('input', onInput);
+    const searchInput = document.getElementById(CONFIG.inputId);
+    if (!searchInput) return;
 
-    // ESC: pulisce tutto
-    input.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            input.value = '';
-            localStorage.removeItem(LS_KEY);
-            dispatch('');
+    // ============================================================================
+    // STORAGE UTILITIES
+    // ============================================================================
+
+    const Storage = {
+        get() {
+            try {
+                return localStorage.getItem(CONFIG.storageKey) || '';
+            } catch {
+                return '';
+            }
+        },
+
+        set(value) {
+            try {
+                localStorage.setItem(CONFIG.storageKey, value);
+            } catch {}
+        },
+
+        remove() {
+            try {
+                localStorage.removeItem(CONFIG.storageKey);
+            } catch {}
         }
-    });
+    };
 
-    // Shortcut globale "/"
-    document.addEventListener('keydown', (e) => {
-        if (e.key !== '/') return;
-        const ae = document.activeElement;
-        const isTyping = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable);
-        if (isTyping) return;
-        e.preventDefault();
-        input.focus();
-    });
+    // ============================================================================
+    // SEARCH DISPATCH
+    // ============================================================================
 
-    // Reset globale
-    window.addEventListener('tm:reset', () => {
-        const had = !!(input.value && input.value.trim());
-        input.value = '';
-        localStorage.removeItem(LS_KEY);
-        if (had) dispatch('');   // emetti solo se stavi cercando
-    });
+    const SearchDispatcher = {
+        dispatch(query) {
+            const trimmedQuery = (query || '').trim();
 
-    // Init
-    if (saved) dispatch(saved);
+            window.dispatchEvent(new CustomEvent('tm:search:set', {
+                detail: {
+                    q: trimmedQuery,
+                    hasQuery: !!trimmedQuery,
+                    source: 'search-input'
+                }
+            }));
+        }
+    };
+
+    // ============================================================================
+    // DEBOUNCE UTILITY
+    // ============================================================================
+
+    const Debounce = {
+        timerId: null,
+
+        create(callback, delay) {
+            return (...args) => {
+                clearTimeout(this.timerId);
+                this.timerId = setTimeout(() => callback(...args), delay);
+            };
+        }
+    };
+
+    // ============================================================================
+    // INPUT HANDLERS
+    // ============================================================================
+
+    const InputHandlers = {
+        handleInput: Debounce.create(() => {
+            const query = searchInput.value.trim();
+            Storage.set(query);
+            SearchDispatcher.dispatch(query);
+        }, CONFIG.debounceDelay),
+
+        handleKeydown(event) {
+            if (event.key === KEYS.escape) {
+                event.preventDefault();
+                this.clearSearch();
+            }
+        },
+
+        clearSearch() {
+            searchInput.value = '';
+            Storage.remove();
+            SearchDispatcher.dispatch('');
+        }
+    };
+
+    // ============================================================================
+    // GLOBAL SHORTCUTS
+    // ============================================================================
+
+    const GlobalShortcuts = {
+        handleSlashShortcut(event) {
+            if (event.key !== KEYS.slash) return;
+            if (this.isTypingContext()) return;
+
+            event.preventDefault();
+            searchInput.focus();
+        },
+
+        isTypingContext() {
+            const activeElement = document.activeElement;
+            if (!activeElement) return false;
+
+            const isInputField = activeElement.tagName === 'INPUT' ||
+                               activeElement.tagName === 'TEXTAREA';
+            const isContentEditable = activeElement.isContentEditable;
+
+            return isInputField || isContentEditable;
+        }
+    };
+
+    // ============================================================================
+    // APP EVENT HANDLERS
+    // ============================================================================
+
+    const AppEventHandlers = {
+        handleReset() {
+            const hadQuery = !!(searchInput.value && searchInput.value.trim());
+
+            searchInput.value = '';
+            Storage.remove();
+
+            if (hadQuery) {
+                SearchDispatcher.dispatch('');
+            }
+        }
+    };
+
+    // ============================================================================
+    // EVENT LISTENERS
+    // ============================================================================
+
+    function attachEventListeners() {
+        // Input events
+        searchInput.addEventListener('input', InputHandlers.handleInput);
+        searchInput.addEventListener('keydown', (e) => InputHandlers.handleKeydown(e));
+
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', (e) => GlobalShortcuts.handleSlashShortcut(e));
+
+        // App events
+        window.addEventListener('tm:reset', () => AppEventHandlers.handleReset());
+    }
+
+    // ============================================================================
+    // INITIALIZATION
+    // ============================================================================
+
+    function initialize() {
+        const savedQuery = Storage.get();
+
+        if (savedQuery) {
+            searchInput.value = savedQuery;
+            SearchDispatcher.dispatch(savedQuery);
+        }
+
+        attachEventListeners();
+    }
+
+    initialize();
 })();

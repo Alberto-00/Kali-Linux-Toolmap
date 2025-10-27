@@ -1,239 +1,416 @@
 // ============================================================================
-// BREADCRUMB MANAGER
+// breadcrumb-manager.js - Refactored & Optimized
 // ============================================================================
 
 (() => {
     'use strict';
 
-    const el = document.getElementById('breadcrumb');
-    if (!el) return;
+    // ============================================================================
+    // CONSTANTS & CONFIGURATION
+    // ============================================================================
 
-    let currentPathSlash = null; // path in formato slash per copia
-    let _lastContextSummary = {toolsCount: 0, scopeAll: false, pathKey: null, hasVisitedAnyPhase: false};
+    const SELECTORS = {
+        breadcrumb: 'breadcrumb',
+        searchInput: 'searchInput',
+        breadcrumbBar: '.breadcrumb-bar',
+        breadcrumbActions: '.breadcrumb-actions'
+    };
 
-    // Trasforma "01_Information_Gathering" → "Information Gathering"
-    // e "My_Node_Name" → "My Node Name"
-    function formatLabel(text) {
-        const s = String(text || '');
-        // rimuove prefissi numerici tipo "01_" o "001_"
-        const noPrefix = s.replace(/^\d+_/, '');
-        // sostituisce underscore con spazio
-        return noPrefix.replace(/_/g, ' ');
-    }
+    const ANIMATION_DURATION = {
+        iconChange: 1200,
+        toastVisible: 1000
+    };
 
-    function copyCurrentPath() {
-        if (!currentPathSlash) return;
-        navigator.clipboard.writeText(currentPathSlash).then(() => {
+    // ============================================================================
+    // STATE MANAGEMENT
+    // ============================================================================
+
+    const state = {
+        currentPathSlash: null,
+        lastPathKey: null,
+        lastContextSummary: {
+            toolsCount: 0,
+            scopeAll: false,
+            pathKey: null,
+            hasVisitedAnyPhase: false
+        }
+    };
+
+    // ============================================================================
+    // DOM ELEMENTS
+    // ============================================================================
+
+    const breadcrumbElement = document.getElementById(SELECTORS.breadcrumb);
+    if (!breadcrumbElement) return;
+
+    // ============================================================================
+    // UTILITY FUNCTIONS
+    // ============================================================================
+
+    const Utils = {
+        formatLabel(text) {
+            const str = String(text || '');
+            const withoutPrefix = str.replace(/^\d+_/, '');
+            return withoutPrefix.replace(/_/g, ' ');
+        },
+
+        escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        },
+
+        convertPathToSlash(pathKey) {
+            if (!pathKey) return null;
+            return pathKey.replace(/>/g, '/').replace(/^Root\//, '');
+        },
+
+        splitPathKey(pathKey) {
+            if (!pathKey || typeof pathKey !== 'string') return [];
+
+            let parts = pathKey.split('>').filter(Boolean);
+
+            if (parts.length && parts[0].toLowerCase() === 'root') {
+                parts = parts.slice(1);
+            }
+
+            return parts;
+        },
+
+        rebuildFullParts(visibleParts, takeCount) {
+            const base = [];
+
+            if (state.lastPathKey && typeof state.lastPathKey === 'string') {
+                const raw = state.lastPathKey.split('>').filter(Boolean);
+                if (raw.length && raw[0].toLowerCase() === 'root') {
+                    base.push('Root');
+                }
+            }
+
+            return base.concat(visibleParts.slice(0, takeCount));
+        },
+
+        getCurrentSearch() {
+            const searchInput = document.getElementById(SELECTORS.searchInput);
+            return searchInput ? searchInput.value.trim() : '';
+        }
+    };
+
+    // ============================================================================
+    // COPY PATH FUNCTIONALITY
+    // ============================================================================
+
+    const CopyPath = {
+        async copy() {
+            if (!state.currentPathSlash) return;
+
+            try {
+                await navigator.clipboard.writeText(state.currentPathSlash);
+                this.showFeedback();
+            } catch (error) {
+                console.error('Failed to copy path:', error);
+            }
+        },
+
+        showFeedback() {
+            this.updateIcon();
+            this.showToast();
+        },
+
+        updateIcon() {
             const icon = document.querySelector('.copy-path-icon');
-            const btn = document.querySelector('.copy-path-btn');
+            if (!icon) return;
 
-            // icona → check → icona originale (totale 1200ms)
-            if (icon) {
-                icon.innerHTML = `
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>`;
-                setTimeout(() => {
-                    icon.innerHTML = `
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                    </svg>`;
-                }, 1200);
+            const checkmarkSVG = `
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+            `;
+
+            const copySVG = `
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+            `;
+
+            icon.innerHTML = checkmarkSVG;
+            setTimeout(() => {
+                icon.innerHTML = copySVG;
+            }, ANIMATION_DURATION.iconChange);
+        },
+
+        showToast() {
+            const button = document.querySelector('.copy-path-btn');
+            if (!button) return;
+
+            const rect = button.getBoundingClientRect();
+            const toast = this.createToast(rect);
+
+            document.body.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
+
+            setTimeout(() => {
+                toast.classList.add('hide');
+                toast.addEventListener('animationend', () => {
+                    if (toast.classList.contains('hide')) {
+                        toast.remove();
+                    }
+                }, { once: true });
+            }, ANIMATION_DURATION.toastVisible);
+        },
+
+        createToast(buttonRect) {
+            const toast = document.createElement('div');
+            toast.className = 'copy-toast';
+            toast.textContent = 'Copiato!';
+            toast.style.left = (buttonRect.left + buttonRect.width / 2) + 'px';
+            toast.style.top = (buttonRect.top - 8) + 'px';
+            return toast;
+        },
+
+        updateButtonState() {
+            const button = document.querySelector('.copy-path-btn');
+            if (!button) return;
+
+            const isDisabled = !state.currentPathSlash;
+            button.disabled = isDisabled;
+            button.style.opacity = isDisabled ? '0.5' : '1';
+            button.style.cursor = isDisabled ? 'default' : 'pointer';
+            button.style.pointerEvents = isDisabled ? 'none' : 'auto';
+
+            if (isDisabled) {
+                button.title = 'No path to copy';
+            } else {
+                button.title = 'Copy current path';
+            }
+        }
+    };
+
+    // ============================================================================
+    // BREADCRUMB RENDERING
+    // ============================================================================
+
+    const BreadcrumbRenderer = {
+        render(pathKey) {
+            breadcrumbElement.innerHTML = '';
+
+            const currentSearch = Utils.getCurrentSearch();
+
+            if (currentSearch) {
+                this.renderSearchBreadcrumb(currentSearch);
+                return;
             }
 
-            // Toast "Copiato!" con durata totale 1200ms (show .2s, visible .8s, hide .2s)
-            if (btn) {
-                const r = btn.getBoundingClientRect();
-                const t = document.createElement('div');
-                t.className = 'copy-toast';
-                t.textContent = 'Copiato!';
-                t.style.left = (r.left + r.width / 2) + 'px';
-                t.style.top = (r.top - 8) + 'px';
-                document.body.appendChild(t);
-                requestAnimationFrame(() => t.classList.add('show'));
-                setTimeout(() => {
-                    t.classList.add('hide');
-                    const onEnd = () => {
-                        if (t.classList.contains('hide')) t.remove();
-                    };
-                    t.addEventListener('animationend', onEnd, {once: true});
-                }, 1000);
+            if (!pathKey || typeof pathKey !== 'string') {
+                this.renderDefaultBreadcrumb();
+                return;
             }
-        }).catch(() => {
-        });
-    }
 
-    // Costruisce i segmenti e collega i click
-    function renderCrumb(pathKey) {
-        el.innerHTML = '';
+            this.renderPathBreadcrumb(pathKey);
+        },
 
-        // Se non c'è un path attivo → stato "All tools"
-        if (!pathKey || typeof pathKey !== 'string') {
-            currentPathSlash = null;
+        renderSearchBreadcrumb(searchQuery) {
+            const span = document.createElement('span');
+            span.className = 'breadcrumb-item search-breadcrumb';
+            span.innerHTML = `
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <span>Search: <strong>${Utils.escapeHTML(searchQuery)}</strong></span>
+            `;
+            breadcrumbElement.appendChild(span);
+            CopyPath.updateButtonState();
+        },
+
+        renderDefaultBreadcrumb() {
+            state.currentPathSlash = null;
+
             const span = document.createElement('span');
             span.className = 'breadcrumb-item';
-            // Regola: 'No tools' SOLO quando non è mai stata visitata alcuna fase,
-            // non c'è un path attivo, NON stiamo mostrando 'All' e non ci sono tool visibili.
-            const showNoTools = (!_lastContextSummary?.hasVisitedAnyPhase) && (!_lastContextSummary?.pathKey) && (!_lastContextSummary?.scopeAll) && ((_lastContextSummary?.toolsCount || 0) === 0);
+
+            const showNoTools = !state.lastContextSummary.hasVisitedAnyPhase &&
+                               !state.lastContextSummary.pathKey &&
+                               !state.lastContextSummary.scopeAll &&
+                               (state.lastContextSummary.toolsCount || 0) === 0;
+
             span.textContent = showNoTools ? 'No tools' : 'All tools';
-            el.appendChild(span);
-            return;
-        }
+            breadcrumbElement.appendChild(span);
+            CopyPath.updateButtonState();
+        },
 
-        // Salva il path in formato slash per la copia
-        currentPathSlash = pathKey.replace(/>/g, '/').replace(/^Root\//, '');
+        renderPathBreadcrumb(pathKey) {
+            state.currentPathSlash = Utils.convertPathToSlash(pathKey);
+            const parts = Utils.splitPathKey(pathKey);
 
-        // Scomponi path "Root>Fase>SubNodo"
-        let parts = pathKey.split('>').filter(Boolean);
+            if (!parts.length) {
+                this.renderDefaultBreadcrumb();
+                return;
+            }
 
-        // Nascondi "Root" se è il primo segmento
-        if (parts.length && parts[0].toLowerCase() === 'root') {
-            parts = parts.slice(1);
-        }
+            parts.forEach((part, index) => {
+                this.renderPathSegment(part, index, parts);
 
-        // Se dopo il filtro non resta nulla → All tools
-        if (!parts.length) {
-            currentPathSlash = null;
-            const span = document.createElement('span');
-            span.className = 'breadcrumb-item';
-            span.textContent = 'All tools';
-            el.appendChild(span);
-            return;
-        }
-
-        parts.forEach((p, i) => {
-            const isLast = i === parts.length - 1;
-
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'breadcrumb-item' + (isLast ? ' active' : '');
-            btn.textContent = formatLabel(p);
-            btn.setAttribute('aria-current', isLast ? 'page' : 'false');
-
-            btn.addEventListener('click', () => {
-                // Ricostruisci la chiave fino a questo segmento
-                const fullParts = rebuildFullParts(parts, i + 1);
-                const key = fullParts.join('>');
-                const ids = Array.from(window.Toolmap?.allToolsUnder?.[key] || []);
-
-                window.dispatchEvent(new CustomEvent('tm:scope:set', {
-                    detail: {pathKey: key, ids}
-                }));
-            });
-
-            btn.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    btn.click();
+                if (index < parts.length - 1) {
+                    this.renderSeparator();
                 }
             });
 
-            el.appendChild(btn);
+            CopyPath.updateButtonState();
+        },
 
-            if (!isLast) {
-                const sep = document.createElement('span');
-                sep.className = 'breadcrumb-separator';
-                sep.textContent = '/';
-                sep.setAttribute('aria-hidden', 'true');
-                el.appendChild(sep);
-            }
-        });
-    }
+        renderPathSegment(part, index, allParts) {
+            const isLast = index === allParts.length - 1;
+            const button = document.createElement('button');
 
-    // Ricostruisce i segmenti completi includendo "Root" se presente nel path corrente
-    // Usa l'ultimo pathKey noto da tm:scope:set per preservare l'eventuale prefisso "Root"
-    function rebuildFullParts(visibleParts, takeCount) {
-        const lastKey = _lastPathKey;
-        let base = [];
-        if (lastKey && typeof lastKey === 'string') {
-            const raw = lastKey.split('>').filter(Boolean);
-            // se il primo è Root, preservalo
-            if (raw.length && raw[0].toLowerCase() === 'root') {
-                base = ['Root'];
-            }
+            button.type = 'button';
+            button.className = 'breadcrumb-item' + (isLast ? ' active' : '');
+            button.textContent = Utils.formatLabel(part);
+            button.setAttribute('aria-current', isLast ? 'page' : 'false');
+
+            button.addEventListener('click', () => {
+                this.handleSegmentClick(allParts, index + 1);
+            });
+
+            button.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    button.click();
+                }
+            });
+
+            breadcrumbElement.appendChild(button);
+        },
+
+        renderSeparator() {
+            const separator = document.createElement('span');
+            separator.className = 'breadcrumb-separator';
+            separator.textContent = '/';
+            separator.setAttribute('aria-hidden', 'true');
+            breadcrumbElement.appendChild(separator);
+        },
+
+        handleSegmentClick(parts, takeCount) {
+            const fullParts = Utils.rebuildFullParts(parts, takeCount);
+            const pathKey = fullParts.join('>');
+            const ids = Array.from(window.Toolmap?.allToolsUnder?.[pathKey] || []);
+
+            window.dispatchEvent(new CustomEvent('tm:scope:set', {
+                detail: { pathKey, ids }
+            }));
         }
-        return base.concat(visibleParts.slice(0, takeCount));
-    }
+    };
 
-    // Crea i bottoni "Show All", "Download Registry" e "Copy Path" nella breadcrumb-bar
-    function ensureBreadcrumbButtons() {
-        const bar = document.querySelector('.breadcrumb-bar');
-        if (!bar) return;
+    // ============================================================================
+    // BREADCRUMB ACTIONS (Buttons)
+    // ============================================================================
 
-        // Controlla se già esistono
-        if (bar.querySelector('.breadcrumb-actions')) return;
+    const BreadcrumbActions = {
+        ensure() {
+            const bar = document.querySelector(SELECTORS.breadcrumbBar);
+            if (!bar || bar.querySelector(SELECTORS.breadcrumbActions)) return;
 
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'breadcrumb-actions';
-        actionsDiv.innerHTML = `
-          <button class="show-all-btn icon-btn" type="button" title="Show all tools" aria-label="Show all tools">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-            </svg>
-            <b>Show All</b>
-          </button>
-          <button class="copy-path-btn icon-btn copy-path-icon" type="button" title="Copy current path" aria-label="Copy current path">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-            </svg>
-          </button>
-          <button class="download-registry-btn icon-btn" type="button" title="Download updated registry" aria-label="Download registry">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-            </svg>
-          </button>
-        `;
+            const actionsDiv = this.createActionsContainer();
+            bar.appendChild(actionsDiv);
+            this.attachEventListeners(actionsDiv);
+        },
 
-        bar.appendChild(actionsDiv);
+        createActionsContainer() {
+            const div = document.createElement('div');
+            div.className = 'breadcrumb-actions';
+            div.innerHTML = `
+                <button class="show-all-btn icon-btn" type="button" 
+                        title="Show all tools" aria-label="Show all tools">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                    <b>Show All</b>
+                </button>
+                <button class="copy-path-btn icon-btn copy-path-icon" type="button" 
+                        title="Copy current path" aria-label="Copy current path">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                </button>
+                <button class="download-registry-btn icon-btn" type="button" 
+                        title="Download updated registry" aria-label="Download registry">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                </button>
+            `;
+            return div;
+        },
 
-        // Bind eventi
-        const showAllBtn = actionsDiv.querySelector('.show-all-btn');
-        const downloadBtn = actionsDiv.querySelector('.download-registry-btn');
-        const copyBtn = actionsDiv.querySelector('.copy-path-btn');
+        attachEventListeners(container) {
+            const showAllBtn = container.querySelector('.show-all-btn');
+            const downloadBtn = container.querySelector('.download-registry-btn');
+            const copyBtn = container.querySelector('.copy-path-btn');
 
-        showAllBtn?.addEventListener('click', () => {
-            // Mostra "All tools" nella breadcrumb…
-            currentPathSlash = null;
-            renderCrumb(null);
-            // …ma NON toccare la sidebar: chiedi solo al manager di mostrare tutto
+            showAllBtn?.addEventListener('click', this.handleShowAll);
+            downloadBtn?.addEventListener('click', this.handleDownload);
+            copyBtn?.addEventListener('click', () => CopyPath.copy());
+        },
+
+        handleShowAll() {
+            state.currentPathSlash = null;
+            BreadcrumbRenderer.render(null);
             window.dispatchEvent(new CustomEvent('tm:tools:showAll'));
-        });
+        },
 
-        downloadBtn?.addEventListener('click', () => {
+        handleDownload() {
             window.dispatchEvent(new CustomEvent('tm:registry:download'));
-        });
+        }
+    };
 
-        copyBtn?.addEventListener('click', () => {
-            if (!currentPathSlash) return;
-            copyCurrentPath();
-        });
+    // ============================================================================
+    // EVENT LISTENERS
+    // ============================================================================
+
+    function initializeEventListeners() {
+        window.addEventListener('tm:scope:set', handleScopeSet);
+        window.addEventListener('tm:reset', handleReset);
+        window.addEventListener('tm:context:summary', handleContextSummary);
+        window.addEventListener('tm:search:set', handleSearchSet);
     }
 
-    // Stato interno: conserva l'ultimo pathKey per ricostruire "Root"
-    let _lastPathKey = null;
+    function handleScopeSet(event) {
+        const pathKey = event.detail?.pathKey || null;
+        state.lastPathKey = pathKey;
+        BreadcrumbRenderer.render(pathKey);
+    }
 
-    // Aggiorna breadcrumb quando cambia lo scope
-    window.addEventListener('tm:scope:set', (ev) => {
-        const key = ev.detail?.pathKey || null;
-        _lastPathKey = key;
-        renderCrumb(key);
-    });
+    function handleReset() {
+        state.lastPathKey = null;
+        state.currentPathSlash = null;
+        BreadcrumbRenderer.render(null);
+    }
 
-    // Reset globale → torna ad "All tools"
-    window.addEventListener('tm:reset', () => {
-        _lastPathKey = null;
-        currentPathSlash = null;
-        renderCrumb(null);
-    });
+    function handleContextSummary(event) {
+        Object.assign(state.lastContextSummary, event.detail || {});
 
-    // Ricevi riepilogo dal tools-manager (per regola 'No tools')
-    window.addEventListener('tm:context:summary', (ev) => {
-        _lastContextSummary = Object.assign(_lastContextSummary, ev.detail || {});
-        // Se siamo in stato 'no path', aggiorna la label con la regola
-        if (!_lastContextSummary.pathKey) renderCrumb(null);
-    });
+        if (!state.lastContextSummary.pathKey) {
+            BreadcrumbRenderer.render(null);
+        }
+    }
 
-    // Bootstrap iniziale
-    ensureBreadcrumbButtons();
-    renderCrumb(null);
+    function handleSearchSet() {
+        BreadcrumbRenderer.render(state.lastPathKey);
+    }
+
+    // ============================================================================
+    // INITIALIZATION
+    // ============================================================================
+
+    function initialize() {
+        BreadcrumbActions.ensure();
+        initializeEventListeners();
+        BreadcrumbRenderer.render(null);
+    }
+
+    initialize();
 })();

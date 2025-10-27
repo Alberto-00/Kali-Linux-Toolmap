@@ -1,3 +1,17 @@
+const TIMINGS = {
+    hoverDelay: 280,
+    transitionEnd: 260,
+    paneActivation: 40,
+    searchApply: 50,
+    autoGrowInitial: 0,
+    autoGrowShort: 100,
+    autoGrowMedium: 220,
+    autoGrowLong: 300,
+    autoGrowVeryLong: 600,
+    animationTracking: 500,
+    hoverSetup: 150
+};
+
 (() => {
     "use strict";
 
@@ -312,6 +326,99 @@
         return Math.max(0, parts.length - 1);
     }
 
+    /**
+     * Crea un contenitore nested per un path
+     * @param {string} pathSlash - Path completo (es: "Phase/Sub/Node")
+     * @param {Object} node - Nodo taxonomy da renderizzare
+     * @param {boolean} animated - Se true, inizia chiuso per animazione
+     * @returns {HTMLDivElement}
+     */
+    function createNestedContainer(pathSlash, node, animated = true) {
+        const depth = depthFromPath(pathSlash);
+        const nest = document.createElement('div');
+        nest.className = 'children children-nested';
+        nest.dataset.parent = pathSlash;
+        nest.style.setProperty('--level', String(depth));
+        nest.innerHTML = buildChildren(node, pathSlash);
+
+        if (animated) {
+            nest.style.maxHeight = '0px';
+            nest.style.opacity = '0';
+            nest.style.paddingTop = '0px';
+        } else {
+            nest.style.maxHeight = 'none';
+            nest.style.opacity = '1';
+            nest.style.paddingTop = '2px';
+        }
+
+        return nest;
+    }
+
+    /**
+     * Chiude un nested container con animazione
+     * @param {HTMLElement} nest - Container da chiudere
+     * @param {Function} onComplete - Callback al termine
+     */
+    function animateNestedClose(nest, onComplete) {
+        const h = nest.scrollHeight;
+        nest.style.maxHeight = h + 'px';
+        nest.style.opacity = '1';
+        nest.style.paddingTop = '2px';
+        forceReflow(nest);
+        nest.style.maxHeight = '0px';
+        nest.style.opacity = '0';
+        nest.style.paddingTop = '0px';
+
+        nest.addEventListener('transitionend', () => {
+            nest.remove();
+            if (onComplete) onComplete();
+        }, {once: true});
+    }
+
+    /**
+     * Apre un nested container con animazione
+     * @param {HTMLElement} nest - Container da aprire
+     * @param {Function} onComplete - Callback al termine
+     */
+    function animateNestedOpen(nest, onComplete) {
+        const target = nest.scrollHeight;
+        forceReflow(nest);
+        nest.style.maxHeight = target + 'px';
+        nest.style.opacity = '1';
+        nest.style.paddingTop = '2px';
+
+        const onOpenEnd = () => {
+            nest.removeEventListener('transitionend', onOpenEnd);
+            if (document.body.contains(nest) && nest.style.opacity === '1') {
+                nest.style.maxHeight = 'none';
+            }
+            if (onComplete) onComplete();
+        };
+        nest.addEventListener('transitionend', onOpenEnd);
+    }
+
+    /**
+     * Espande tutti gli antenati di un path e applica highlight + active
+     * @param {HTMLElement} container - Nav item o hover pane
+     * @param {string} pathSlash - Path completo
+     * @param {string} phaseKey - Chiave fase
+     */
+    function expandAndHighlightPath(container, pathSlash, phaseKey) {
+        if (!container || !pathSlash) return;
+
+        expandAncestors(container, pathSlash);
+
+        container.querySelectorAll('.folder-leaf.active, .leaf.active, .section-title.active')
+            .forEach(n => n.classList.remove('active'));
+
+        const activeEl = container.querySelector(
+            `.folder-leaf[data-path="${pathSlash}"], .leaf[data-path="${pathSlash}"]`
+        );
+        if (activeEl) activeEl.classList.add('active');
+
+        highlightActivePath(phaseKey);
+    }
+
     function buildChildren(obj, parentPath = '') {
         let html = '';
         if (!isObject(obj)) return html;
@@ -377,6 +484,11 @@
         positionFlyouts();
     }
 
+    function forceReflow(element) {
+        if (!element) return;
+        void element.offsetHeight;
+    }
+
     // ==========================================================================
     // SEZIONE D · HIGHLIGHT & THEME
     // ==========================================================================
@@ -395,6 +507,16 @@
             .forEach(n => n.classList.remove('has-active-path'));
         document.querySelectorAll('.nav-item > .btn.active')
             .forEach(b => b.classList.remove('active'));
+    }
+
+    function clearHighlightInContainer(container) {
+        if (!container) return;
+
+        container.querySelectorAll('.folder-leaf, .leaf, .section-title')
+            .forEach(el => el.classList.remove('in-active-path', 'active'));
+
+        container.querySelectorAll('.children, .children-nested')
+            .forEach(n => n.classList.remove('has-active-path'));
     }
 
     function highlightActivePath(phaseKey) {
@@ -503,17 +625,9 @@
         const node = getNodeByPath(taxonomy, path);
         if (!hasChildrenNode(node)) return;
 
-        const depth = depthFromPath(path);
-        const nest = document.createElement('div');
-        nest.className = 'children children-nested';
-        nest.dataset.parent = path;
-        nest.style.setProperty('--level', String(depth));
-        nest.innerHTML = buildChildren(node, path);
-
-        // open senza animazione durante la ricostruzione
-        nest.style.maxHeight = 'none';
-        nest.style.opacity = '1';
-        nest.style.paddingTop = '2px';
+        // ========== PATCH 2: USA createNestedContainer ==========
+        const nest = createNestedContainer(path, node, false); // NO animazione
+        // ========== FINE PATCH 2 ==========
 
         leaf.after(nest);
         markLastVisible(leaf.parentElement);
@@ -621,59 +735,26 @@
                 const isOpen = !!(next && next.classList.contains('children-nested') && next.dataset.parent === pathSlash);
 
                 if (isOpen) {
-                    const h = next.scrollHeight;
-                    next.style.maxHeight = h + 'px';
-                    next.style.opacity = '1';
-                    next.style.paddingTop = '2px';
-                    void next.getBoundingClientRect();
-                    next.style.maxHeight = '0px';
-                    next.style.opacity = '0';
-                    next.style.paddingTop = '0px';
-
-                    next.addEventListener('transitionend', () => {
-                        next.remove();
+                    animateNestedClose(next, () => {
                         markLastVisible(el.parentElement);
                         highlightActivePath(phaseKey);
                         collapseSubtree(phaseKey, pathSlash);
                         refreshAllVLinesDebounced();
                         window.SidebarAutoGrow?.schedule();
-                    }, {once: true});
+                    });
                     return;
                 }
-
-                // APRI + memoria espansa
-                const depth = depthFromPath(pathSlash);
-                const nest = document.createElement('div');
-                nest.className = 'children children-nested';
-                nest.dataset.parent = pathSlash;
-                nest.style.setProperty('--level', String(depth));
-                nest.innerHTML = buildChildren(node, pathSlash);
-
-                nest.style.maxHeight = '0px';
-                nest.style.opacity = '0';
-                nest.style.paddingTop = '0px';
-
+                const nest = createNestedContainer(pathSlash, node, true);
                 el.after(nest);
                 markLastVisible(el.parentElement);
                 markLastVisible(nest);
 
-                const target = nest.scrollHeight;
-                void nest.getBoundingClientRect();
-                nest.style.maxHeight = target + 'px';
-                nest.style.opacity = '1';
-                nest.style.paddingTop = '2px';
-
-                const onOpenEnd = () => {
-                    nest.removeEventListener('transitionend', onOpenEnd);
-                    if (document.body.contains(nest) && nest.style.opacity === '1') {
-                        nest.style.maxHeight = 'none';
-                    }
+                animateNestedOpen(nest, () => {
                     highlightActivePath(phaseKey);
                     expandBranch(phaseKey, pathSlash);
                     refreshAllVLinesDebounced();
                     window.SidebarAutoGrow?.schedule();
-                };
-                nest.addEventListener('transitionend', onOpenEnd);
+                });
 
                 attachFolderLeafDrilldown(nest);
             });
@@ -816,7 +897,7 @@
             btn.addEventListener('mouseleave', () => {
                 const sidebarEl = document.getElementById('sidebar');
                 if (sidebarEl && sidebarEl.classList.contains('collapsed')) {
-                    hoverTimeout = setTimeout(() => hideHoverPane(), 280);
+                    hoverTimeout = setTimeout(() => hideHoverPane(), TIMINGS.hoverDelay);
                 }
             });
         });
@@ -929,7 +1010,7 @@
 
             hoverPane.addEventListener('mouseenter', () => clearTimeout(hoverTimeout));
             hoverPane.addEventListener('mouseleave', () => {
-                hoverTimeout = setTimeout(() => hideHoverPane(), 280);
+                hoverTimeout = setTimeout(() => hideHoverPane(), TIMINGS.hoverDelay);
             });
 
             // click dentro il riquadro
@@ -950,18 +1031,13 @@
                 const sb = document.getElementById('sidebar');
                 const inSearch = !!(sb && sb.classList.contains('search-mode'));
 
-                hoverPane.querySelectorAll('.folder-leaf, .leaf, .section-title').forEach(el => {
-                    el.classList.remove('in-active-path', 'active');
-                });
-                hoverPane.querySelectorAll('.children, .children-nested').forEach(n => {
-                    n.classList.remove('has-active-path');
-                });
+                clearHighlightInContainer(hoverPane);
 
                 // Reflow
-                void hoverPane.offsetHeight;
+                forceReflow(hoverPane);
 
                 applyPhaseThemeToPane(hoverPane, phaseKey);
-                void hoverPane.offsetHeight;
+                forceReflow(hoverPane);
 
                 // Espandi antenati del path cliccato
                 const parts = pathSlash.split('/');
@@ -970,7 +1046,7 @@
                     acc.push(p);
                     ensureExpandedInContainer(hoverPane, acc.join('/'));
                 }
-                void hoverPane.offsetHeight;
+                forceReflow(hoverPane);
 
                 if (!inSearch) {
                     highlightPathInContainer(hoverPane, pathSlash);
@@ -991,70 +1067,40 @@
                     const isOpen = !!(next && next.classList.contains('children-nested') && next.dataset.parent === pathSlash);
 
                     if (isOpen) {
-                        const h = next.scrollHeight;
-                        next.style.maxHeight = h + 'px';
-                        next.style.opacity = '1';
-                        next.style.paddingTop = '2px';
-                        void next.getBoundingClientRect();
-                        next.style.maxHeight = '0px';
-                        next.style.opacity = '0';
-                        next.style.paddingTop = '0px';
-                        next.addEventListener('transitionend', () => {
-                            next.remove();
+                        animateNestedClose(next, () => {
                             markLastVisible(leaf.parentElement);
                             collapseSubtree(phaseKey, pathSlash);
                             refreshAllVLinesDebounced(hoverPane);
                             window.SidebarAutoGrow?.schedule();
                             const cur = getActivePathSlash(phaseKey);
                             highlightPathInContainer(hoverPane, null);
-                            void hoverPane.offsetHeight;
+                            forceReflow(hoverPane);
                             highlightPathInContainer(hoverPane, cur);
                             highlightActivePath(phaseKey);
-                        }, {once: true});
+                        });
                         return;
                     }
-
-                    const depth = depthFromPath(pathSlash);
-                    const nest = document.createElement('div');
-                    nest.className = 'children children-nested';
-                    nest.dataset.parent = pathSlash;
-                    nest.style.setProperty('--level', String(depth));
-                    nest.innerHTML = buildChildren(node, pathSlash);
-                    nest.style.maxHeight = '0px';
-                    nest.style.opacity = '0';
-                    nest.style.paddingTop = '0px';
-
+                    const nest = createNestedContainer(pathSlash, node, true);
                     leaf.after(nest);
                     markLastVisible(leaf.parentElement);
                     markLastVisible(nest);
 
-                    const target = nest.scrollHeight;
-                    void nest.getBoundingClientRect();
-                    nest.style.maxHeight = `${target}px`;
-                    nest.style.opacity = '1';
-                    nest.style.paddingTop = '2px';
-
-                    const onOpenEnd = () => {
-                        nest.removeEventListener('transitionend', onOpenEnd);
-                        if (document.body.contains(nest) && nest.style.opacity === '1') {
-                            nest.style.maxHeight = 'none';
-                        }
+                    animateNestedOpen(nest, () => {
                         expandBranch(phaseKey, pathSlash);
                         refreshAllVLinesDebounced(hoverPane);
                         window.SidebarAutoGrow?.schedule();
                         const cur = getActivePathSlash(phaseKey);
                         highlightPathInContainer(hoverPane, null);
-                        void hoverPane.offsetHeight;
+                        forceReflow(hoverPane);
                         highlightPathInContainer(hoverPane, cur);
                         highlightActivePath(phaseKey);
-                    };
-                    nest.addEventListener('transitionend', onOpenEnd);
+                    });
                 } else {
                     refreshAllVLinesDebounced(hoverPane);
                     window.SidebarAutoGrow?.schedule();
                     const cur = getActivePathSlash(phaseKey);
                     highlightPathInContainer(hoverPane, null);
-                    void hoverPane.offsetHeight;
+                    forceReflow(hoverPane);
                     highlightPathInContainer(hoverPane, cur);
                     highlightActivePath(phaseKey);
                 }
@@ -1082,12 +1128,12 @@
     function ensureHoverPaneStyles() {
         if (document.getElementById('hover-pane-styles')) return;
         const css = `
-      .hover-pane .children.has-active-path::before,
-      .hover-pane .children-nested.has-active-path::before { background: var(--phase); width: 3px; }
-      .hover-pane .folder-leaf.in-active-path::before,
-      .hover-pane .leaf.in-active-path::before { border-left-color: var(--phase); border-bottom-color: var(--phase); border-left-width: 3px; border-bottom-width: 3px; }
-      .hover-pane .folder-leaf.in-active-path, .hover-pane .leaf.in-active-path { color: var(--phase); font-weight: 600; }
-      .hover-pane .folder-leaf.active { background: color-mix(in srgb, var(--phase) 15%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--phase) 30%, transparent); }`;
+          .hover-pane .children.has-active-path::before,
+          .hover-pane .children-nested.has-active-path::before { background: var(--phase); width: 3px; }
+          .hover-pane .folder-leaf.in-active-path::before,
+          .hover-pane .leaf.in-active-path::before { border-left-color: var(--phase); border-bottom-color: var(--phase); border-left-width: 3px; border-bottom-width: 3px; }
+          .hover-pane .folder-leaf.in-active-path, .hover-pane .leaf.in-active-path { color: var(--phase); font-weight: 600; }
+          .hover-pane .folder-leaf.active { background: color-mix(in srgb, var(--phase) 15%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--phase) 30%, transparent); }`;
         const style = document.createElement('style');
         style.id = 'hover-pane-styles';
         style.textContent = css;
@@ -1099,13 +1145,25 @@
         const pane = createHoverPane();
 
         const phaseKey = path.includes('/') ? path.split('/')[0] : path;
-        const childrenHTML = buildChildren(node, phaseKey);
 
+        // ========== PATCH: REBUILD SEMPRE PER EVITARE STATO STALE ==========
+        // Ricostruisci sempre il DOM dell'hover per garantire sincronizzazione con memoria
+        const childrenHTML = buildChildren(node, phaseKey);
         pane.innerHTML = `
       <div class="children children-nested hover-root" data-parent="${phaseKey}" style="--level: 1">
         ${childrenHTML}
       </div>
     `;
+        pane.dataset.phase = phaseKey;
+
+        const rootChildren = pane.querySelector('.hover-root');
+        markLastVisible(rootChildren);
+        applyPhaseThemeToPane(pane, phaseKey);
+        forceReflow(pane);
+
+        // CRITICO: Applica espansioni da memoria DOPO il rebuild
+        expandFromMemoryInContainer(pane, phaseKey);
+        // ========== FINE PATCH ==========
 
         // posizione
         const fromPane = !!(element.closest && element.closest('.hover-pane'));
@@ -1115,24 +1173,14 @@
             pane.style.top = `${rect.top}px`;
         }
 
-        const rootChildren = pane.querySelector('.hover-root');
-        markLastVisible(rootChildren);
-
-        applyPhaseThemeToPane(pane, phaseKey);
-        void pane.offsetHeight;
-
-        expandFromMemoryInContainer(pane, phaseKey);
-
         // Attiva il pane e triggera subito l'auto-grow
         setTimeout(() => {
             pane.classList.add('active');
-            // Triggera auto-grow dopo che il pane è visibile
             if (window.SidebarAutoGrow) {
                 window.SidebarAutoGrow.schedule();
-                // Secondo trigger per sicurezza dopo le animazioni
-                setTimeout(() => window.SidebarAutoGrow.schedule(), 100);
+                setTimeout(() => window.SidebarAutoGrow.schedule(), TIMINGS.autoGrowShort);
             }
-        }, 40);
+        }, TIMINGS.paneActivation);
 
         window.dispatchEvent(new Event('tm:hover:show'));
 
@@ -1162,7 +1210,7 @@
                     n.classList.remove('has-active-path');
                 });
 
-                void pane.offsetHeight;
+                forceReflow(pane);
 
                 // Ora applica
                 highlightPathInContainer(pane, currentSlash);
@@ -1301,12 +1349,7 @@
             hoverPane.querySelectorAll('.folder-leaf, .leaf').forEach(el => {
                 el.classList.remove('search-hit');
             });
-
-            // NEW — nessun active/percorso in hover durante la ricerca
-            hoverPane.querySelectorAll('.folder-leaf, .leaf, .section-title')
-                .forEach(el => el.classList.remove('active', 'in-active-path'));
-            hoverPane.querySelectorAll('.children, .children-nested')
-                .forEach(n => n.classList.remove('has-active-path'));
+            clearHighlightInContainer(hoverPane);
 
             // Marca hit nel hover-pane
             const currentPhase = hoverPane.dataset.phase;
@@ -1343,7 +1386,7 @@
 
             const lastContext = window.__lastSearchContext;
             if (lastContext && lastContext.hasQuery) {
-                setTimeout(() => window.applySearchToHoverPane && window.applySearchToHoverPane(lastContext), 50);
+                setTimeout(() => window.applySearchToHoverPane && window.applySearchToHoverPane(lastContext), TIMINGS.searchApply);
             }
         });
 
@@ -1610,22 +1653,17 @@
             highlightActivePath(phaseKey);
 
             if (navItem && !isCollapsed) {
-                // Assicurati che la catena sia montata (se l’evento non viene dalla sidebar)
                 if (!fromSidebar) {
-                    let acc = [];
-                    for (const p of parts) {
-                        acc.push(p);
-                        ensureExpandedInContainer(navItem, acc.join('/'));
-                    }
+                    expandAndHighlightPath(navItem, slash, phaseKey);
+                } else {
+                    // Solo highlight, no expand (già fatto dal click)
+                    navItem.querySelectorAll('.folder-leaf.active, .leaf.active, .section-title.active')
+                        .forEach(n => n.classList.remove('active'));
+                    const activeEl = navItem.querySelector(
+                        `.folder-leaf[data-path="${slash}"], .leaf[data-path="${slash}"]`
+                    );
+                    if (activeEl) activeEl.classList.add('active');
                 }
-                // Rimuovi vecchi 'active' e imposta quello giusto
-                navItem.querySelectorAll('.folder-leaf.active, .leaf.active, .section-title.active')
-                    .forEach(n => n.classList.remove('active'));
-                const activeEl = navItem.querySelector(
-                    `.folder-leaf[data-path="${slash}"], .leaf[data-path="${slash}"]`
-                );
-                if (activeEl) activeEl.classList.add('active');
-                // Ritocca linee verticali e auto-grow
                 if (typeof refreshAllVLinesDebounced === 'function') refreshAllVLinesDebounced(navItem);
                 window.SidebarAutoGrow?.schedule();
             }
@@ -1671,7 +1709,7 @@
                         hoverPane.querySelectorAll('.children, .children-nested')
                             .forEach(n => n.classList.remove('has-active-path'));
 
-                        void hoverPane.offsetHeight;
+                        forceReflow(hoverPane);
 
                         if (typeof highlightPathInContainer === 'function') {
                             highlightPathInContainer(hoverPane, currentPath);
@@ -1968,7 +2006,7 @@ function initVLineClamp() {
         const start = performance.now();
         const tick = (t) => {
             refreshAllVLines();
-            if (t - start < 500) {
+            if (t - start < TIMINGS.animationTracking) {
                 animTicker = requestAnimationFrame(tick);
             } else {
                 cancelAnimationFrame(animTicker);
@@ -2188,8 +2226,8 @@ if (document.readyState === 'loading') {
                     setTimeout(schedule, 0);    // se c'è hover, calcola subito l'auto-grow
                 }
             } else {
-                setTimeout(schedule, 0);
-                setTimeout(schedule, 220);
+                setTimeout(schedule, TIMINGS.autoGrowInitial);
+                setTimeout(schedule, TIMINGS.autoGrowMedium);
             }
         };
 
@@ -2231,9 +2269,9 @@ if (document.readyState === 'loading') {
         // Listener per evento custom di show hover
         window.addEventListener('tm:hover:show', () => {
             observeHoverPane();
-            setTimeout(schedule, 0);
-            setTimeout(schedule, 50);
-            setTimeout(schedule, 150);
+            setTimeout(schedule, TIMINGS.autoGrowInitial);
+            setTimeout(schedule, TIMINGS.searchApply);
+            setTimeout(schedule, TIMINGS.hoverSetup);
         });
 
         const moSidebar = new MutationObserver(muts => {
@@ -2257,9 +2295,9 @@ if (document.readyState === 'loading') {
 
         window.addEventListener("resize", schedule);
 
-        setTimeout(schedule, 0);
-        setTimeout(schedule, 300);
-        setTimeout(schedule, 600);
+        setTimeout(schedule, TIMINGS.autoGrowInitial);
+        setTimeout(schedule, TIMINGS.autoGrowLong);
+        setTimeout(schedule, TIMINGS.autoGrowVeryLong);
 
         window.SidebarAutoGrow = {schedule, apply, computeNeeded, reset};
     });

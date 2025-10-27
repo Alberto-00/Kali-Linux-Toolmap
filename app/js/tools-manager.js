@@ -25,381 +25,558 @@
 (() => {
     'use strict';
 
-    const SEL = {
+    // ============================================================================
+    // CONSTANTS & CONFIGURATION
+    // ============================================================================
+
+    const SELECTORS = {
         grid: 'toolsGrid',
         resetBtn: 'resetBtn',
         searchInput: 'searchInput'
     };
 
-    // Chiavi di "memoria" per la sessione del TAB
-    const MEM = {
+    const STORAGE_KEYS = {
         search: 'tm:search:q',
-        pathKey: 'tm:active:path',     // coerente con sidebar.js
-        pathSlash: 'tm:active:slash',    // coerente con sidebar.js
-        stars: 'tm:stars',           // mappa { [id]: true|false }
-        sessYAML: 'tm:session:registry-yaml' // YAML completo corrente per reload
+        pathKey: 'tm:active:path',
+        pathSlash: 'tm:active:slash',
+        stars: 'tm:stars',
+        sessYAML: 'tm:session:registry-yaml'
     };
 
-    // Wrapper sessionStorage (evita errori in ambienti restrittivi)
-    function mget(k) {
-        try {
-            return sessionStorage.getItem(k);
-        } catch (_) {
-            return null;
-        }
-    }
+    const PHASE_COLORS = {
+        '00_Common': 'hsl(270 91% 65%)',
+        '01_Information_Gathering': 'hsl(210 100% 62%)',
+        '02_Exploitation': 'hsl(4 85% 62%)',
+        '03_Post_Exploitation': 'hsl(32 98% 55%)',
+        '04_Miscellaneous': 'hsl(158 64% 52%)'
+    };
 
-    function mset(k, v) {
-        try {
-            sessionStorage.setItem(k, v);
-        } catch (_) {
-        }
-    }
+    const SEARCH_WEIGHTS = {
+        name: 6,
+        caps: 4,
+        tags: 3,
+        desc: 2,
+        desc_long: 2,
+        phase: 5,
+        node: 5
+    };
 
-    function mremove(k) {
-        try {
-            sessionStorage.removeItem(k);
-        } catch (_) {
-        }
-    }
+    const YAML_DUMP_OPTIONS = {
+        lineWidth: -1,
+        noRefs: true,
+        sortKeys: false,
+        flowLevel: 2,
+        quotingType: '"',
+        forceQuotes: true
+    };
 
-    function loadStars() {
-        try {
-            return JSON.parse(mget(MEM.stars) || '{}') || {};
-        } catch (_) {
-            return {};
-        }
-    }
-
-    function saveStars(map) {
-        try {
-            mset(MEM.stars, JSON.stringify(map || {}));
-        } catch (_) {
-        }
-    }
+    // ============================================================================
+    // STATE MANAGEMENT
+    // ============================================================================
 
     const state = {
-        scopeAll: false,      // true = mostra tutti i tool
-        scopeIds: null,       // array di id (nodo + discendenti)
-        pathKey: null,        // "Root>Fase>…>Nodo"
-        search: '',           // query testuale
-        isResetting: false    // flag per gestire il reset
+        scopeAll: false,
+        scopeIds: null,
+        pathKey: null,
+        search: '',
+        isResetting: false
     };
 
     let grid, resetBtn, notesModal, detailsModal, rendererAdapter;
     let hasVisitedAnyPhase = false;
+    let eventsWired = false;
 
-    function readBestInFlag(t) {
-        if (!t || typeof t !== 'object') return false;
-        const any = /** @type {any} */ (t);
-        return !!(any['best_in'] ?? any['bestIn'] ?? any['best-in'] ?? any['best']);
-    }
+    // ============================================================================
+    // STORAGE UTILITIES
+    // ============================================================================
 
-    function _toolName(t) {
-        return (t?.title || t?.name || t?.id || '').toString();
-    }
+    const Storage = {
+        get(key) {
+            try {
+                return sessionStorage.getItem(key);
+            } catch {
+                return null;
+            }
+        },
 
-    function _compareByName(a, b) {
-        return _toolName(a).localeCompare(_toolName(b), undefined, {sensitivity: 'base'});
-    }
+        set(key, value) {
+            try {
+                sessionStorage.setItem(key, value);
+            } catch {}
+        },
 
-    function _primaryPhase(t) {
-        if (t?.phase) return t.phase;
-        if (Array.isArray(t?.phases) && t.phases.length) return t.phases[0];
-        if (Array.isArray(t?.category_path) && t.category_path.length) return t.category_path[0];
-        return '';
-    }
+        remove(key) {
+            try {
+                sessionStorage.removeItem(key);
+            } catch {}
+        },
 
-    function _phaseGroupKey(t) {
-        const p = _primaryPhase(t) || '';
-        const m = /^(\d{2,})\D/.exec(p);
-        return m ? {num: parseInt(m[1], 10), str: ''} : {num: 9998, str: p.toLowerCase()};
-    }
+        getJSON(key, defaultValue = {}) {
+            try {
+                return JSON.parse(this.get(key) || 'null') || defaultValue;
+            } catch {
+                return defaultValue;
+            }
+        },
 
-    /** @param {Partial<ToolItem>=} t */
-    function getCatPath(t) {
-        if (!t) return [];
-        return Array.isArray(t.category_path) ? t.category_path
-            : Array.isArray(t.categoryPath) ? t.categoryPath
-                : [];
-    }
-
-    // ---------------------------- Bootstrap DOM ----------------------------
-    function ready(fn) {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', fn, {once: true});
-        } else {
-            (window.queueMicrotask ? queueMicrotask : setTimeout)(fn, 0);
+        setJSON(key, value) {
+            try {
+                this.set(key, JSON.stringify(value || {}));
+            } catch {}
         }
-    }
+    };
 
-    ready(() => {
-        grid = document.getElementById(SEL.grid);
-        resetBtn = document.getElementById(SEL.resetBtn);
+    // ============================================================================
+    // STARS MANAGEMENT
+    // ============================================================================
 
-        // Modali
+    const Stars = {
+        load() {
+            return Storage.getJSON(STORAGE_KEYS.stars, {});
+        },
+
+        save(map) {
+            Storage.setJSON(STORAGE_KEYS.stars, map);
+        },
+
+        toggle(toolId, value) {
+            const map = this.load();
+            map[toolId] = value;
+            this.save(map);
+            return map;
+        }
+    };
+
+    // ============================================================================
+    // TOOL UTILITIES
+    // ============================================================================
+
+    const ToolUtils = {
+        getName(tool) {
+            return (tool?.title || tool?.name || tool?.id || '').toString();
+        },
+
+        getCategoryPath(tool) {
+            if (!tool) return [];
+            return Array.isArray(tool.category_path) ? tool.category_path
+                : Array.isArray(tool.categoryPath) ? tool.categoryPath
+                : [];
+        },
+
+        getPrimaryPhase(tool) {
+            if (tool?.phase) return tool.phase;
+            if (Array.isArray(tool?.phases) && tool.phases.length) return tool.phases[0];
+            if (Array.isArray(tool?.category_path) && tool.category_path.length) return tool.category_path[0];
+            return '';
+        },
+
+        getPhaseGroupKey(tool) {
+            const phase = this.getPrimaryPhase(tool) || '';
+            const match = /^(\d{2,})\D/.exec(phase);
+            return match
+                ? { num: parseInt(match[1], 10), str: '' }
+                : { num: 9998, str: phase.toLowerCase() };
+        },
+
+        readBestInFlag(tool) {
+            if (!tool || typeof tool !== 'object') return false;
+            return !!(tool['best_in'] ?? tool['bestIn'] ?? tool['best-in'] ?? tool['best']);
+        },
+
+        compareByName(a, b) {
+            return ToolUtils.getName(a).localeCompare(
+                ToolUtils.getName(b),
+                undefined,
+                { sensitivity: 'base' }
+            );
+        },
+
+        getPhaseColor(phase) {
+            return PHASE_COLORS[phase] || 'hsl(var(--accent))';
+        }
+    };
+
+    // ============================================================================
+    // SEARCH UTILITIES
+    // ============================================================================
+
+    const SearchUtils = {
+        normalize(str) {
+            return String(str || '')
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/\p{Diacritic}/gu, '')
+                .trim();
+        },
+
+        stripSeparators(str) {
+            return String(str || '').replace(/[\s_\-\/\\>.:]+/g, '');
+        },
+
+        normalizeLabel(str) {
+            return this.normalize(
+                String(str || '')
+                    .replace(/^\d+[_-]*/, '')
+                    .replace(/_/g, ' ')
+            );
+        },
+
+        tokenize(query) {
+            query = String(query || '').trim();
+            if (!query) return [];
+
+            const tokens = [];
+            const regex = /"([^"]+)"|'([^']+)'|([A-Za-z0-9_.\-\/\\> ]+)/g;
+            let match;
+
+            while ((match = regex.exec(query)) !== null) {
+                const chunk = match[1] || match[2] || match[3] || '';
+                const parts = chunk.split(/[^A-Za-z0-9]+/).filter(Boolean);
+
+                for (const part of parts) {
+                    const normalized = this.normalize(part);
+                    if (normalized) tokens.push(normalized);
+                }
+            }
+
+            return tokens;
+        }
+    };
+
+    // ============================================================================
+    // DOM UTILITIES
+    // ============================================================================
+
+    const DOMUtils = {
+        escapeHtml(str) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            };
+            return String(str || '').replace(/[&<>"']/g, m => map[m]);
+        },
+
+        escapeAttr(str) {
+            return DOMUtils.escapeHtml(str).replace(/"/g, '&quot;');
+        },
+
+        formatLabel(str) {
+            return String(str || '')
+                .replace(/^\d+[_-]*/, '')
+                .replace(/_/g, ' ')
+                .trim();
+        },
+
+        ready(callback) {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', callback, { once: true });
+            } else {
+                (window.queueMicrotask || setTimeout)(callback, 0);
+            }
+        }
+    };
+
+    // ============================================================================
+    // INITIALIZATION
+    // ============================================================================
+
+    DOMUtils.ready(() => {
+        initializeDOM();
+        restoreState();
+        wireEvents();
+        render();
+    });
+
+    function initializeDOM() {
+        grid = document.getElementById(SELECTORS.grid);
+        resetBtn = document.getElementById(SELECTORS.resetBtn);
+
         if (window.NotesModal) {
             notesModal = new window.NotesModal(saveNoteAndExport);
         }
         detailsModal = new ToolDetailsModal();
+    }
 
-        // Ripristina search salvata (sessione)
-        const savedQ = mget(MEM.search) || '';
-        state.search = savedQ;
-        const input = document.getElementById(SEL.searchInput);
-        if (input && savedQ) input.value = savedQ;
+    function restoreState() {
+        const savedSearch = Storage.get(STORAGE_KEYS.search) || '';
+        state.search = savedSearch;
 
-        if (savedQ) {
-            window.dispatchEvent(new CustomEvent('tm:search:set', {detail: {q: savedQ, hasQuery: true}}));
+        const searchInput = document.getElementById(SELECTORS.searchInput);
+        if (searchInput && savedSearch) {
+            searchInput.value = savedSearch;
         }
 
-        // Ripristina path salvato (sessione) solo se non c'è ricerca attiva
-        const savedPathKey = mget(MEM.pathKey);
-        if (savedPathKey && !savedQ) {
+        if (savedSearch) {
+            window.dispatchEvent(new CustomEvent('tm:search:set', {
+                detail: { q: savedSearch, hasQuery: true }
+            }));
+        }
+
+        const savedPathKey = Storage.get(STORAGE_KEYS.pathKey);
+        if (savedPathKey && !savedSearch) {
             state.pathKey = savedPathKey;
             state.scopeAll = false;
-            // Risolvi gli IDs dal pathKey
+
             const tm = window.Toolmap || {};
-            if (tm.allToolsUnder && tm.allToolsUnder[savedPathKey]) {
+            if (tm.allToolsUnder?.[savedPathKey]) {
                 state.scopeIds = Array.from(tm.allToolsUnder[savedPathKey]);
             }
         }
-
-        // Wiring eventi app
-        if (__wired) return;
-        wireEvents();
-
-        // Primo render
-        render();
-    });
-
-    // ----------------------------- Event wiring ----------------------------
-    let __wired = false;
-
-    function wireEvents() {
-        if (__wired) return;
-        __wired = true;
-
-        // Filtro di scope da sidebar/breadcrumb mini
-        window.addEventListener('tm:scope:set', (ev) => {
-            // Se stiamo resettando, ignora eventi di scope che non sono "all"
-            if (state.isResetting && !ev.detail?.all) return;
-
-            const {all, ids, pathKey} = ev.detail || {};
-            state.scopeAll = !!all || (!ids && !pathKey);
-            state.scopeIds = ids || null;
-            state.pathKey = pathKey || null;
-
-            // Mark session as 'visited' if a phase path is selected
-            if (state.pathKey && typeof state.pathKey === 'string') {
-                const parts = state.pathKey.split('>').filter(Boolean);
-                const first = (parts[0] && parts[0].toLowerCase() === 'root') ? parts[1] : parts[0];
-                if (first) hasVisitedAnyPhase = true;
-            }
-            render();
-        });
-
-        // Toggle stella (proveniente dal renderer)
-        window.addEventListener('tm:tool:toggleStar', (ev) => {
-            const id = ev.detail?.id;
-            const val = !!ev.detail?.value;
-            if (!id) return;
-
-            const tm = window.Toolmap || {};
-            const map = loadStars();
-            map[id] = val;
-            saveStars(map);
-
-            // Aggiorna stato runtime
-            if (tm.toolsById?.[id]) tm.toolsById[id]._starred = val;
-
-            // Aggiorna anche il record in registry per coerenza (best_in)
-            const rec = (tm.registry || []).find(x => x && x.id === id);
-            if (rec) rec.best_in = !!val;
-
-            // Aggiorna la copia YAML salvata in sessione (senza scaricare)
-            const newYAML = serializeFullRegistryYAML();
-            if (newYAML) mset(MEM.sessYAML, newYAML);
-
-            // Rerender per riordinare
-            render();
-        });
-
-        // Ricerca testuale (gestita da search-manager.js)
-        window.addEventListener('tm:search:set', (ev) => {
-            const newSearch = (ev.detail?.q || '').trim();
-            const hadSearch = !!state.search;
-            const hasSearch = !!newSearch;
-
-            state.search = newSearch;
-
-            if (hasSearch) {
-                mset(MEM.search, state.search);
-            } else {
-                mremove(MEM.search);
-            }
-
-            const ctx = buildSearchContext();
-            window.__lastSearchContext = ctx;
-            window.dispatchEvent(new CustomEvent('tm:search:context', {detail: ctx}));
-
-            // Se passi da "ricerca attiva" a "nessuna ricerca" E non sei in reset,
-            // ripristina l'ultimo scope/path salvato (sessione)
-            if (hadSearch && !hasSearch && !state.isResetting) {
-                const savedPathKey = mget(MEM.pathKey);
-                const savedPathSlash = mget(MEM.pathSlash);
-
-                if (savedPathSlash) {
-                    const tm = window.Toolmap || {};
-                    const pathKey = savedPathKey || `Root>${savedPathSlash.replace(/\//g, '>')}`;
-                    const ids = tm.allToolsUnder?.[pathKey] ? Array.from(tm.allToolsUnder[pathKey]) : [];
-
-                    state.pathKey = pathKey;
-                    state.scopeAll = false;
-                    state.scopeIds = ids;
-
-                    // Notifica il ripristino dello scope
-                    window.dispatchEvent(new CustomEvent('tm:scope:set', {
-                        detail: {pathKey, ids, source: 'search-cleared'}
-                    }));
-                }
-            }
-
-            render();
-        });
-
-        // Colore di fase
-        window.addEventListener('tm:phase:color', (ev) => {
-            const content = document.querySelector('.content');
-            const color = ev.detail?.color || null;
-            if (content) {
-                if (color) content.style.setProperty('--hover-color', `color-mix(in srgb, ${color} 100%, transparent)`);
-                else content.style.removeProperty('--hover-color');
-            }
-            window.dispatchEvent(new CustomEvent('tm:phase:color:apply', {detail: {color}}));
-        });
-
-        // Mostra TUTTI i tool ma senza toccare path/sidebars
-        window.addEventListener('tm:tools:showAll', () => {
-            state.scopeAll = true;
-            render();
-        });
-
-        // Reset globale
-        resetBtn?.addEventListener('click', () => {
-            // Imposta flag di reset
-            state.isResetting = true;
-
-            // 1) Pulisci TUTTO dalla sessione (inclusi i path della sidebar)
-            mremove(MEM.search);
-            mremove(MEM.pathKey);
-            mremove(MEM.pathSlash);
-            // NB: NON rimuoviamo MEM.sessYAML: è la fonte per il reload
-
-            // 2) Reset UI della search
-            const input = document.getElementById(SEL.searchInput);
-            if (input) input.value = '';
-
-            // 3) Reset contesto di ricerca
-            const emptyCtx = {hasQuery: false, phaseKeys: [], paths: [], countsByPhase: {}};
-            window.__lastSearchContext = emptyCtx;
-            window.dispatchEvent(new CustomEvent('tm:search:context', {detail: emptyCtx}));
-
-            // 4) Reset stato locale
-            state.scopeAll = true;
-            state.scopeIds = null;
-            state.pathKey = null;
-            state.search = '';
-            hasVisitedAnyPhase = false;
-
-            // 5) Notifica reset globale (sidebar, hover, etc.)
-            window.dispatchEvent(new Event('tm:reset'));
-
-            // 6) Imposta scope su "all tools"
-            window.dispatchEvent(new CustomEvent('tm:scope:set', {detail: {all: true}}));
-
-            // 7) Rimuovi colore di fase
-            window.dispatchEvent(new CustomEvent('tm:phase:color', {detail: {color: null}}));
-
-            // 8) Render finale
-            render();
-
-            // 9) Rimuovi flag di reset dopo un tick per evitare race conditions
-            setTimeout(() => {
-                state.isResetting = false;
-            }, 100);
-        });
-
-        // Listener per reset events da altre parti
-        window.addEventListener('tm:reset', () => {
-            if (state.isResetting) return; // Evita loop se siamo già in reset
-
-            const content = document.querySelector('.content');
-            content?.style.removeProperty('--hover-color');
-
-            state.scopeAll = true;
-            state.scopeIds = null;
-            state.pathKey = null;
-            hasVisitedAnyPhase = false;
-        });
-
-        // Quando il registry è pronto
-        window.addEventListener('tm:registry:ready', () => {
-            // Se c'era un path salvato e il registry ora è pronto, ripristinalo
-            const savedPathKey = mget(MEM.pathKey);
-            if (savedPathKey && !state.search && !state.isResetting) {
-                const tm = window.Toolmap || {};
-                if (tm.allToolsUnder && tm.allToolsUnder[savedPathKey]) {
-                    state.pathKey = savedPathKey;
-                    state.scopeAll = false;
-                    state.scopeIds = Array.from(tm.allToolsUnder[savedPathKey]);
-                    render();
-                }
-            }
-        });
-
-        // Download registry completo (breadcrumb)
-        window.addEventListener('tm:registry:download', () => {
-            exportFullRegistryYAML();
-        });
-
-        // Eventi per modali
-        window.addEventListener('tm:card:openNotes', (e) => {
-            const tool = e.detail?.tool;
-            if (tool && notesModal) notesModal.show(tool);
-        });
-
-        window.addEventListener('tm:card:openDetails', (e) => {
-            const tool = e.detail?.tool;
-            if (tool && detailsModal) detailsModal.show(tool);
-        });
     }
 
-    // ------------------------------ Rendering ------------------------------
+    // ============================================================================
+    // EVENT WIRING
+    // ============================================================================
+
+    function wireEvents() {
+        if (eventsWired) return;
+        eventsWired = true;
+
+        window.addEventListener('tm:scope:set', handleScopeSet);
+        window.addEventListener('tm:tool:toggleStar', handleToggleStar);
+        window.addEventListener('tm:search:phases:changed', handleSearchPhasesChanged);
+        window.addEventListener('tm:search:set', handleSearchSet);
+        window.addEventListener('tm:phase:color', handlePhaseColor);
+        window.addEventListener('tm:tools:showAll', handleShowAll);
+        window.addEventListener('tm:reset', handleReset);
+        window.addEventListener('tm:registry:ready', handleRegistryReady);
+        window.addEventListener('tm:registry:download', exportFullRegistryYAML);
+        window.addEventListener('tm:card:openNotes', handleCardOpenNotes);
+        window.addEventListener('tm:card:openDetails', handleCardOpenDetails);
+
+        resetBtn?.addEventListener('click', handleResetClick);
+    }
+
+    function handleScopeSet(event) {
+        if (state.isResetting && !event.detail?.all) return;
+
+        const { all, ids, pathKey } = event.detail || {};
+        state.scopeAll = !!all || (!ids && !pathKey);
+        state.scopeIds = ids || null;
+        state.pathKey = pathKey || null;
+
+        if (state.pathKey && typeof state.pathKey === 'string') {
+            const parts = state.pathKey.split('>').filter(Boolean);
+            const first = (parts[0]?.toLowerCase() === 'root') ? parts[1] : parts[0];
+            if (first) hasVisitedAnyPhase = true;
+        }
+
+        render();
+    }
+
+    function handleToggleStar(event) {
+        const { id, value } = event.detail || {};
+        if (!id) return;
+
+        Stars.toggle(id, !!value);
+        const tm = window.Toolmap || {};
+
+        if (tm.toolsById?.[id]) {
+            tm.toolsById[id]._starred = !!value;
+        }
+
+        const record = tm.registry?.find(x => x?.id === id);
+        if (record) {
+            record.best_in = !!value;
+        }
+
+        const newYAML = serializeFullRegistryYAML();
+        if (newYAML) {
+            Storage.set(STORAGE_KEYS.sessYAML, newYAML);
+        }
+
+        render();
+    }
+
+    function handleSearchPhasesChanged() {
+        if (state.search) render();
+    }
+
+    function handleSearchSet(event) {
+        const newSearch = (event.detail?.q || '').trim();
+        const hadSearch = !!state.search;
+        const hasSearch = !!newSearch;
+
+        state.search = newSearch;
+
+        if (hasSearch) {
+            Storage.set(STORAGE_KEYS.search, state.search);
+        } else {
+            Storage.remove(STORAGE_KEYS.search);
+        }
+
+        const ctx = buildSearchContext();
+        window.__lastSearchContext = ctx;
+        window.dispatchEvent(new CustomEvent('tm:search:context', { detail: ctx }));
+
+        if (hadSearch && !hasSearch && !state.isResetting) {
+            restoreSavedScope();
+        }
+
+        render();
+    }
+
+    function restoreSavedScope() {
+        const savedPathKey = Storage.get(STORAGE_KEYS.pathKey);
+        const savedPathSlash = Storage.get(STORAGE_KEYS.pathSlash);
+
+        if (savedPathSlash) {
+            const tm = window.Toolmap || {};
+            const pathKey = savedPathKey || `Root>${savedPathSlash.replace(/\//g, '>')}`;
+            const ids = tm.allToolsUnder?.[pathKey] ? Array.from(tm.allToolsUnder[pathKey]) : [];
+
+            state.pathKey = pathKey;
+            state.scopeAll = false;
+            state.scopeIds = ids;
+
+            window.dispatchEvent(new CustomEvent('tm:scope:set', {
+                detail: { pathKey, ids, source: 'search-cleared' }
+            }));
+        }
+    }
+
+    function handlePhaseColor(event) {
+        const content = document.querySelector('.content');
+        const color = event.detail?.color || null;
+
+        if (content) {
+            if (color) {
+                content.style.setProperty('--hover-color', `color-mix(in srgb, ${color} 100%, transparent)`);
+            } else {
+                content.style.removeProperty('--hover-color');
+            }
+        }
+
+        window.dispatchEvent(new CustomEvent('tm:phase:color:apply', { detail: { color } }));
+    }
+
+    function handleShowAll() {
+        state.scopeAll = true;
+        render();
+    }
+
+    function handleResetClick() {
+        state.isResetting = true;
+
+        // Clear session storage
+        Storage.remove(STORAGE_KEYS.search);
+        Storage.remove(STORAGE_KEYS.pathKey);
+        Storage.remove(STORAGE_KEYS.pathSlash);
+
+        // Reset search input
+        const searchInput = document.getElementById(SELECTORS.searchInput);
+        if (searchInput) searchInput.value = '';
+
+        // Reset search context
+        const emptyContext = { hasQuery: false, phaseKeys: [], paths: [], countsByPhase: {} };
+        window.__lastSearchContext = emptyContext;
+        window.dispatchEvent(new CustomEvent('tm:search:context', { detail: emptyContext }));
+
+        // Reset state
+        state.scopeAll = true;
+        state.scopeIds = null;
+        state.pathKey = null;
+        state.search = '';
+        hasVisitedAnyPhase = false;
+
+        // Dispatch reset events
+        window.dispatchEvent(new Event('tm:reset'));
+        window.dispatchEvent(new CustomEvent('tm:scope:set', { detail: { all: true } }));
+        window.dispatchEvent(new CustomEvent('tm:phase:color', { detail: { color: null } }));
+
+        render();
+
+        setTimeout(() => {
+            state.isResetting = false;
+        }, 100);
+    }
+
+    function handleReset() {
+        if (state.isResetting) return;
+
+        const content = document.querySelector('.content');
+        content?.style.removeProperty('--hover-color');
+
+        state.scopeAll = true;
+        state.scopeIds = null;
+        state.pathKey = null;
+        hasVisitedAnyPhase = false;
+    }
+
+    function handleRegistryReady() {
+        const savedPathKey = Storage.get(STORAGE_KEYS.pathKey);
+        if (savedPathKey && !state.search && !state.isResetting) {
+            const tm = window.Toolmap || {};
+            if (tm.allToolsUnder?.[savedPathKey]) {
+                state.pathKey = savedPathKey;
+                state.scopeAll = false;
+                state.scopeIds = Array.from(tm.allToolsUnder[savedPathKey]);
+                render();
+            }
+        }
+    }
+
+    function handleCardOpenNotes(event) {
+        const tool = event.detail?.tool;
+        if (tool && notesModal) notesModal.show(tool);
+    }
+
+    function handleCardOpenDetails(event) {
+        const tool = event.detail?.tool;
+        if (tool && detailsModal) detailsModal.show(tool);
+    }
+
+    // ============================================================================
+    // RENDERING
+    // ============================================================================
+
     function getRenderer() {
         if (rendererAdapter) return rendererAdapter;
 
+        // Try new instance
         if (window.ToolsRenderer && typeof window.ToolsRenderer === 'function') {
             try {
-                const inst = new window.ToolsRenderer(SEL.grid, (tool) => detailsModal?.show(tool), (tool) => notesModal?.show(tool), {activePath: []});
-                window.toolsRenderer = inst;
-                rendererAdapter = {kind: 'instance-new', render: (tools) => inst.render(tools)};
+                const instance = new window.ToolsRenderer(
+                    SELECTORS.grid,
+                    (tool) => detailsModal?.show(tool),
+                    (tool) => notesModal?.show(tool),
+                    { activePath: [] }
+                );
+                window.toolsRenderer = instance;
+                rendererAdapter = {
+                    kind: 'instance-new',
+                    render: (tools) => instance.render(tools)
+                };
                 return rendererAdapter;
-            } catch (_) { /* fallback */
-            }
+            } catch {}
         }
 
-        if (window.toolsRenderer && typeof window.toolsRenderer.render === 'function') {
-            rendererAdapter = {kind: 'instance-existing', render: (tools) => window.toolsRenderer.render(tools)};
+        // Try existing instance
+        if (window.toolsRenderer?.render) {
+            rendererAdapter = {
+                kind: 'instance-existing',
+                render: (tools) => window.toolsRenderer.render(tools)
+            };
             return rendererAdapter;
         }
 
-        if (window.ToolsRenderer && typeof window.ToolsRenderer.render === 'function') {
-            rendererAdapter = {kind: 'static', render: (tools) => window.ToolsRenderer.render(tools, grid)};
+        // Try static method
+        if (window.ToolsRenderer?.render) {
+            rendererAdapter = {
+                kind: 'static',
+                render: (tools) => window.ToolsRenderer.render(tools, grid)
+            };
             return rendererAdapter;
         }
 
-        rendererAdapter = {kind: 'fallback', render: (tools) => fallbackRender(tools)};
+        // Fallback
+        rendererAdapter = {
+            kind: 'fallback',
+            render: (tools) => fallbackRender(tools)
+        };
         return rendererAdapter;
     }
 
@@ -408,214 +585,248 @@
         const toolsById = tm.toolsById || {};
         const allIds = Object.keys(toolsById);
 
-        const qRaw = (state.search || '');
-        const q = norm(qRaw);
-        const tokens = tokenize(q);
+        const query = SearchUtils.normalize(state.search);
+        const tokens = SearchUtils.tokenize(query);
 
-        // Base set: la ricerca è SEMPRE globale
-        let baseIds;
-        if (tokens.length) {
-            baseIds = allIds;
-        } else {
-            baseIds = state.scopeAll ? allIds : (state.scopeIds || []);
-        }
+        let baseIds = getBaseIds(allIds, toolsById, tokens);
 
         if (!tokens.length) {
             return baseIds.map(id => toolsById[id]).filter(Boolean);
         }
 
-        // Search with ranking
-        const W = {name: 6, caps: 4, tags: 3, desc: 2, desc_long: 2, phase: 5, node: 5};
+        return searchAndRank(baseIds, toolsById, tokens);
+    }
+
+    function getBaseIds(allIds, toolsById, tokens) {
+        if (!tokens.length) {
+            return state.scopeAll ? allIds : (state.scopeIds || []);
+        }
+
+        let baseIds = allIds;
+        const sidebar = document.getElementById('sidebar');
+
+        if (sidebar?.classList.contains('search-mode')) {
+            const openPhases = new Set();
+            document.querySelectorAll('.nav-item.open').forEach(item => {
+                openPhases.add(item.dataset.phase);
+            });
+
+            if (openPhases.size > 0) {
+                baseIds = baseIds.filter(id => {
+                    const tool = toolsById[id];
+                    if (!tool) return false;
+                    const toolPhase = tool.phase || (Array.isArray(tool.phases) ? tool.phases[0] : null);
+                    return toolPhase && openPhases.has(toolPhase);
+                });
+            }
+        }
+
+        return baseIds;
+    }
+
+    function searchAndRank(baseIds, toolsById, tokens) {
         const hits = [];
 
         for (const id of baseIds) {
-            const t = toolsById[id];
-            if (!t) continue;
+            const tool = toolsById[id];
+            if (!tool) continue;
 
-            const name = norm(t.title || t.name || t.id || '');
-            const nameNS = stripSep(name);
-            const desc = norm((t.desc || t.description || '') + ' ' + (t.desc_long || ''));
-            const descNS = stripSep(desc);
-            const caps = norm(Array.isArray(t.caps) ? t.caps.join(' ') : '');
-            const capsNS = stripSep(caps);
-            const tags = norm(Array.isArray(t.tags) ? t.tags.join(' ') : '');
-            const tagsNS = stripSep(tags);
-            const phaseRaw = t.phase || (Array.isArray(t.phases) ? t.phases[0] : '');
-            const phase = normLabel(phaseRaw);
-            const phaseNS = stripSep(phase);
-            const nodesArr = getCatPath(t);
-            const nodesHuman = nodesArr.map(normLabel);
-            const nodesJoined = nodesHuman.join(' ');
-            const nodesNS = stripSep(nodesJoined);
+            const searchFields = extractSearchFields(tool);
+            const { matched, score } = scoreToolAgainstTokens(searchFields, tokens);
 
-            let score = 0;
-            let matched = false;
-
-            for (const tok of tokens) {
-                const tokNS = stripSep(tok);
-                let bestTokField = 0;
-
-                if (name.includes(tok) || nameNS.includes(tokNS)) {
-                    matched = true;
-                    bestTokField = Math.max(bestTokField, W.name);
-                    if (name.startsWith(tok) || nameNS.startsWith(tokNS)) score += 1;
-                }
-                if (desc.includes(tok) || descNS.includes(tokNS)) {
-                    matched = true;
-                    bestTokField = Math.max(bestTokField, W.desc);
-                }
-                if (caps.includes(tok) || capsNS.includes(tokNS)) {
-                    matched = true;
-                    bestTokField = Math.max(bestTokField, W.caps);
-                }
-                if (tags.includes(tok) || tagsNS.includes(tokNS)) {
-                    matched = true;
-                    bestTokField = Math.max(bestTokField, W.tags);
-                }
-                if (phase && (phase.includes(tok) || tok === phase || phaseNS.includes(tokNS))) {
-                    matched = true;
-                    bestTokField = Math.max(bestTokField, W.phase);
-                }
-                if (nodesJoined.includes(tok) || nodesNS.includes(tokNS) || nodesHuman.some(n => n === tok)) {
-                    matched = true;
-                    bestTokField = Math.max(bestTokField, W.node);
-                    if (nodesHuman.some(n => n.startsWith(tok)) || nodesNS.startsWith(tokNS)) score += 1;
-                }
-
-                score += bestTokField;
+            if (matched) {
+                hits.push({ id, t: tool, score });
             }
-
-            if (matched) hits.push({id, t, score});
         }
 
-        hits.sort((a, b) => b.score - a.score || (a.t.title || a.t.name || '').localeCompare(b.t.title || b.t.name || ''));
+        hits.sort((a, b) =>
+            b.score - a.score ||
+            ToolUtils.getName(a.t).localeCompare(ToolUtils.getName(b.t))
+        );
+
         return hits.map(h => h.t);
     }
 
-    // Search helpers
-    function norm(s) {
-        return String(s || '')
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/\p{Diacritic}/gu, '')
-            .trim();
+    function extractSearchFields(tool) {
+        const norm = SearchUtils.normalize;
+        const strip = SearchUtils.stripSeparators;
+        const normLabel = SearchUtils.normalizeLabel;
+
+        const name = norm(tool.title || tool.name || tool.id || '');
+        const desc = norm((tool.desc || tool.description || '') + ' ' + (tool.desc_long || ''));
+        const caps = norm(Array.isArray(tool.caps) ? tool.caps.join(' ') : '');
+        const tags = norm(Array.isArray(tool.tags) ? tool.tags.join(' ') : '');
+        const phaseRaw = tool.phase || (Array.isArray(tool.phases) ? tool.phases[0] : '');
+        const phase = normLabel(phaseRaw);
+        const nodes = ToolUtils.getCategoryPath(tool).map(normLabel);
+        const nodesJoined = nodes.join(' ');
+
+        return {
+            name, nameNS: strip(name),
+            desc, descNS: strip(desc),
+            caps, capsNS: strip(caps),
+            tags, tagsNS: strip(tags),
+            phase, phaseNS: strip(phase),
+            nodes, nodesJoined, nodesNS: strip(nodesJoined)
+        };
     }
 
-    function stripSep(s) {
-        return String(s || '').replace(/[\s_\-\/\\>.:]+/g, '');
-    }
+    function scoreToolAgainstTokens(fields, tokens) {
+        let score = 0;
+        let matched = false;
 
-    function normLabel(s) {
-        return norm(String(s || '').replace(/^\d+[_-]*/, '').replace(/_/g, ' '));
-    }
+        for (const token of tokens) {
+            const tokenNS = SearchUtils.stripSeparators(token);
+            let bestFieldScore = 0;
 
-    function tokenize(q) {
-        q = String(q || '').trim();
-        if (!q) return [];
-        const out = [];
-        const re = /"([^"]+)"|'([^']+)'|([A-Za-z0-9_.\-\/\\> ]+)/g;
-        let m;
-        while ((m = re.exec(q)) !== null) {
-            const chunk = m[1] || m[2] || m[3] || '';
-            const parts = chunk.split(/[^A-Za-z0-9]+/).filter(Boolean);
-            for (const p of parts) {
-                const t = norm(p);
-                if (t) out.push(t);
+            // Name matching
+            if (fields.name.includes(token) || fields.nameNS.includes(tokenNS)) {
+                matched = true;
+                bestFieldScore = Math.max(bestFieldScore, SEARCH_WEIGHTS.name);
+                if (fields.name.startsWith(token) || fields.nameNS.startsWith(tokenNS)) {
+                    score += 1;
+                }
             }
+
+            // Description matching
+            if (fields.desc.includes(token) || fields.descNS.includes(tokenNS)) {
+                matched = true;
+                bestFieldScore = Math.max(bestFieldScore, SEARCH_WEIGHTS.desc);
+            }
+
+            // Capabilities matching
+            if (fields.caps.includes(token) || fields.capsNS.includes(tokenNS)) {
+                matched = true;
+                bestFieldScore = Math.max(bestFieldScore, SEARCH_WEIGHTS.caps);
+            }
+
+            // Tags matching
+            if (fields.tags.includes(token) || fields.tagsNS.includes(tokenNS)) {
+                matched = true;
+                bestFieldScore = Math.max(bestFieldScore, SEARCH_WEIGHTS.tags);
+            }
+
+            // Phase matching
+            if (fields.phase && (fields.phase.includes(token) || token === fields.phase || fields.phaseNS.includes(tokenNS))) {
+                matched = true;
+                bestFieldScore = Math.max(bestFieldScore, SEARCH_WEIGHTS.phase);
+            }
+
+            // Node matching
+            if (fields.nodesJoined.includes(token) || fields.nodesNS.includes(tokenNS) || fields.nodes.some(n => n === token)) {
+                matched = true;
+                bestFieldScore = Math.max(bestFieldScore, SEARCH_WEIGHTS.node);
+                if (fields.nodes.some(n => n.startsWith(token)) || fields.nodesNS.startsWith(tokenNS)) {
+                    score += 1;
+                }
+            }
+
+            score += bestFieldScore;
         }
-        return out;
+
+        return { matched, score };
     }
 
     function buildSearchContext() {
         const tm = window.Toolmap || {};
         const toolsById = tm.toolsById || {};
-        const searchIds = Object.keys(toolsById); // SEMPRE globale
+        const searchIds = Object.keys(toolsById);
 
-        const q = norm(state.search);
-        const tokens = tokenize(q);
-        if (!tokens.length) return {hasQuery: false};
+        const query = SearchUtils.normalize(state.search);
+        const tokens = SearchUtils.tokenize(query);
+
+        if (!tokens.length) {
+            return { hasQuery: false };
+        }
 
         const phaseSet = new Set();
         const paths = [];
         const countsByPhase = {};
 
         for (const id of searchIds) {
-            const t = toolsById[id];
-            if (!t) continue;
+            const tool = toolsById[id];
+            if (!tool) continue;
 
-            const name = norm(t.title || t.name || t.id || '');
-            const nameNS = stripSep(name);
-            const desc = norm((t.desc || t.description || '') + ' ' + (t.desc_long || ''));
-            const descNS = stripSep(desc);
-            const caps = norm(Array.isArray(t.caps) ? t.caps.join(' ') : '');
-            const capsNS = stripSep(caps);
-            const tags = norm(Array.isArray(t.tags) ? t.tags.join(' ') : '');
-            const tagsNS = stripSep(tags);
-            const phaseRaw = t.phase || (Array.isArray(t.phases) ? t.phases[0] : '');
-            const phase = normLabel(phaseRaw);
-            const phaseNS = stripSep(phase);
-            const nodesArr = getCatPath(t);
-            const nodesHuman = nodesArr.map(normLabel);
-            const nodesJoined = nodesHuman.join(' ');
-            const nodesNS = stripSep(nodesJoined);
+            const fields = extractSearchFields(tool);
+            const { matched } = scoreToolAgainstTokens(fields, tokens);
 
-            let ok = false;
-            for (const tok of tokens) {
-                const tokNS = stripSep(tok);
-                if (name.includes(tok) || nameNS.includes(tokNS) ||
-                    desc.includes(tok) || descNS.includes(tokNS) ||
-                    caps.includes(tok) || capsNS.includes(tokNS) ||
-                    tags.includes(tok) || tagsNS.includes(tokNS) ||
-                    (phase && (phase.includes(tok) || tok === phase || phaseNS.includes(tokNS))) ||
-                    nodesJoined.includes(tok) || nodesNS.includes(tokNS) || nodesHuman.some(n => n === tok)) {
-                    ok = true;
-                    break;
-                }
-            }
-            if (!ok) continue;
+            if (!matched) continue;
 
-            const phaseKey = nodesArr.length ? nodesArr[0] : (t.phase || null);
+            const catPath = ToolUtils.getCategoryPath(tool);
+            const phaseKey = catPath.length ? catPath[0] : (tool.phase || null);
+
             if (phaseKey) {
                 phaseSet.add(phaseKey);
                 countsByPhase[phaseKey] = (countsByPhase[phaseKey] || 0) + 1;
             }
-            if (nodesArr.length) paths.push(nodesArr);
+
+            if (catPath.length) {
+                paths.push(catPath);
+            }
         }
 
-        return {hasQuery: true, phaseKeys: Array.from(phaseSet), paths, countsByPhase};
+        return {
+            hasQuery: true,
+            phaseKeys: Array.from(phaseSet),
+            paths,
+            countsByPhase
+        };
     }
 
     function render() {
         if (!grid) return;
 
         const tools = computeVisibleTools();
+        applyStarredState(tools);
+        sortTools(tools);
+        notifyBreadcrumb(tools);
 
-        // Applica starred effettivo (session override > registry) e ordina
-        const starsMap = loadStars() || {};
-        for (const t of tools) {
-            const local = Object.prototype.hasOwnProperty.call(starsMap, t.id) ? !!starsMap[t.id] : undefined;
-            const reg = readBestInFlag(t);
-            t._starred = (local !== undefined) ? local : reg;
+        if (!tools.length) {
+            renderEmptyState();
+            return;
         }
 
-        // Ordinamento UNIVERSALE: Fase → Stellati → Nome
-        tools.sort((a, b) => {
-            // 1) FASE
-            const ka = _phaseGroupKey(a), kb = _phaseGroupKey(b);
-            if (ka.num !== kb.num) return ka.num - kb.num;
-            if (ka.str !== kb.str) {
-                const c = ka.str.localeCompare(kb.str, undefined, {sensitivity: 'base'});
-                if (c !== 0) return c;
-            }
-            // 2) STATO (stellati prima)
-            const sa = a._starred ? 0 : 1;
-            const sb = b._starred ? 0 : 1;
-            if (sa !== sb) return sa - sb;
-            // 3) NOME (alfabetico)
-            return _compareByName(a, b);
-        });
+        const renderer = getRenderer();
+        renderer.render(tools);
+        enhanceCardsWithPhase(tools);
+        window.refreshAllVLinesDebounced?.();
+    }
 
-        // Notify breadcrumb
+    function applyStarredState(tools) {
+        const starsMap = Stars.load();
+
+        for (const tool of tools) {
+            const localStar = Object.prototype.hasOwnProperty.call(starsMap, tool.id)
+                ? !!starsMap[tool.id]
+                : undefined;
+            const registryStar = ToolUtils.readBestInFlag(tool);
+            tool._starred = localStar !== undefined ? localStar : registryStar;
+        }
+    }
+
+    function sortTools(tools) {
+        tools.sort((a, b) => {
+            // Sort by phase
+            const keyA = ToolUtils.getPhaseGroupKey(a);
+            const keyB = ToolUtils.getPhaseGroupKey(b);
+
+            if (keyA.num !== keyB.num) return keyA.num - keyB.num;
+            if (keyA.str !== keyB.str) {
+                const cmp = keyA.str.localeCompare(keyB.str, undefined, { sensitivity: 'base' });
+                if (cmp !== 0) return cmp;
+            }
+
+            // Sort by starred status
+            const starA = a._starred ? 0 : 1;
+            const starB = b._starred ? 0 : 1;
+            if (starA !== starB) return starA - starB;
+
+            // Sort by name
+            return ToolUtils.compareByName(a, b);
+        });
+    }
+
+    function notifyBreadcrumb(tools) {
         try {
             const summary = {
                 toolsCount: tools.length,
@@ -623,73 +834,76 @@
                 pathKey: state.pathKey || null,
                 hasVisitedAnyPhase: !!hasVisitedAnyPhase
             };
-            window.dispatchEvent(new CustomEvent('tm:context:summary', {detail: summary}));
-        } catch (__) {
-        }
-
-        if (!tools.length) {
-            grid.innerHTML = `
-        <div class="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-          </svg>
-          <h3>No tools found</h3>
-          <p>${state.search ? 'No matches for your search.' : 'No tools available for this category.'} Try changing your selection or press <strong>Reset</strong>.</p>
-        </div>`;
-            return;
-        }
-
-        const r = getRenderer();
-        r.render(tools);
-
-        enhanceCardsWithPhase(tools);
-        window.refreshAllVLinesDebounced?.();
+            window.dispatchEvent(new CustomEvent('tm:context:summary', { detail: summary }));
+        } catch {}
     }
 
-    // ------------------------- YAML serialize & export -------------------------
+    function renderEmptyState() {
+        const message = state.search
+            ? 'No matches for your search.'
+            : 'No tools available for this category.';
+
+        grid.innerHTML = `
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                <h3>No tools found</h3>
+                <p>${message} Try changing your selection or press <strong>Reset</strong>.</p>
+            </div>
+        `;
+    }
+
+    // ============================================================================
+    // YAML SERIALIZATION
+    // ============================================================================
+
     function serializeFullRegistryYAML() {
         const tm = window.Toolmap || {};
-        const stars = loadStars();
+        const stars = Stars.load();
         const registry = tm.registry ? structuredClone(tm.registry) : null;
+
         if (!registry || !window.jsyaml) return '';
 
+        updateRegistryRecords(registry, stars, tm);
+        let yaml = window.jsyaml.dump(registry, YAML_DUMP_OPTIONS);
+        yaml = normalizeYAML(yaml);
+
+        return yaml;
+    }
+
+    function updateRegistryRecords(registry, stars, tm) {
         for (const item of registry) {
             const id = item?.id;
             if (!id) continue;
-            const t = tm.toolsById?.[id];
-            if (!t) continue;
 
-            // notes dal runtime
-            item.notes = (t.notes || '');
+            const tool = tm.toolsById?.[id];
+            if (tool) {
+                item.notes = tool.notes || '';
+            }
 
-            // best_in: session override > registry
-            const local = Object.prototype.hasOwnProperty.call(stars, id) ? !!stars[id] : undefined;
-            const reg = !!(item['best_in'] ?? item['bestIn'] ?? item['best-in'] ?? item['best']);
-            const on = (local !== undefined) ? local : reg;
+            const localStar = Object.prototype.hasOwnProperty.call(stars, id)
+                ? !!stars[id]
+                : undefined;
+            const registryStar = !!(item['best_in'] ?? item['bestIn'] ?? item['best-in'] ?? item['best']);
+            const starred = localStar !== undefined ? localStar : registryStar;
 
-            // pulizia alias
             delete item['bestIn'];
             delete item['best-in'];
             delete item['best'];
-            item['best_in'] = !!on;
+            item['best_in'] = !!starred;
         }
+    }
 
-        const DUMP_OPTS = {
-            lineWidth: -1, noRefs: true, sortKeys: false, flowLevel: 2,
-            quotingType: '"', forceQuotes: true
-        };
-
-        let yaml = window.jsyaml.dump(registry, DUMP_OPTS);
-
-        // --- Normalizzazioni & spaziatura leggibile ---
-
-        // 1) notes: ""  ->  notes:
+    function normalizeYAML(yaml) {
+        // Empty notes
         yaml = yaml.replace(/^(\s*)notes:\s*""\s*$/gm, '$1notes:');
 
-        // 2) Se le note contengono \n, usa block scalar | (mantiene leggibilità)
-        yaml = yaml.replace(/^(\s*)notes:\s*"([\s\S]*?)"$/gm, (m, indent, body) => {
-            if (!/\\n/.test(body)) return m;
+        // Block scalar for multiline notes
+        yaml = yaml.replace(/^(\s*)notes:\s*"([\s\S]*?)"$/gm, (match, indent, body) => {
+            if (!/\\n/.test(body)) return match;
+
             const text = body
                 .replace(/\\\\/g, '\\')
                 .replace(/\\"/g, '"')
@@ -699,8 +913,7 @@
             return `${indent}notes: |\n` + text.split('\n').map(l => pad + l).join('\n');
         });
 
-        // 3) Assicura SEMPRE una riga vuota tra record top-level:
-        //    sostituisce 1+ newline prima di una riga che inizia con "-" con esattamente due newline
+        // Ensure blank line between records
         yaml = yaml.replace(/(\r?\n)+(?=^- )/gm, '\n\n');
 
         return yaml;
@@ -709,113 +922,137 @@
     function exportFullRegistryYAML() {
         const yaml = serializeFullRegistryYAML();
         if (!yaml) return;
-        // aggiorna la sessione con la versione *nuova* (per reload dello stesso tab)
-        mset(MEM.sessYAML, yaml);
+
+        Storage.set(STORAGE_KEYS.sessYAML, yaml);
         downloadFile('registry.yml', yaml, 'text/yaml;charset=utf-8');
     }
 
-    // ------------------------------ Card enhancements ------------------------------
+    // ============================================================================
+    // CARD ENHANCEMENT
+    // ============================================================================
+
     function enhanceCardsWithPhase(tools) {
-        const byId = {};
-        for (const t of tools) byId[t.id] = t;
+        const toolsById = {};
+        for (const tool of tools) {
+            toolsById[tool.id] = tool;
+        }
 
         const cards = grid.querySelectorAll('[data-tool-id], .tool-card');
+
         cards.forEach(card => {
-            let id = card.getAttribute?.('data-tool-id');
-            if (!id) id = card.getAttribute?.('data-id');
+            const id = card.getAttribute?.('data-tool-id') || card.getAttribute?.('data-id');
+            const tool = id ? toolsById[id] : null;
+            if (!tool) return;
 
-            const t = id ? byId[id] : null;
-            if (!t) return;
-
-            const phase = t.phase || (Array.isArray(t.phases) ? t.phases[0] : null);
-            if (phase) card.setAttribute('data-phase', phase);
-            if (t.phaseColor) card.style.setProperty('--phase', t.phaseColor);
-
-            const btnNotes = card.querySelector?.('[data-role="notes"], [data-action="notes"], .btn-notes');
-            if (btnNotes && notesModal) {
-                if (!btnNotes.dataset._boundNotes) {
-                    btnNotes.dataset._boundNotes = '1';
-                    btnNotes.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        notesModal.show(t);
-                    });
-                }
-            }
-
-            if (!card.dataset._boundCard) {
-                card.dataset._boundCard = '1';
-                card.addEventListener('click', (e) => {
-                    if (e.target.closest?.('[data-action="notes"], .btn-notes')) return;
-                    detailsModal?.show(t);
-                });
-            }
+            setCardPhaseAttributes(card, tool);
+            attachNotesButton(card, tool);
+            attachCardClickHandler(card, tool);
         });
     }
 
-    // ------------------------------ Fallback renderer ------------------------------
-    function fallbackRender(tools) {
-        grid.innerHTML = `
-      <div class="tools-grid-inner">
-        ${tools.map(t => `
-          <article class="card tool-card" data-tool-id="${escapeHtml(t.id)}" data-phase="${escapeHtml(t.phase || '')}">
-            <header class="card-h">
-              <div class="card-icon" style="${t.icon ? `background-image:url('${escapeAttr(t.icon)}')` : ''}"></div>
-              <h3 class="card-title">${escapeHtml(t.title || t.name || t.id)}</h3>
-            </header>
-            <p class="card-desc">${escapeHtml(t.desc || t.description || 'No description')}</p>
-            <footer class="card-f">
-              ${t.phase ? `<span class="pill" title="Phase">${escapeHtml(formatLabel(t.phase))}</span>` : ''}
-              <button class="btn btn-notes" type="button" data-action="notes">Notes</button>
-            </footer>
-          </article>
-        `).join('')}
-      </div>
-    `;
+    function setCardPhaseAttributes(card, tool) {
+        const phase = tool.phase || (Array.isArray(tool.phases) ? tool.phases[0] : null);
+        if (phase) {
+            card.setAttribute('data-phase', phase);
+        }
+        if (tool.phaseColor) {
+            card.style.setProperty('--phase', tool.phaseColor);
+        }
+    }
 
-        tools.forEach(t => {
-            const el = grid.querySelector(`[data-tool-id="${CSS.escape(t.id)}"]`);
-            if (el && t.phaseColor) el.style.setProperty('--phase', t.phaseColor);
+    function attachNotesButton(card, tool) {
+        const notesButton = card.querySelector?.('[data-role="notes"], [data-action="notes"], .btn-notes');
+        if (!notesButton || !notesModal) return;
+
+        if (!notesButton.dataset._boundNotes) {
+            notesButton.dataset._boundNotes = '1';
+            notesButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                notesModal.show(tool);
+            });
+        }
+    }
+
+    function attachCardClickHandler(card, tool) {
+        if (card.dataset._boundCard) return;
+
+        card.dataset._boundCard = '1';
+        card.addEventListener('click', (e) => {
+            if (e.target.closest?.('[data-action="notes"], .btn-notes')) return;
+            detailsModal?.show(tool);
+        });
+    }
+
+    // ============================================================================
+    // FALLBACK RENDERER
+    // ============================================================================
+
+    function fallbackRender(tools) {
+        const html = DOMUtils.escapeHtml;
+        const attr = DOMUtils.escapeAttr;
+        const fmt = DOMUtils.formatLabel;
+
+        grid.innerHTML = `
+            <div class="tools-grid-inner">
+                ${tools.map(tool => `
+                    <article class="card tool-card" 
+                             data-tool-id="${html(tool.id)}" 
+                             data-phase="${html(tool.phase || '')}">
+                        <header class="card-h">
+                            <div class="card-icon" 
+                                 style="${tool.icon ? `background-image:url('${attr(tool.icon)}')` : ''}">
+                            </div>
+                            <h3 class="card-title">${html(tool.title || tool.name || tool.id)}</h3>
+                        </header>
+                        <p class="card-desc">${html(tool.desc || tool.description || 'No description')}</p>
+                        <footer class="card-f">
+                            ${tool.phase ? `<span class="pill" title="Phase">${html(fmt(tool.phase))}</span>` : ''}
+                            <button class="btn btn-notes" type="button" data-action="notes">Notes</button>
+                        </footer>
+                    </article>
+                `).join('')}
+            </div>
+        `;
+
+        tools.forEach(tool => {
+            const element = grid.querySelector(`[data-tool-id="${CSS.escape(tool.id)}"]`);
+            if (element && tool.phaseColor) {
+                element.style.setProperty('--phase', tool.phaseColor);
+            }
         });
 
         enhanceCardsWithPhase(tools);
     }
 
-    // ------------------------------ Notes & Export ------------------------------
+    // ============================================================================
+    // NOTES & FILE UTILITIES
+    // ============================================================================
+
     function saveNoteAndExport(toolId, note) {
         const tm = window.Toolmap || {};
         const tool = tm.toolsById?.[toolId];
-        if (tool) tool.notes = note ?? '';
-        exportFullRegistryYAML(); // scarica + aggiorna YAML in sessione
+        if (tool) {
+            tool.notes = note ?? '';
+        }
+        exportFullRegistryYAML();
     }
 
-    function downloadFile(name, content, mime) {
-        const blob = new Blob([content], {type: mime});
+    function downloadFile(filename, content, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
         URL.revokeObjectURL(url);
     }
 
-    // ------------------------------ Utilities ------------------------------
-    function escapeHtml(s) {
-        return String(s || '').replace(/[&<>"']/g, m => ({
-            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-        }[m]));
-    }
+    // ============================================================================
+    // TOOL DETAILS MODAL
+    // ============================================================================
 
-    function escapeAttr(s) {
-        return escapeHtml(s).replace(/"/g, '&quot;');
-    }
-
-    function formatLabel(s) {
-        return String(s || '').replace(/^\d+[_-]*/, '').replace(/_/g, ' ').trim();
-    }
-
-    // ------------------------------ Tool Details Modal ------------------------------
     class ToolDetailsModal {
         constructor() {
             this.modal = null;
@@ -825,179 +1062,262 @@
         show(tool) {
             if (!this.modal) return;
 
-            const title = this.modal.querySelector('.modal-title');
-            const content = this.modal.querySelector('.modal-body');
-
-            const phase = tool.phase || (Array.isArray(tool.phases) ? tool.phases[0] : null);
-            const phaseColor = tool.phaseColor || phaseColorFromPhase(phase);
-
-            const modalContent = this.modal.querySelector('.modal-content');
-            if (modalContent && phaseColor) modalContent.style.setProperty('--phase', phaseColor);
-
-            if (title) {
-                const name = tool.name || tool.title || 'Tool Details';
-                title.innerHTML = escapeHtml(name) + (tool.version ? ` <span style="background: hsl(var(--muted);" class="version-chip">v${escapeHtml(tool.version)}</span>` : '');
-            }
-
-            if (content) {
-                const description = tool.desc_long || tool.desc || tool.description || 'No description available';
-                const phasesHtml = (tool.phases && tool.phases.length ? tool.phases : (phase ? [phase] : []))
-                    .map(ph => `
-            <span class="phase-tag"
-              style="border: 1px solid;--phase:${phaseColorFromPhase(ph)};background:color-mix(in srgb, ${phaseColorFromPhase(ph)} 12%, hsl(var(--card)));color:${phaseColorFromPhase(ph)};padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;display:inline-block;margin:4px;">
-              ${escapeHtml(formatLabel(ph))}
-            </span>`).join('');
-
-                content.innerHTML = `
-          <div class="tool-details">
-            ${tool.icon ? `
-              <div class="tool-icon" style="background-image:url('${escapeAttr(tool.icon)}');background-size:contain;background-position:center;background-repeat:no-repeat;width:80px;height:80px;margin:0 auto 20px;"></div>
-            ` : ''}
-
-            <div class="detail-section">
-              <h3>Description</h3>
-              <div class="rt">
-              ${description}
-              </div>
-            </div>
-
-            ${(phasesHtml && phasesHtml.trim()) ? `
-            <div class="detail-section">
-              <h3>Phases</h3>
-              <div class="phase-tags">${phasesHtml}</div>
-            </div>` : ''}
-
-            ${Array.isArray(tool.caps) && tool.caps.length ? `
-              <div class="detail-section">
-                <h3>Capabilities</h3>
-                <div class="caps-tags">
-                  ${tool.caps.map(cap => `<span class="cap-tag" style="background:hsl(var(--muted));border:1px solid var(--border);padding:6px 12px;border-radius:8px;font-size:13px;color:var(--muted);display:inline-block;margin:4px;">${escapeHtml(cap)}</span>`).join('')}
-                </div>
-              </div>` : ''}
-
-            ${tool.kind ? `
-              <div class="detail-section">
-                <h3>Kind</h3>
-                <div class="kind-tag"
-                     style="display:inline-block;background:hsl(var(--muted));border:1px solid var(--border);
-                            padding:6px 12px;border-radius:8px;font-size:13px;color:var(--muted);">
-                  ${escapeHtml(tool.kind)}
-                </div>
-              </div>` : ''}
-
-            ${tool.repo ? `
-              <div class="detail-section">
-                <h3>Repository</h3>
-                <a href="${escapeAttr(tool.repo)}" target="_blank" rel="noopener noreferrer" class="repo-link" style="color:var(--accent-2);text-decoration:none;word-break:break-all;">
-                  ${escapeHtml(tool.repo)}
-                </a>
-              </div>` : ''}
-
-            ${getCatPath(tool).length ? `
-              <div class="detail-section">
-                <h3>Category Path</h3>
-                <div class="category-path-row">
-                    <button class="icon-btn copy-catpath" title="Copy category path" aria-label="Copy category path">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2z"></path>
-                    </svg>
-                      <span class="sr-only">Copy category path</span>
-                    </button>
-                    <p class="category-path" style="color:var(--muted);font-size:14px;">${getCatPath(tool).map(p => escapeHtml(formatLabel(p))).join(' / ')}</p>
-                </div>
-              </div>` : ''}
-          </div>
-        `;
-
-                const cp = this.modal.querySelector('.category-path');
-                if (cp) {
-                    try {
-                        const raw = getCatPath(tool);
-                        cp.dataset.raw = raw.join('/');
-                        const humanizeSeg = (seg) => String(seg || '')
-                            .replace(/^\d{2}_/, '')
-                            .replace(/_/g, ' ');
-                        const human = raw.map(humanizeSeg);
-                        cp.textContent = human.join(' / ');
-                    } catch (e) { /* noop */
-                    }
-                }
-
-                const btnCopyCP = this.modal.querySelector('.copy-catpath');
-                if (cp && btnCopyCP) {
-                    btnCopyCP.addEventListener('click', () => {
-                        const text = (cp.dataset && cp.dataset.raw) ? cp.dataset.raw : (cp.textContent || '').trim();
-                        if (!text) return;
-                        navigator.clipboard.writeText(text).then(() => {
-                            const svg = btnCopyCP.querySelector('svg');
-                            if (svg) {
-                                const orig = svg.outerHTML;
-                                svg.outerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
-                                setTimeout(() => {
-                                    const s = btnCopyCP.querySelector('svg');
-                                    if (s) s.outerHTML = orig;
-                                }, 1200);
-                            }
-                        });
-                    });
-                }
-            }
-            this.modal.style.display = 'flex';
-            this.modal.classList.remove('closing');
-            void this.modal.offsetWidth;
-            this.modal.classList.add('open');
-            document.body.style.overflow = 'hidden';
+            this._setTitle(tool);
+            this._setContent(tool);
+            this._applyPhaseColor(tool);
+            this._openModal();
         }
 
         hide() {
             if (!this.modal) return;
+
             this.modal.classList.remove('open');
             this.modal.classList.add('closing');
 
-            const onEnd = (e) => {
-                if (e && e.target && !e.target.classList.contains('modal-overlay')) return;
-                this.modal.removeEventListener('transitionend', onEnd);
+            const handleTransitionEnd = (e) => {
+                if (e?.target && !e.target.classList.contains('modal-overlay')) return;
+
+                this.modal.removeEventListener('transitionend', handleTransitionEnd);
                 this.modal.style.display = 'none';
                 this.modal.classList.remove('closing');
                 document.body.style.overflow = '';
             };
-            this.modal.addEventListener('transitionend', onEnd);
-            setTimeout(onEnd, 260);
+
+            this.modal.addEventListener('transitionend', handleTransitionEnd);
+            setTimeout(handleTransitionEnd, 260);
         }
 
         _createModal() {
-            const html = `
-        <div class="modal-overlay" id="detailsModal" style="display:none;">
-          <div class="modal-content" style="max-width:750px;">
-            <div class="modal-header">
-              <h2 class="modal-title"></h2>
-              <button class="modal-close" title="Close">&times;</button>
-            </div>
-            <div class="modal-body"></div>
-          </div>
-        </div>`;
-            document.body.insertAdjacentHTML('beforeend', html);
+            const modalHTML = `
+                <div class="modal-overlay" id="detailsModal" style="display:none;">
+                    <div class="modal-content" style="max-width:750px;">
+                        <div class="modal-header">
+                            <h2 class="modal-title"></h2>
+                            <button class="modal-close" title="Close">&times;</button>
+                        </div>
+                        <div class="modal-body"></div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
             this.modal = document.getElementById('detailsModal');
 
-            const closeBtn = this.modal.querySelector('.modal-close');
-            closeBtn?.addEventListener('click', () => this.hide());
+            this._attachEventListeners();
+        }
+
+        _attachEventListeners() {
+            const closeButton = this.modal.querySelector('.modal-close');
+            closeButton?.addEventListener('click', () => this.hide());
+
             this.modal.addEventListener('click', (e) => {
                 if (e.target === this.modal) this.hide();
             });
+
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && this.modal.style.display === 'flex') this.hide();
+                if (e.key === 'Escape' && this.modal.style.display === 'flex') {
+                    this.hide();
+                }
             });
         }
-    }
 
-    function phaseColorFromPhase(phase) {
-        const PHASE_COLORS = {
-            '00_Common': 'hsl(270 91% 65%)',
-            '01_Information_Gathering': 'hsl(210 100% 62%)',
-            '02_Exploitation': 'hsl(4 85% 62%)',
-            '03_Post_Exploitation': 'hsl(32 98% 55%)',
-            '04_Miscellaneous': 'hsl(158 64% 52%)'
-        };
-        return PHASE_COLORS[phase] || 'hsl(var(--accent))';
+        _setTitle(tool) {
+            const title = this.modal.querySelector('.modal-title');
+            if (!title) return;
+
+            const name = tool.name || tool.title || 'Tool Details';
+            const versionChip = tool.version
+                ? ` <span style="background: hsl(var(--muted));" class="version-chip">v${DOMUtils.escapeHtml(tool.version)}</span>`
+                : '';
+
+            title.innerHTML = DOMUtils.escapeHtml(name) + versionChip;
+        }
+
+        _setContent(tool) {
+            const content = this.modal.querySelector('.modal-body');
+            if (!content) return;
+
+            content.innerHTML = this._buildContentHTML(tool);
+            this._attachCopyPathHandler();
+        }
+
+        _buildContentHTML(tool) {
+            const html = DOMUtils.escapeHtml;
+            const attr = DOMUtils.escapeAttr;
+
+            const description = tool.desc_long || tool.desc || tool.description || 'No description available';
+            const phases = this._getPhasesHTML(tool);
+            const capabilities = this._getCapabilitiesHTML(tool);
+            const categoryPath = this._getCategoryPathHTML(tool);
+
+            return `
+                <div class="tool-details">
+                    ${tool.icon ? `
+                        <div class="tool-icon" style="background-image:url('${attr(tool.icon)}');
+                             background-size:contain;background-position:center;background-repeat:no-repeat;
+                             width:80px;height:80px;margin:0 auto 20px;"></div>
+                    ` : ''}
+
+                    <div class="detail-section">
+                        <h3>Description</h3>
+                        <div class="rt">${description}</div>
+                    </div>
+
+                    ${phases}
+                    ${capabilities}
+                    ${tool.kind ? this._getKindHTML(tool.kind) : ''}
+                    ${tool.repo ? this._getRepoHTML(tool.repo) : ''}
+                    ${categoryPath}
+                </div>
+            `;
+        }
+
+        _getPhasesHTML(tool) {
+            const phase = tool.phase || (Array.isArray(tool.phases) ? tool.phases[0] : null);
+            const phasesArray = tool.phases?.length ? tool.phases : (phase ? [phase] : []);
+
+            if (!phasesArray.length) return '';
+
+            const phaseTags = phasesArray.map(ph => {
+                const color = ToolUtils.getPhaseColor(ph);
+                return `
+                    <span class="phase-tag" style="border:1px solid;--phase:${color};
+                          background:color-mix(in srgb, ${color} 12%, hsl(var(--card)));
+                          color:${color};padding:6px 12px;border-radius:8px;
+                          font-size:13px;font-weight:600;display:inline-block;margin:4px;">
+                        ${DOMUtils.escapeHtml(DOMUtils.formatLabel(ph))}
+                    </span>
+                `;
+            }).join('');
+
+            return `
+                <div class="detail-section">
+                    <h3>Phases</h3>
+                    <div class="phase-tags">${phaseTags}</div>
+                </div>
+            `;
+        }
+
+        _getCapabilitiesHTML(tool) {
+            if (!Array.isArray(tool.caps) || !tool.caps.length) return '';
+
+            const capTags = tool.caps.map(cap => `
+                <span class="cap-tag" style="background:hsl(var(--muted));border:1px solid var(--border);
+                      padding:6px 12px;border-radius:8px;font-size:13px;color:var(--muted);
+                      display:inline-block;margin:4px;">
+                    ${DOMUtils.escapeHtml(cap)}
+                </span>
+            `).join('');
+
+            return `
+                <div class="detail-section">
+                    <h3>Capabilities</h3>
+                    <div class="caps-tags">${capTags}</div>
+                </div>
+            `;
+        }
+
+        _getKindHTML(kind) {
+            return `
+                <div class="detail-section">
+                    <h3>Kind</h3>
+                    <div class="kind-tag" style="display:inline-block;background:hsl(var(--muted));
+                         border:1px solid var(--border);padding:6px 12px;border-radius:8px;
+                         font-size:13px;color:var(--muted);">
+                        ${DOMUtils.escapeHtml(kind)}
+                    </div>
+                </div>
+            `;
+        }
+
+        _getRepoHTML(repo) {
+            return `
+                <div class="detail-section">
+                    <h3>Repository</h3>
+                    <a href="${DOMUtils.escapeAttr(repo)}" target="_blank" rel="noopener noreferrer" 
+                       class="repo-link" style="color:var(--accent-2);text-decoration:none;word-break:break-all;">
+                        ${DOMUtils.escapeHtml(repo)}
+                    </a>
+                </div>
+            `;
+        }
+
+        _getCategoryPathHTML(tool) {
+            const catPath = ToolUtils.getCategoryPath(tool);
+            if (!catPath.length) return '';
+
+            const pathSegments = catPath.map(p => DOMUtils.escapeHtml(DOMUtils.formatLabel(p))).join(' / ');
+
+            return `
+                <div class="detail-section">
+                    <h3>Category Path</h3>
+                    <div class="category-path-row">
+                        <button class="icon-btn copy-catpath" title="Copy category path" aria-label="Copy category path">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2z">
+                                </path>
+                            </svg>
+                            <span class="sr-only">Copy category path</span>
+                        </button>
+                        <p class="category-path" data-raw="${catPath.join('/')}" 
+                           style="color:var(--muted);font-size:14px;">
+                            ${pathSegments}
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        _attachCopyPathHandler() {
+            const copyButton = this.modal.querySelector('.copy-catpath');
+            const pathElement = this.modal.querySelector('.category-path');
+
+            if (!copyButton || !pathElement) return;
+
+            copyButton.addEventListener('click', () => {
+                const text = pathElement.dataset.raw || pathElement.textContent.trim();
+                if (!text) return;
+
+                navigator.clipboard.writeText(text).then(() => {
+                    this._showCopySuccess(copyButton);
+                });
+            });
+        }
+
+        _showCopySuccess(button) {
+            const svg = button.querySelector('svg');
+            if (!svg) return;
+
+            const originalSVG = svg.outerHTML;
+            svg.outerHTML = `
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+            `;
+
+            setTimeout(() => {
+                const currentSVG = button.querySelector('svg');
+                if (currentSVG) currentSVG.outerHTML = originalSVG;
+            }, 1200);
+        }
+
+        _applyPhaseColor(tool) {
+            const phase = tool.phase || (Array.isArray(tool.phases) ? tool.phases[0] : null);
+            const phaseColor = tool.phaseColor || ToolUtils.getPhaseColor(phase);
+
+            const modalContent = this.modal.querySelector('.modal-content');
+            if (modalContent && phaseColor) {
+                modalContent.style.setProperty('--phase', phaseColor);
+            }
+        }
+
+        _openModal() {
+            this.modal.style.display = 'flex';
+            this.modal.classList.remove('closing');
+            void this.modal.offsetWidth; // Force reflow
+            this.modal.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
     }
 })();
