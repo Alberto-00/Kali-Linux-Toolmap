@@ -1,5 +1,5 @@
 // ============================================================================
-// breadcrumb-manager.js - Refactored & Optimized
+// breadcrumb-manager.js
 // ============================================================================
 
 (() => {
@@ -28,6 +28,7 @@
     const state = {
         currentPathSlash: null,
         lastPathKey: null,
+        lastSearchQuery: '',
         lastContextSummary: {
             toolsCount: 0,
             scopeAll: false,
@@ -156,7 +157,7 @@
                     if (toast.classList.contains('hide')) {
                         toast.remove();
                     }
-                }, { once: true });
+                }, {once: true});
             }, ANIMATION_DURATION.toastVisible);
         },
 
@@ -193,14 +194,19 @@
 
     const BreadcrumbRenderer = {
         render(pathKey) {
-            breadcrumbElement.innerHTML = '';
-
             const currentSearch = Utils.getCurrentSearch();
 
             if (currentSearch) {
                 this.renderSearchBreadcrumb(currentSearch);
                 return;
             }
+
+            // Reset search query quando esci dalla ricerca
+            if (state.lastSearchQuery) {
+                state.lastSearchQuery = '';
+            }
+
+            breadcrumbElement.innerHTML = '';
 
             if (!pathKey || typeof pathKey !== 'string') {
                 this.renderDefaultBreadcrumb();
@@ -211,6 +217,29 @@
         },
 
         renderSearchBreadcrumb(searchQuery) {
+            const existingSearch = breadcrumbElement.querySelector('.search-breadcrumb');
+            const queryChanged = state.lastSearchQuery !== searchQuery;
+
+            if (existingSearch && !queryChanged) {
+                return;
+            }
+
+            const oldQuery = state.lastSearchQuery;
+            state.lastSearchQuery = searchQuery;
+
+            // Se esiste già un breadcrumb di ricerca e la query è cambiata
+            if (existingSearch && queryChanged) {
+                const searchText = existingSearch.querySelector('.search-text strong');
+
+                if (searchText) {
+                    this.animateTextChange(searchText, oldQuery, searchQuery);
+                }
+
+                CopyPath.updateButtonState();
+                return;
+            }
+
+            // Prima ricerca: crea il breadcrumb completo
             const span = document.createElement('span');
             span.className = 'breadcrumb-item search-breadcrumb';
             span.innerHTML = `
@@ -218,10 +247,70 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                           d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
-                <span>Search: <strong>${Utils.escapeHTML(searchQuery)}</strong></span>
+                <span class="search-text">Search: <strong>${Utils.escapeHTML(searchQuery)}</strong></span>
             `;
+
+            breadcrumbElement.innerHTML = '';
             breadcrumbElement.appendChild(span);
+
             CopyPath.updateButtonState();
+        },
+
+        animateTextChange(element, oldText, newText) {
+            if (!element) return;
+
+            // Aggiungi classe typing per mostrare cursor
+            element.classList.add('typing');
+
+            // Trova il prefisso comune
+            let commonLength = 0;
+            const minLength = Math.min(oldText.length, newText.length);
+
+            for (let i = 0; i < minLength; i++) {
+                if (oldText[i].toLowerCase() === newText[i].toLowerCase()) {
+                    commonLength = i + 1;
+                } else {
+                    break;
+                }
+            }
+
+            // Fase 1: Cancella i caratteri in eccesso (da destra verso sinistra)
+            const charsToDelete = oldText.length - commonLength;
+            let currentText = oldText;
+            let deleteIndex = 0;
+
+            const deleteInterval = setInterval(() => {
+                if (deleteIndex >= charsToDelete) {
+                    clearInterval(deleteInterval);
+                    // Fase 2: Inizia a scrivere i nuovi caratteri
+                    startTyping();
+                    return;
+                }
+
+                currentText = currentText.slice(0, -1);
+                element.textContent = currentText;
+                deleteIndex++;
+            }, 40); // 40ms per carattere durante la cancellazione
+
+            const startTyping = () => {
+                const charsToAdd = newText.slice(commonLength);
+                let typeIndex = 0;
+
+                const typeInterval = setInterval(() => {
+                    if (typeIndex >= charsToAdd.length) {
+                        clearInterval(typeInterval);
+                        // Rimuovi cursor dopo aver finito
+                        setTimeout(() => {
+                            element.classList.remove('typing');
+                        }, 500);
+                        return;
+                    }
+
+                    currentText += charsToAdd[typeIndex];
+                    element.textContent = currentText;
+                    typeIndex++;
+                }, 60); // 60ms per carattere durante la scrittura
+            };
         },
 
         renderDefaultBreadcrumb() {
@@ -231,9 +320,9 @@
             span.className = 'breadcrumb-item';
 
             const showNoTools = !state.lastContextSummary.hasVisitedAnyPhase &&
-                               !state.lastContextSummary.pathKey &&
-                               !state.lastContextSummary.scopeAll &&
-                               (state.lastContextSummary.toolsCount || 0) === 0;
+                !state.lastContextSummary.pathKey &&
+                !state.lastContextSummary.scopeAll &&
+                (state.lastContextSummary.toolsCount || 0) === 0;
 
             span.textContent = showNoTools ? 'No tools' : 'All tools';
             breadcrumbElement.appendChild(span);
@@ -297,7 +386,7 @@
             const ids = Array.from(window.Toolmap?.allToolsUnder?.[pathKey] || []);
 
             window.dispatchEvent(new CustomEvent('tm:scope:set', {
-                detail: { pathKey, ids }
+                detail: {pathKey, ids}
             }));
         }
     };
@@ -357,9 +446,20 @@
         },
 
         handleShowAll() {
-            state.currentPathSlash = null;
-            BreadcrumbRenderer.render(null);
-            window.dispatchEvent(new CustomEvent('tm:tools:showAll'));
+            const sidebar = document.getElementById('sidebar');
+            const inSearch = sidebar && sidebar.classList.contains('search-mode');
+
+            if (inSearch) {
+                // Modalità ricerca: emetti evento specifico per show all in ricerca
+                window.dispatchEvent(new CustomEvent('tm:show:all', {
+                    detail: {source: 'breadcrumb', searchMode: true}
+                }));
+            } else {
+                // Modalità normale
+                state.currentPathSlash = null;
+                BreadcrumbRenderer.render(null);
+                window.dispatchEvent(new CustomEvent('tm:tools:showAll'));
+            }
         },
 
         handleDownload() {
@@ -387,6 +487,7 @@
     function handleReset() {
         state.lastPathKey = null;
         state.currentPathSlash = null;
+        state.lastSearchQuery = '';
         BreadcrumbRenderer.render(null);
     }
 

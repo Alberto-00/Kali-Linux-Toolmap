@@ -102,13 +102,15 @@
         set(key, value) {
             try {
                 sessionStorage.setItem(key, value);
-            } catch {}
+            } catch {
+            }
         },
 
         remove(key) {
             try {
                 sessionStorage.removeItem(key);
-            } catch {}
+            } catch {
+            }
         },
 
         getJSON(key, defaultValue = {}) {
@@ -122,7 +124,8 @@
         setJSON(key, value) {
             try {
                 this.set(key, JSON.stringify(value || {}));
-            } catch {}
+            } catch {
+            }
         }
     };
 
@@ -160,7 +163,7 @@
             if (!tool) return [];
             return Array.isArray(tool.category_path) ? tool.category_path
                 : Array.isArray(tool.categoryPath) ? tool.categoryPath
-                : [];
+                    : [];
         },
 
         getPrimaryPhase(tool) {
@@ -174,8 +177,8 @@
             const phase = this.getPrimaryPhase(tool) || '';
             const match = /^(\d{2,})\D/.exec(phase);
             return match
-                ? { num: parseInt(match[1], 10), str: '' }
-                : { num: 9998, str: phase.toLowerCase() };
+                ? {num: parseInt(match[1], 10), str: ''}
+                : {num: 9998, str: phase.toLowerCase()};
         },
 
         readBestInFlag(tool) {
@@ -187,7 +190,7 @@
             return ToolUtils.getName(a).localeCompare(
                 ToolUtils.getName(b),
                 undefined,
-                { sensitivity: 'base' }
+                {sensitivity: 'base'}
             );
         },
 
@@ -214,11 +217,10 @@
         },
 
         normalizeLabel(str) {
-            return this.normalize(
-                String(str || '')
-                    .replace(/^\d+[_-]*/, '')
-                    .replace(/_/g, ' ')
-            );
+            const cleaned = String(str || '')
+                .replace(/^\d+[_-]*/, '')
+                .replace(/_/g, ' ');
+            return SearchUtils.normalize(cleaned);
         },
 
         tokenize(query) {
@@ -234,7 +236,7 @@
                 const parts = chunk.split(/[^A-Za-z0-9]+/).filter(Boolean);
 
                 for (const part of parts) {
-                    const normalized = this.normalize(part);
+                    const normalized = SearchUtils.normalize(part);
                     if (normalized) tokens.push(normalized);
                 }
             }
@@ -272,7 +274,7 @@
 
         ready(callback) {
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', callback, { once: true });
+                document.addEventListener('DOMContentLoaded', callback, {once: true});
             } else {
                 (window.queueMicrotask || setTimeout)(callback, 0);
             }
@@ -311,7 +313,7 @@
 
         if (savedSearch) {
             window.dispatchEvent(new CustomEvent('tm:search:set', {
-                detail: { q: savedSearch, hasQuery: true }
+                detail: {q: savedSearch, hasQuery: true}
             }));
         }
 
@@ -353,7 +355,7 @@
     function handleScopeSet(event) {
         if (state.isResetting && !event.detail?.all) return;
 
-        const { all, ids, pathKey } = event.detail || {};
+        const {all, ids, pathKey} = event.detail || {};
         state.scopeAll = !!all || (!ids && !pathKey);
         state.scopeIds = ids || null;
         state.pathKey = pathKey || null;
@@ -368,7 +370,7 @@
     }
 
     function handleToggleStar(event) {
-        const { id, value } = event.detail || {};
+        const {id, value} = event.detail || {};
         if (!id) return;
 
         Stars.toggle(id, !!value);
@@ -410,7 +412,7 @@
 
         const ctx = buildSearchContext();
         window.__lastSearchContext = ctx;
-        window.dispatchEvent(new CustomEvent('tm:search:context', { detail: ctx }));
+        window.dispatchEvent(new CustomEvent('tm:search:context', {detail: ctx}));
 
         if (hadSearch && !hasSearch && !state.isResetting) {
             restoreSavedScope();
@@ -433,7 +435,7 @@
             state.scopeIds = ids;
 
             window.dispatchEvent(new CustomEvent('tm:scope:set', {
-                detail: { pathKey, ids, source: 'search-cleared' }
+                detail: {pathKey, ids, source: 'search-cleared'}
             }));
         }
     }
@@ -449,8 +451,7 @@
                 content.style.removeProperty('--hover-color');
             }
         }
-
-        window.dispatchEvent(new CustomEvent('tm:phase:color:apply', { detail: { color } }));
+        window.dispatchEvent(new CustomEvent('tm:phase:color:apply', {detail: {color}}));
     }
 
     function handleShowAll() {
@@ -471,9 +472,9 @@
         if (searchInput) searchInput.value = '';
 
         // Reset search context
-        const emptyContext = { hasQuery: false, phaseKeys: [], paths: [], countsByPhase: {} };
+        const emptyContext = {hasQuery: false, phaseKeys: [], paths: [], countsByPhase: {}};
         window.__lastSearchContext = emptyContext;
-        window.dispatchEvent(new CustomEvent('tm:search:context', { detail: emptyContext }));
+        window.dispatchEvent(new CustomEvent('tm:search:context', {detail: emptyContext}));
 
         // Reset state
         state.scopeAll = true;
@@ -484,8 +485,8 @@
 
         // Dispatch reset events
         window.dispatchEvent(new Event('tm:reset'));
-        window.dispatchEvent(new CustomEvent('tm:scope:set', { detail: { all: true } }));
-        window.dispatchEvent(new CustomEvent('tm:phase:color', { detail: { color: null } }));
+        window.dispatchEvent(new CustomEvent('tm:scope:set', {detail: {all: true}}));
+        window.dispatchEvent(new CustomEvent('tm:phase:color', {detail: {color: null}}));
 
         render();
 
@@ -543,7 +544,7 @@
                     SELECTORS.grid,
                     (tool) => detailsModal?.show(tool),
                     (tool) => notesModal?.show(tool),
-                    { activePath: [] }
+                    {activePath: []}
                 );
                 window.toolsRenderer = instance;
                 rendererAdapter = {
@@ -551,7 +552,8 @@
                     render: (tools) => instance.render(tools)
                 };
                 return rendererAdapter;
-            } catch {}
+            } catch {
+            }
         }
 
         // Try existing instance
@@ -606,18 +608,44 @@
         const sidebar = document.getElementById('sidebar');
 
         if (sidebar?.classList.contains('search-mode')) {
-            const openPhases = new Set();
-            document.querySelectorAll('.nav-item.open').forEach(item => {
-                openPhases.add(item.dataset.phase);
-            });
+            const isCollapsed = sidebar.classList.contains('collapsed');
 
-            if (openPhases.size > 0) {
-                baseIds = baseIds.filter(id => {
-                    const tool = toolsById[id];
-                    if (!tool) return false;
-                    const toolPhase = tool.phase || (Array.isArray(tool.phases) ? tool.phases[0] : null);
-                    return toolPhase && openPhases.has(toolPhase);
+            if (isCollapsed) {
+                // Sidebar collapsed: usa state.scopeIds se presente (da hover-search-phase)
+                if (state.scopeIds && state.scopeIds.length > 0) {
+                    return state.scopeIds;
+                }
+
+                // Fallback: filtra per hover-pane attivo
+                const hoverPane = document.querySelector('.hover-pane.active');
+                if (hoverPane) {
+                    const hoverPhase = hoverPane.dataset.phase;
+                    if (hoverPhase) {
+                        baseIds = baseIds.filter(id => {
+                            const tool = toolsById[id];
+                            if (!tool) return false;
+                            const toolPhase = tool.phase || (Array.isArray(tool.phases) ? tool.phases[0] : null);
+                            return toolPhase === hoverPhase;
+                        });
+                    }
+                }
+            } else {
+                // Sidebar aperta: filtra per fasi aperte
+                const openPhases = new Set();
+
+                document.querySelectorAll('.nav-item.open').forEach(item => {
+                    openPhases.add(item.dataset.phase);
                 });
+
+                if (openPhases.size > 0) {
+                    baseIds = baseIds.filter(id => {
+                        const tool = toolsById[id];
+                        if (!tool) return false;
+
+                        const toolPhase = tool.phase || (Array.isArray(tool.phases) ? tool.phases[0] : null);
+                        return toolPhase && openPhases.has(toolPhase);
+                    });
+                }
             }
         }
 
@@ -632,10 +660,10 @@
             if (!tool) continue;
 
             const searchFields = extractSearchFields(tool);
-            const { matched, score } = scoreToolAgainstTokens(searchFields, tokens);
+            const {matched, score} = scoreToolAgainstTokens(searchFields, tokens);
 
             if (matched) {
-                hits.push({ id, t: tool, score });
+                hits.push({id, t: tool, score});
             }
         }
 
@@ -724,7 +752,7 @@
             score += bestFieldScore;
         }
 
-        return { matched, score };
+        return {matched, score};
     }
 
     function buildSearchContext() {
@@ -736,7 +764,7 @@
         const tokens = SearchUtils.tokenize(query);
 
         if (!tokens.length) {
-            return { hasQuery: false };
+            return {hasQuery: false};
         }
 
         const phaseSet = new Set();
@@ -748,7 +776,7 @@
             if (!tool) continue;
 
             const fields = extractSearchFields(tool);
-            const { matched } = scoreToolAgainstTokens(fields, tokens);
+            const {matched} = scoreToolAgainstTokens(fields, tokens);
 
             if (!matched) continue;
 
@@ -812,7 +840,7 @@
 
             if (keyA.num !== keyB.num) return keyA.num - keyB.num;
             if (keyA.str !== keyB.str) {
-                const cmp = keyA.str.localeCompare(keyB.str, undefined, { sensitivity: 'base' });
+                const cmp = keyA.str.localeCompare(keyB.str, undefined, {sensitivity: 'base'});
                 if (cmp !== 0) return cmp;
             }
 
@@ -834,8 +862,9 @@
                 pathKey: state.pathKey || null,
                 hasVisitedAnyPhase: !!hasVisitedAnyPhase
             };
-            window.dispatchEvent(new CustomEvent('tm:context:summary', { detail: summary }));
-        } catch {}
+            window.dispatchEvent(new CustomEvent('tm:context:summary', {detail: summary}));
+        } catch {
+        }
     }
 
     function renderEmptyState() {
@@ -1038,7 +1067,7 @@
     }
 
     function downloadFile(filename, content, mimeType) {
-        const blob = new Blob([content], { type: mimeType });
+        const blob = new Blob([content], {type: mimeType});
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = url;
@@ -1320,4 +1349,6 @@
             document.body.style.overflow = 'hidden';
         }
     }
+
+    window.SearchUtils = SearchUtils;
 })();
