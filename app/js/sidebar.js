@@ -1063,7 +1063,7 @@ const TIMINGS = {
                 b.style.gap = isColl ? '0px' : '10px';
             });
             sidebar.querySelectorAll('.toggle, .icon-btn').forEach(el => {
-                if (isColl) el.style.marginLeft = '-5px'; else el.style.removeProperty('margin-left');
+                if (isColl) el.style.marginLeft = '-10px'; else el.style.removeProperty('margin-left');
             });
         }
 
