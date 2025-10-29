@@ -535,6 +535,8 @@ const TIMINGS = {
 
         navItem.classList.add('has-active-path');
         const parts = activeSlash.split('/');
+
+        // Rimuovi solo nella fase CORRENTE
         navItem.querySelectorAll('.folder-leaf').forEach(el => el.classList.remove('in-active-path'));
 
         for (let i = 1; i <= parts.length; i++) {
@@ -547,6 +549,11 @@ const TIMINGS = {
             if (n.querySelector('.folder-leaf.in-active-path')) n.classList.add('has-active-path');
             else n.classList.remove('has-active-path');
         });
+
+        // Applica active al nodo finale nella fase corrente
+        navItem.querySelectorAll('.folder-leaf.active, .leaf.active').forEach(n => n.classList.remove('active'));
+        const finalNode = navItem.querySelector(`.folder-leaf[data-path="${activeSlash}"], .leaf[data-path="${activeSlash}"]`);
+        if (finalNode) finalNode.classList.add('active');
     }
 
     function applyPhaseThemeToPane(pane, phaseKey) {
@@ -680,6 +687,11 @@ const TIMINGS = {
         // salva memoria globale (ma NON durante la search)
         const sidebarEl = document.getElementById('sidebar');
         const inSearch = !!(sidebarEl && sidebarEl.classList.contains('search-mode'));
+
+        // Salva memoria PER-FASE prima di aggiornare quella globale
+        const currentPhase = slashPath.split('/')[0];
+        setActivePathSlash(currentPhase, slashPath);
+
         if (!inSearch) {
             localStorage.setItem(MEM.pathSlash, slashPath);
             if (pathKey) localStorage.setItem(MEM.pathKey, pathKey);
@@ -711,17 +723,54 @@ const TIMINGS = {
                 const hasKids = hasChildrenNode(node);
                 const phaseKey = pathSlash.split('/')[0];
 
-                // Memoria + highlight (no highlight se sei in search)
+                // Salva e preserva lo stato di TUTTE le altre fasi (SOLO colori, NO background)
+                Object.keys(taxonomy).forEach(otherPhase => {
+                    if (otherPhase !== phaseKey) {
+                        const otherActive = getActivePathSlash(otherPhase);
+                        const otherNavItem = document.querySelector(`.nav-item[data-phase="${otherPhase}"]`);
+                        if (otherActive && otherNavItem) {
+                            // Preserva in-active-path (colori)
+                            const otherParts = otherActive.split('/');
+                            for (let i = 1; i <= otherParts.length; i++) {
+                                const partial = otherParts.slice(0, i).join('/');
+                                const node = otherNavItem.querySelector(`.folder-leaf[data-path="${partial}"]`);
+                                if (node && !node.classList.contains('in-active-path')) {
+                                    node.classList.add('in-active-path');
+                                }
+                            }
+                            // RIMUOVI active dalle altre fasi (NO background)
+                            otherNavItem.querySelectorAll('.folder-leaf.active, .leaf.active').forEach(n => {
+                                n.classList.remove('active');
+                            });
+                            // Preserva has-active-path sui container (per linee verticali)
+                            otherNavItem.classList.add('has-active-path');
+                            otherNavItem.querySelectorAll('.children-nested').forEach(n => {
+                                if (n.querySelector('.folder-leaf.in-active-path')) {
+                                    n.classList.add('has-active-path');
+                                }
+                            });
+                        }
+                    }
+                });
+
                 setActivePathSlash(phaseKey, pathSlash);
                 const inSearch = document.getElementById('sidebar')?.classList.contains('search-mode');
+
+                const currentNavItem = el.closest('.nav-item');
+                if (currentNavItem) {
+                    currentNavItem.querySelectorAll('.leaf.active, .folder-leaf.active, .section-title.active')
+                        .forEach(n => n.classList.remove('active'));
+                }
+                if (!inSearch) el.classList.add('active');
                 if (!inSearch) highlightActivePath(phaseKey);
 
-                // Dispatch filtro (nodo + discendenti)
                 dispatchScopeAndPhase(pathSlash, {source: 'sidebar'});
 
                 // BG sull'ultimo cliccato — NON in search-mode
-                document.querySelectorAll('.leaf.active, .folder-leaf.active, .section-title.active')
-                    .forEach(n => n.classList.remove('active'));
+                if (currentNavItem) {
+                    currentNavItem.querySelectorAll('.leaf.active, .folder-leaf.active, .section-title.active')
+                        .forEach(n => n.classList.remove('active'));
+                }
                 if (!inSearch) el.classList.add('active');
 
                 // Se terminale → fine
@@ -1112,15 +1161,45 @@ const TIMINGS = {
 
         expandAllBtn?.addEventListener('click', () => {
             document.querySelectorAll('.nav-item.has-children').forEach(item => {
+                const phaseKey = item.dataset.phase;
                 const btn = item.querySelector('.btn');
+
                 if (!item.classList.contains('open')) {
                     item.classList.add('open');
                     btn?.classList.add('active');
-                    const phaseKey = item.dataset.phase;
+                }
+
+                // Espandi il path attivo per questa fase (se esiste)
+                const activeSlash = getActivePathSlash(phaseKey);
+                if (activeSlash && typeof activeSlash === 'string') {
+                    // Espandi tutti gli antenati del path attivo
+                    const parts = activeSlash.split('/');
+                    let acc = [];
+                    for (const p of parts) {
+                        acc.push(p);
+                        const partial = acc.join('/');
+                        expandBranch(phaseKey, partial);
+                        ensureExpandedInContainer(item, partial);
+                    }
+
+                    // Applica l'evidenza del path attivo
                     highlightActivePath(phaseKey);
+
+                    // Marca il leaf finale come active
+                    const activeEl = item.querySelector(
+                        `.folder-leaf[data-path="${activeSlash}"], .leaf[data-path="${activeSlash}"]`
+                    );
+                    if (activeEl) {
+                        activeEl.classList.add('active');
+                    }
+                } else {
+                    // Nessun path attivo: espandi solo da memoria esistente
                     expandFromMemoryInContainer(item, phaseKey);
                 }
             });
+
+            refreshAllVLinesDebounced();
+            window.SidebarAutoGrow?.schedule();
         });
     }
 
@@ -1160,6 +1239,20 @@ const TIMINGS = {
                 const inSearch = !!(sb && sb.classList.contains('search-mode'));
 
                 clearHighlightInContainer(hoverPane);
+
+                document.querySelectorAll('.nav-item').forEach(navItem => {
+                    if (navItem.dataset.phase !== phaseKey) {
+                        const activeInPhase = getActivePathSlash(navItem.dataset.phase);
+                        if (activeInPhase) {
+                            const activeEl = navItem.querySelector(
+                                `.folder-leaf[data-path="${activeInPhase}"], .leaf[data-path="${activeInPhase}"]`
+                            );
+                            if (activeEl && !activeEl.classList.contains('active')) {
+                                activeEl.classList.add('active');
+                            }
+                        }
+                    }
+                });
 
                 // Reflow
                 forceReflow(hoverPane);
@@ -2128,14 +2221,36 @@ const TIMINGS = {
                 console.warn('[hover-sync] errore nel sync hover pane:', e);
             }
 
-            // Spegni evidenze nelle ALTRE fasi
+            //  PRESERVA colori delle altre fasi, MA rimuovi background (active)
             document.querySelectorAll('.nav-item').forEach(i => {
                 if (i.dataset.phase !== phaseKey) {
-                    i.classList.remove('has-active-path');
-                    i.querySelectorAll('.folder-leaf, .leaf, .section-title')
-                        .forEach(el => el.classList.remove('in-active-path', 'active'));
-                    i.querySelectorAll('.children, .children-nested')
-                        .forEach(n => n.classList.remove('has-active-path'));
+                    const otherPhaseKey = i.dataset.phase;
+                    const otherActive = getActivePathSlash(otherPhaseKey);
+
+                    if (otherActive && typeof otherActive === 'string') {
+                        // Ripristina colori (in-active-path)
+                        i.classList.add('has-active-path');
+
+                        const otherParts = otherActive.split('/');
+                        for (let j = 1; j <= otherParts.length; j++) {
+                            const partial = otherParts.slice(0, j).join('/');
+                            const node = i.querySelector(`.folder-leaf[data-path="${partial}"]`);
+                            if (node && !node.classList.contains('in-active-path')) {
+                                node.classList.add('in-active-path');
+                            }
+                        }
+
+                        // RIMUOVI active (background) dalle altre fasi
+                        i.querySelectorAll('.folder-leaf.active, .leaf.active, .section-title.active')
+                            .forEach(el => el.classList.remove('active'));
+
+                        // Ripristina has-active-path sui container (per linee verticali)
+                        i.querySelectorAll('.children-nested').forEach(n => {
+                            if (n.querySelector('.folder-leaf.in-active-path')) {
+                                n.classList.add('has-active-path');
+                            }
+                        });
+                    }
                 }
             });
             if (!isCollapsed) requestAnimationFrame(() => refreshAllVLinesDebounced(navItem));
