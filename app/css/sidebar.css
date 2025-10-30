@@ -768,6 +768,36 @@ nav {
     border-bottom-width: 3px;
 }
 
+/* Linee orizzontali colorate SOLO per nodi nel path di ricerca */
+.sidebar.search-mode .folder-leaf.search-path-intermediate::before,
+.sidebar.search-mode .leaf.search-path-intermediate::before {
+    border-left-color: var(--phase) !important;
+    border-bottom-color: var(--phase) !important;
+    border-left-width: 3px !important;
+    border-bottom-width: 3px !important;
+}
+
+.hover-pane.search-mode .folder-leaf.search-path-intermediate::before,
+.hover-pane.search-mode .leaf.search-path-intermediate::before {
+    border-left-color: var(--phase) !important;
+    border-bottom-color: var(--phase) !important;
+    border-left-width: 3px !important;
+    border-bottom-width: 3px !important;
+}
+
+/* Nodi intermedi: NO background, solo colore */
+.sidebar.search-mode .folder-leaf.search-path-intermediate,
+.sidebar.search-mode .leaf.search-path-intermediate {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.hover-pane.search-mode .folder-leaf.search-path-intermediate,
+.hover-pane.search-mode .leaf.search-path-intermediate {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
 /* HOVER-PANE in search mode */
 .hover-pane.search-mode .folder-leaf:not(.search-hit),
 .hover-pane.search-mode .leaf:not(.search-hit) {

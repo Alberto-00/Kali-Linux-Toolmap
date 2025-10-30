@@ -1321,9 +1321,6 @@ const TIMINGS = {
         applyCollapsedStyle();
 
         collapseAllBtn?.addEventListener('click', () => {
-            const sb = document.getElementById('sidebar');
-            const inSearch = sb && sb.classList.contains('search-mode');
-
             // Chiudi tutte le fasi
             document.querySelectorAll('.nav-item.open').forEach(item => {
                 item.classList.remove('open');
