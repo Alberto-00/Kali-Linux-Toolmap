@@ -184,6 +184,12 @@ nav {
     --tree-stroke-fade: color-mix(in srgb, var(--phase) 55%, transparent);
 }
 
+/* === VLine GRIGIE quando la fase NON è in stato di path attivo ============ */
+.nav-item:not(.has-active-path) {
+    --tree-stroke: rgba(255, 255, 255, .14);
+    --tree-stroke-fade: rgba(255, 255, 255, .08);
+}
+
 /* ============================================================================
    NAVIGATION BUTTONS
    ============================================================================ */
@@ -408,6 +414,20 @@ nav {
     white-space: nowrap;
     overflow: visible;
     text-overflow: clip;
+}
+
+/* === VISITED (colore persistente, nessun background) ====================== */
+.leaf.visited,
+.folder-leaf.visited {
+    color: var(--phase);
+    font-weight: 600;
+}
+
+/* In hover-pane manteniamo lo stesso comportamento */
+.hover-pane .leaf.visited,
+.hover-pane .folder-leaf.visited {
+    color: var(--phase);
+    font-weight: 600;
 }
 
 /* ============================================================================
@@ -671,19 +691,131 @@ nav {
 
 /* ============================================================================
    SEARCH MODE
-   ============================================================================ */
+/* ============================================================================ */
 
-.sidebar.search-mode .nav-item .folder-leaf.search-hit,
-.sidebar.search-mode .nav-item .leaf.search-hit {
+/* Fasi senza risultati: disabilitate ma visibili */
+.sidebar.search-mode .nav-item {
+    opacity: 1;
+}
+
+.sidebar.search-mode .nav-item:not(.has-search-results) {
+    opacity: 0.4;
+}
+
+.sidebar.search-mode .nav-item:not(.has-search-results) > .btn {
+    cursor: not-allowed;
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.sidebar.search-mode .nav-item.has-search-results > .btn {
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+/* Header fase: NON cliccabile */
+.sidebar.search-mode .nav-item > .btn {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+/* Nodi NON nel path di ricerca: disabilitati */
+.sidebar.search-mode .folder-leaf:not(.search-hit),
+.sidebar.search-mode .leaf:not(.search-hit) {
+    opacity: 0.3;
+    pointer-events: none;
+    cursor: default;
+}
+
+/* Nodi nel path di ricerca: colorati ma NON cliccabili */
+.sidebar.search-mode .folder-leaf.search-hit,
+.sidebar.search-mode .leaf.search-hit {
     color: var(--phase);
     font-weight: 600;
+    pointer-events: none;
+    cursor: default;
+    opacity: 1;
+}
+
+/* SOLO i nodi TERMINALI hanno il background */
+.sidebar.search-mode .folder-leaf.search-hit:not(.search-has-children),
+.sidebar.search-mode .leaf.search-hit {
     background: color-mix(in srgb, var(--phase) 12%, transparent);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--phase) 28%, transparent);
     border-radius: 8px;
 }
 
-.sidebar.search-mode .nav-item .children .folder-leaf.search-hit::before,
-.sidebar.search-mode .nav-item .children .leaf.search-hit::before {
+/* Assicurati che i nodi intermedi NON abbiano background */
+.sidebar.search-mode .folder-leaf.search-hit.search-has-children,
+.sidebar.search-mode .leaf.search-hit.search-has-children {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Connettori verticali colorati per path attivi in ricerca */
+.sidebar.search-mode .children.has-active-path::before,
+.sidebar.search-mode .children-nested.has-active-path::before {
+    background: var(--phase);
+    width: 3px;
+}
+
+/* Connettori orizzontali (elbow) colorati */
+.sidebar.search-mode .folder-leaf.search-hit::before,
+.sidebar.search-mode .leaf.search-hit::before {
     border-left-color: var(--phase);
     border-bottom-color: var(--phase);
+    border-left-width: 3px;
+    border-bottom-width: 3px;
+}
+
+/* HOVER-PANE in search mode */
+.hover-pane.search-mode .folder-leaf:not(.search-hit),
+.hover-pane.search-mode .leaf:not(.search-hit) {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+.hover-pane.search-mode .folder-leaf.search-hit,
+.hover-pane.search-mode .leaf.search-hit {
+    color: var(--phase);
+    font-weight: 600;
+    pointer-events: none;
+    opacity: 1;
+}
+
+/* SOLO terminali con background nell'hover */
+.hover-pane.search-mode .folder-leaf.search-hit:not(.search-has-children),
+.hover-pane.search-mode .leaf.search-hit {
+    background: color-mix(in srgb, var(--phase) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--phase) 28%, transparent);
+    border-radius: 8px;
+}
+
+.hover-pane.search-mode .children.has-active-path::before,
+.hover-pane.search-mode .children-nested.has-active-path::before {
+    background: var(--phase);
+    width: 3px;
+}
+
+.hover-pane.search-mode .folder-leaf.search-hit::before,
+.hover-pane.search-mode .leaf.search-hit::before {
+    border-left-color: var(--phase);
+    border-bottom-color: var(--phase);
+    border-left-width: 3px;
+    border-bottom-width: 3px;
+}
+
+/* Nodi intermedi del path: solo colorazione, NO background */
+.sidebar.search-mode .folder-leaf.search-path-intermediate,
+.sidebar.search-mode .leaf.search-path-intermediate {
+    color: var(--phase);
+    font-weight: 600;
+    opacity: 1;
+}
+
+.hover-pane.search-mode .folder-leaf.search-path-intermediate,
+.hover-pane.search-mode .leaf.search-path-intermediate {
+    color: var(--phase);
+    font-weight: 600;
+    opacity: 1;
 }

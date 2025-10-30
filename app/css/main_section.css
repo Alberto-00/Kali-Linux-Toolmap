@@ -100,6 +100,26 @@
     }
 }
 
+/* Animazione cursor typing */
+.breadcrumb-item.search-breadcrumb strong.typing::after {
+    content: '|';
+    animation: cursorBlink 0.8s infinite;
+    margin-left: 2px;
+    opacity: 1;
+}
+
+@keyframes cursorBlink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
+/* Transizione smooth per il testo */
+.breadcrumb-item.search-breadcrumb strong {
+    display: inline-block;
+    min-width: 1ch;
+    transition: none;
+}
+
 /* Disabilita copy-path durante search */
 body:has(.breadcrumb-item.search-breadcrumb) .copy-path-btn {
     opacity: 0.4;
