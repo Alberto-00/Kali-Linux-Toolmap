@@ -1,7 +1,4 @@
-/* ============================================================================
-   SIDEBAR CONTAINER
-   ============================================================================ */
-
+/* SIDEBAR CONTAINER */
 .sidebar {
     width: 320px;
     background: var(--panel);
@@ -20,10 +17,7 @@
     width: 70px;
 }
 
-/* ============================================================================
-   HEADER
-   ============================================================================ */
-
+/* HEADER */
 .header {
     display: flex;
     align-items: center;
@@ -80,10 +74,7 @@
     overflow: hidden;
 }
 
-/* ============================================================================
-   SEARCH BOX
-   ============================================================================ */
-
+/* SEARCH BOX */
 .search-box {
     position: relative;
     margin-bottom: 14px;
@@ -135,10 +126,7 @@
     color: var(--accent-2);
 }
 
-/* ============================================================================
-   NAVIGATION
-   ============================================================================ */
-
+/* NAVIGATION */
 nav {
     display: flex;
     flex-direction: column;
@@ -154,25 +142,11 @@ nav {
     animation: slideIn .3s ease backwards;
 }
 
-.nav-item:nth-child(1) {
-    animation-delay: .05s;
-}
-
-.nav-item:nth-child(2) {
-    animation-delay: .1s;
-}
-
-.nav-item:nth-child(3) {
-    animation-delay: .15s;
-}
-
-.nav-item:nth-child(4) {
-    animation-delay: .2s;
-}
-
-.nav-item:nth-child(5) {
-    animation-delay: .25s;
-}
+.nav-item:nth-child(1) { animation-delay: .05s; }
+.nav-item:nth-child(2) { animation-delay: .1s; }
+.nav-item:nth-child(3) { animation-delay: .15s; }
+.nav-item:nth-child(4) { animation-delay: .2s; }
+.nav-item:nth-child(5) { animation-delay: .25s; }
 
 .nav-item.has-active-path {
     --tree-stroke: rgba(255, 255, 255, .14) !important;
@@ -184,16 +158,12 @@ nav {
     --tree-stroke-fade: color-mix(in srgb, var(--phase) 55%, transparent);
 }
 
-/* === VLine GRIGIE quando la fase NON è in stato di path attivo ============ */
 .nav-item:not(.has-active-path) {
     --tree-stroke: rgba(255, 255, 255, .14);
     --tree-stroke-fade: rgba(255, 255, 255, .08);
 }
 
-/* ============================================================================
-   NAVIGATION BUTTONS
-   ============================================================================ */
-
+/* NAVIGATION BUTTONS */
 .nav-item .btn {
     width: 100%;
     display: flex;
@@ -282,10 +252,7 @@ nav {
     width: 0;
 }
 
-/* ============================================================================
-   CHILDREN & TREE STRUCTURE
-   ============================================================================ */
-
+/* CHILDREN & TREE STRUCTURE */
 .children {
     margin-left: 10px;
     margin-top: 6px;
@@ -340,15 +307,19 @@ nav {
     height: var(--vline-end, 100%);
 }
 
-.children-nested.has-active-path::before {
+.nav-item.has-active-path > .children::before {
+    background: var(--phase);
+    width: 3px;
+}
+
+.children-nested.has-active-path::before,
+.hover-pane .children.has-active-path::before,
+.hover-pane .children-nested.has-active-path::before {
     background: var(--phase);
     width: 2px;
 }
 
-/* ============================================================================
-   LEAF ITEMS
-   ============================================================================ */
-
+/* LEAF ITEMS */
 .leaf,
 .folder-leaf,
 .section-title {
@@ -382,11 +353,6 @@ nav {
     width: calc(var(--elbow-w) + var(--elbow-w-tweak));
 }
 
-.children > :first-child::before {
-    top: var(--elbow-top) !important;
-    margin-top: calc(-1 * var(--elbow-h) / 2) !important;
-}
-
 .leaf:hover,
 .folder-leaf:hover,
 .section-title:hover {
@@ -416,24 +382,7 @@ nav {
     text-overflow: clip;
 }
 
-/* === VISITED (colore persistente, nessun background) ====================== */
-.leaf.visited,
-.folder-leaf.visited {
-    color: var(--phase);
-    font-weight: 600;
-}
-
-/* In hover-pane manteniamo lo stesso comportamento */
-.hover-pane .leaf.visited,
-.hover-pane .folder-leaf.visited {
-    color: var(--phase);
-    font-weight: 600;
-}
-
-/* ============================================================================
-   SECTIONS
-   ============================================================================ */
-
+/* SECTIONS */
 .subsection {
     margin-top: 10px;
     position: relative;
@@ -456,10 +405,7 @@ nav {
     color: #cbd5e1;
 }
 
-/* ============================================================================
-   ACTIVE PATH HIGHLIGHTING
-   ============================================================================ */
-
+/* ACTIVE PATH HIGHLIGHTING (UNIFIED) */
 .nav-item.has-active-path .folder-leaf {
     transition: opacity .2s ease;
 }
@@ -474,40 +420,29 @@ nav {
 }
 
 .nav-item.has-active-path .folder-leaf.in-active-path::before,
-.nav-item.has-active-path .leaf.in-active-path::before {
+.nav-item.has-active-path .leaf.in-active-path::before,
+.folder-leaf.in-active-path::before,
+.leaf.in-active-path::before {
     border-left-color: var(--phase) !important;
     border-bottom-color: var(--phase) !important;
     border-left-width: 3px !important;
     border-bottom-width: 3px !important;
 }
 
-.folder-leaf.in-active-path {
+.folder-leaf.in-active-path,
+.leaf.in-active-path {
     opacity: 1 !important;
     color: var(--phase);
     font-weight: 600;
 }
 
-.folder-leaf.in-active-path::before {
-    border-left-color: var(--phase) !important;
-    border-bottom-color: var(--phase) !important;
-    border-left-width: 3px;
-    border-bottom-width: 3px;
-}
-
-.folder-leaf.in-active-path.active {
+.folder-leaf.in-active-path.active,
+.leaf.in-active-path.active {
     background: color-mix(in srgb, var(--phase) 15%, transparent);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--phase) 30%, transparent);
 }
 
-.nav-item.has-active-path > .children::before {
-    background: var(--phase);
-    width: 3px;
-}
-
-/* ============================================================================
-   FLYOUT & HOVER PANE
-   ============================================================================ */
-
+/* FLYOUT & HOVER PANE */
 .flyout {
     position: fixed;
     opacity: 0;
@@ -621,12 +556,6 @@ nav {
     border-bottom-width: 3px !important;
 }
 
-.hover-pane .children.has-active-path::before,
-.hover-pane .children-nested.has-active-path::before {
-    background: var(--phase) !important;
-    width: 2px !important;
-}
-
 .hover-pane .folder-leaf.in-active-path,
 .hover-pane .leaf.in-active-path {
     color: var(--phase) !important;
@@ -638,10 +567,7 @@ nav {
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--phase) 30%, transparent);
 }
 
-/* ============================================================================
-   PHASE & SEARCH BADGES
-   ============================================================================ */
-
+/* PHASE & SEARCH BADGES */
 .nav-item .btn .phase-badge {
     margin-left: auto;
     margin-right: 5px;
@@ -689,11 +615,7 @@ nav {
     display: none !important;
 }
 
-/* ============================================================================
-   SEARCH MODE
-/* ============================================================================ */
-
-/* Fasi senza risultati: disabilitate ma visibili */
+/* SEARCH MODE */
 .sidebar.search-mode .nav-item {
     opacity: 1;
 }
@@ -713,70 +635,47 @@ nav {
     pointer-events: auto;
 }
 
-/* Header fase: NON cliccabile */
 .sidebar.search-mode .nav-item > .btn {
     pointer-events: auto;
     cursor: pointer;
 }
 
-/* Nodi NON nel path di ricerca: disabilitati */
 .sidebar.search-mode .folder-leaf:not(.search-hit),
-.sidebar.search-mode .leaf:not(.search-hit) {
+.sidebar.search-mode .leaf:not(.search-hit),
+.hover-pane.search-mode .folder-leaf:not(.search-hit),
+.hover-pane.search-mode .leaf:not(.search-hit) {
     opacity: 0.3;
     pointer-events: none;
+}
+
+.sidebar.search-mode .folder-leaf:not(.search-hit),
+.sidebar.search-mode .leaf:not(.search-hit) {
     cursor: default;
 }
 
-/* Nodi nel path di ricerca: colorati ma NON cliccabili */
-.sidebar.search-mode .folder-leaf.search-hit,
-.sidebar.search-mode .leaf.search-hit {
-    color: var(--phase);
-    font-weight: 600;
-    pointer-events: none;
-    cursor: default;
-    opacity: 1;
-}
-
-/* SOLO i nodi TERMINALI hanno il background */
 .sidebar.search-mode .folder-leaf.search-hit:not(.search-has-children),
-.sidebar.search-mode .leaf.search-hit {
+.sidebar.search-mode .leaf.search-hit,
+.hover-pane.search-mode .folder-leaf.search-hit:not(.search-has-children),
+.hover-pane.search-mode .leaf.search-hit {
     background: color-mix(in srgb, var(--phase) 12%, transparent);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--phase) 28%, transparent);
     border-radius: 8px;
 }
 
-/* Assicurati che i nodi intermedi NON abbiano background */
 .sidebar.search-mode .folder-leaf.search-hit.search-has-children,
-.sidebar.search-mode .leaf.search-hit.search-has-children {
+.sidebar.search-mode .leaf.search-hit.search-has-children,
+.hover-pane.search-mode .folder-leaf.search-hit.search-has-children,
+.hover-pane.search-mode .leaf.search-hit.search-has-children {
     background: transparent !important;
     box-shadow: none !important;
 }
 
-/* Connettori verticali colorati per path attivi in ricerca */
-.sidebar.search-mode .children.has-active-path::before,
-.sidebar.search-mode .children-nested.has-active-path::before {
-    background: var(--phase);
-    width: 3px;
-}
-
-/* Connettori orizzontali (elbow) colorati */
 .sidebar.search-mode .folder-leaf.search-hit::before,
-.sidebar.search-mode .leaf.search-hit::before {
-    border-left-color: var(--phase);
-    border-bottom-color: var(--phase);
-    border-left-width: 3px;
-    border-bottom-width: 3px;
-}
-
-/* Linee orizzontali colorate SOLO per nodi nel path di ricerca */
+.sidebar.search-mode .leaf.search-hit::before,
 .sidebar.search-mode .folder-leaf.search-path-intermediate::before,
-.sidebar.search-mode .leaf.search-path-intermediate::before {
-    border-left-color: var(--phase) !important;
-    border-bottom-color: var(--phase) !important;
-    border-left-width: 3px !important;
-    border-bottom-width: 3px !important;
-}
-
+.sidebar.search-mode .leaf.search-path-intermediate::before,
+.hover-pane.search-mode .folder-leaf.search-hit::before,
+.hover-pane.search-mode .leaf.search-hit::before,
 .hover-pane.search-mode .folder-leaf.search-path-intermediate::before,
 .hover-pane.search-mode .leaf.search-path-intermediate::before {
     border-left-color: var(--phase) !important;
@@ -785,67 +684,39 @@ nav {
     border-bottom-width: 3px !important;
 }
 
-/* Nodi intermedi: NO background, solo colore */
 .sidebar.search-mode .folder-leaf.search-path-intermediate,
-.sidebar.search-mode .leaf.search-path-intermediate {
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
+.sidebar.search-mode .leaf.search-path-intermediate,
 .hover-pane.search-mode .folder-leaf.search-path-intermediate,
 .hover-pane.search-mode .leaf.search-path-intermediate {
     background: transparent !important;
     box-shadow: none !important;
 }
 
-/* HOVER-PANE in search mode */
-.hover-pane.search-mode .folder-leaf:not(.search-hit),
-.hover-pane.search-mode .leaf:not(.search-hit) {
-    opacity: 0.3;
-    pointer-events: none;
-}
-
-.hover-pane.search-mode .folder-leaf.search-hit,
-.hover-pane.search-mode .leaf.search-hit {
-    color: var(--phase);
-    font-weight: 600;
-    pointer-events: none;
-    opacity: 1;
-}
-
-/* SOLO terminali con background nell'hover */
-.hover-pane.search-mode .folder-leaf.search-hit:not(.search-has-children),
-.hover-pane.search-mode .leaf.search-hit {
-    background: color-mix(in srgb, var(--phase) 12%, transparent);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--phase) 28%, transparent);
-    border-radius: 8px;
-}
-
+.sidebar.search-mode .children.has-active-path::before,
+.sidebar.search-mode .children-nested.has-active-path::before,
 .hover-pane.search-mode .children.has-active-path::before,
 .hover-pane.search-mode .children-nested.has-active-path::before {
     background: var(--phase);
     width: 3px;
 }
 
-.hover-pane.search-mode .folder-leaf.search-hit::before,
-.hover-pane.search-mode .leaf.search-hit::before {
-    border-left-color: var(--phase);
-    border-bottom-color: var(--phase);
-    border-left-width: 3px;
-    border-bottom-width: 3px;
-}
-
-/* Nodi intermedi del path: solo colorazione, NO background */
+.sidebar.search-mode .folder-leaf.search-hit,
+.sidebar.search-mode .leaf.search-hit,
+.hover-pane.search-mode .folder-leaf.search-hit,
+.hover-pane.search-mode .leaf.search-hit,
 .sidebar.search-mode .folder-leaf.search-path-intermediate,
-.sidebar.search-mode .leaf.search-path-intermediate {
-    color: var(--phase);
-    font-weight: 600;
-    opacity: 1;
-}
-
+.sidebar.search-mode .leaf.search-path-intermediate,
 .hover-pane.search-mode .folder-leaf.search-path-intermediate,
 .hover-pane.search-mode .leaf.search-path-intermediate {
     color: var(--phase);
     font-weight: 600;
     opacity: 1;
+}
+
+.sidebar.search-mode .folder-leaf.search-hit,
+.sidebar.search-mode .leaf.search-hit,
+.hover-pane.search-mode .folder-leaf.search-hit,
+.hover-pane.search-mode .leaf.search-hit {
+    pointer-events: none;
+    cursor: default;
 }

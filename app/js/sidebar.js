@@ -12,12 +12,45 @@ const TIMINGS = {
     hoverSetup: 150
 };
 
+// Selectors e classi comuni (evita ripetizioni)
+const SELECTORS = {
+    pathNodes: '.folder-leaf, .leaf, .section-title',
+    containers: '.children, .children-nested',
+    activeNodes: '.folder-leaf.active, .leaf.active, .section-title.active',
+    searchHit: '.folder-leaf.search-hit, .leaf.search-hit',
+    searchIntermediate: '.folder-leaf.search-path-intermediate, .leaf.search-path-intermediate'
+};
+
+const CLASSES = {
+    active: 'active',
+    inActivePath: 'in-active-path',
+    hasActivePath: 'has-active-path',
+    searchMode: 'search-mode',
+    searchHit: 'search-hit',
+    searchIntermediate: 'search-path-intermediate',
+    open: 'open',
+    collapsed: 'collapsed'
+};
+
+// Helper per operazioni comuni
+const QueryHelpers = {
+    clearActive: (container) => {
+        container.querySelectorAll(SELECTORS.activeNodes)
+            .forEach(n => n.classList.remove(CLASSES.active));
+    },
+
+    clearSearchMarks: (container) => {
+        container.querySelectorAll(SELECTORS.searchHit)
+            .forEach(el => el.classList.remove(CLASSES.searchHit));
+        container.querySelectorAll(SELECTORS.searchIntermediate)
+            .forEach(el => el.classList.remove(CLASSES.searchIntermediate));
+    }
+};
+
 (() => {
     "use strict";
 
-    // ==========================================================================
-    // SEZIONE A · TAXONOMY & ICONS
-    // ==========================================================================
+    // TAXONOMY & ICONS
     const taxonomy = {
         "00_Common": {
             "Metasploit_Plugins": {},
@@ -98,7 +131,6 @@ const TIMINGS = {
     const chevronSVG = '<svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
     const folderSVG = '<svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>';
 
-    // === ICONS registry ========================================================
     const ICONS = {
         defaults: {folderClosed: folderSVG, folderOpen: folderSVG, terminal: chevronSVG},
         byPath: {},
@@ -154,7 +186,6 @@ const TIMINGS = {
         terminal: svg_post_exploit
     };
 
-    // Icone dei path per le cards (se usate altrove)
     window.SIDEBAR_ICONS = {
         common: svg_common,
         information_gathering: svg_inf_gather,
@@ -170,14 +201,12 @@ const TIMINGS = {
     const isNodeVisible = (el) => !!(el && el.offsetParent !== null);
 
     function getIconStatic(path, hasKids) {
-        // byPath esatto
         let v = ICONS.byPath[path];
         if (v) return (typeof v === 'string')
             ? v
             : (hasKids ? (v.closed || v.any || ICONS.defaults.folderClosed)
                 : (v.terminal || v.any || v.closed || ICONS.defaults.folderClosed));
 
-        // byPrefix più lungo
         let bestKey = null;
         for (const key of Object.keys(ICONS.byPrefix)) {
             if (path.startsWith(key) && (!bestKey || key.length > bestKey.length)) bestKey = key;
@@ -188,9 +217,8 @@ const TIMINGS = {
             : (hasKids ? (vp.closed || vp.any || ICONS.defaults.folderClosed)
                 : (vp.terminal || vp.any || vp.closed || ICONS.defaults.folderClosed));
 
-        // eredita dal padre (solo leaf)
         if (!hasKids) {
-            const parts = path.split('/');
+            const parts = splitPath(path);
             for (let i = parts.length - 2; i >= 0; i--) {
                 const anc = parts.slice(0, i + 1).join('/');
                 const va = ICONS.byPath[anc];
@@ -213,18 +241,15 @@ const TIMINGS = {
         })(taxonomy);
     }
 
-    // ==========================================================================
-    // SEZIONE B · MEMORIA (path attivo + rami espansi) & UTILS
-    // ==========================================================================
+    // MEMORIA (path attivo + rami espansi)
     const MEM = {
         collapsed: 'tm:sidebar:collapsed',
-        pathKey: 'tm:active:path',   // es. "Root>01_Information_Gathering>Web"
-        pathSlash: 'tm:active:slash',   // es. "01_Information_Gathering/Web"
-        preSearchSlash: 'tm:presearch:slash',      // path attivo quando entri in search
-        searchTempSlash: 'tm:search:tempSlash'    // path temporaneo cliccato durante la search
+        pathKey: 'tm:active:path',
+        pathSlash: 'tm:active:slash',
+        preSearchSlash: 'tm:presearch:slash',
+        searchTempSlash: 'tm:search:tempSlash'
     };
 
-    // per fase
     const phaseMemory = Object.fromEntries(
         Object.keys(taxonomy).map(phase => [phase, {activePathSlash: null, expanded: new Set()}])
     );
@@ -257,24 +282,18 @@ const TIMINGS = {
         return [...ensurePhase(phaseKey).expanded].sort((a, b) => a.split('/').length - b.split('/').length);
     }
 
-    // Risolve un path "slash" (Phase/Sub/Node) in un pathKey del Toolmap e i toolIds
     function resolveToolIdsForSlashPath(slashPath) {
         const tm = window.Toolmap || {};
         const keys = Object.keys(tm.nodeIndex || {});
         const root = (tm.registry && (tm.registry.name || tm.registry.title)) || 'Root';
         const suffix = slashPath.replace(/\//g, '>');
-        const candidates = [
-            suffix,
-            `${root}>${suffix}`
-        ];
+        const candidates = [suffix, `${root}>${suffix}`];
 
         let bestKey = null;
-        // match diretto
         for (const cand of candidates) if (tm.allToolsUnder?.[cand]) {
             bestKey = cand;
             break;
         }
-        // match per suffisso
         if (!bestKey) {
             for (const k of keys) {
                 if (k === suffix || k.endsWith('>' + suffix) || k.endsWith(suffix)) {
@@ -285,7 +304,6 @@ const TIMINGS = {
         const ids = bestKey ? Array.from(tm.allToolsUnder[bestKey] || []) : [];
 
         if (!bestKey) {
-            // Fallback: crea una chiave "virtuale" anche se il nodo non ha tool
             bestKey = `${root}>${suffix}`;
         }
 
@@ -303,36 +321,49 @@ const TIMINGS = {
         return PHASE_COLORS[phase] || 'hsl(var(--accent))';
     }
 
+    function isSearchMode() {
+        const sb = document.getElementById('sidebar');
+        return !!(sb && sb.classList.contains(CLASSES.searchMode));
+    }
+
+    function getPhaseFromPath(slashPath) {
+        if (!slashPath || typeof slashPath !== 'string') return null;
+        return slashPath.split('/')[0] || null;
+    }
+
+    function splitPath(slashPath) {
+        if (!slashPath || typeof slashPath !== 'string') return [];
+        return slashPath.split('/').filter(Boolean);
+    }
+
+    function getNavItem(phaseKey) {
+        if (!phaseKey) return null;
+        return document.querySelector(`.nav-item[data-phase="${phaseKey}"]`);
+    }
+
+    function getOpenNavItems() {
+        return Array.from(document.querySelectorAll('.nav-item.open'));
+    }
+
     function derivePhaseColor(phaseKey, ids) {
-        // 1) prova tool phaseColor
         const tById = (window.Toolmap && window.Toolmap.toolsById) || {};
         for (const id of ids) {
             const t = tById[id];
             if (t?.phaseColor) return t.phaseColor;
         }
-        // 2) fallback: dalla fase
         return phaseToColor(phaseKey);
     }
 
-    // ==========================================================================
-    // SEZIONE C · BUILD & RENDER (NAV + CHILDREN)
-    // ==========================================================================
+    // BUILD & RENDER
     function getNodeByPath(obj, path) {
         return path.split('/').reduce((acc, k) => (acc && acc[k] != null ? acc[k] : undefined), obj);
     }
 
     function depthFromPath(path) {
-        const parts = path.split('/');
+        const parts = splitPath(path);
         return Math.max(0, parts.length - 1);
     }
 
-    /**
-     * Crea un contenitore nested per un path
-     * @param {string} pathSlash - Path completo (es: "Phase/Sub/Node")
-     * @param {Object} node - Nodo taxonomy da renderizzare
-     * @param {boolean} animated - Se true, inizia chiuso per animazione
-     * @returns {HTMLDivElement}
-     */
     function createNestedContainer(pathSlash, node, animated = true) {
         const depth = depthFromPath(pathSlash);
         const nest = document.createElement('div');
@@ -354,67 +385,48 @@ const TIMINGS = {
         return nest;
     }
 
-    /**
-     * Chiude un nested container con animazione
-     * @param {HTMLElement} nest - Container da chiudere
-     * @param {Function} onComplete - Callback al termine
-     */
-    function animateNestedClose(nest, onComplete) {
-        const h = nest.scrollHeight;
-        nest.style.maxHeight = h + 'px';
-        nest.style.opacity = '1';
-        nest.style.paddingTop = '2px';
-        forceReflow(nest);
-        nest.style.maxHeight = '0px';
-        nest.style.opacity = '0';
-        nest.style.paddingTop = '0px';
+    // Unificata: apre o chiude con animazione
+    function animateNested(nest, isOpening, onComplete) {
+        if (!nest) return;
 
-        nest.addEventListener('transitionend', () => {
-            nest.remove();
-            if (onComplete) onComplete();
-        }, {once: true});
+        const setStyles = (styles) => Object.entries(styles).forEach(([k, v]) => nest.style[k] = v);
+
+        if (isOpening) {
+            const target = nest.scrollHeight;
+            forceReflow(nest);
+            setStyles({maxHeight: `${target}px`, opacity: '1', paddingTop: '2px'});
+
+            nest.addEventListener('transitionend', () => {
+                if (document.body.contains(nest) && nest.style.opacity === '1') {
+                    nest.style.maxHeight = 'none';
+                }
+                onComplete?.();
+            }, {once: true});
+        } else {
+            const h = nest.scrollHeight;
+            setStyles({maxHeight: `${h}px`, opacity: '1', paddingTop: '2px'});
+            forceReflow(nest);
+            setStyles({maxHeight: '0px', opacity: '0', paddingTop: '0px'});
+
+            nest.addEventListener('transitionend', () => {
+                nest.remove();
+                onComplete?.();
+            }, {once: true});
+        }
     }
 
-    /**
-     * Apre un nested container con animazione
-     * @param {HTMLElement} nest - Container da aprire
-     * @param {Function} onComplete - Callback al termine
-     */
-    function animateNestedOpen(nest, onComplete) {
-        const target = nest.scrollHeight;
-        forceReflow(nest);
-        nest.style.maxHeight = target + 'px';
-        nest.style.opacity = '1';
-        nest.style.paddingTop = '2px';
-
-        const onOpenEnd = () => {
-            nest.removeEventListener('transitionend', onOpenEnd);
-            if (document.body.contains(nest) && nest.style.opacity === '1') {
-                nest.style.maxHeight = 'none';
-            }
-            if (onComplete) onComplete();
-        };
-        nest.addEventListener('transitionend', onOpenEnd);
-    }
-
-    /**
-     * Espande tutti gli antenati di un path e applica highlight + active
-     * @param {HTMLElement} container - Nav item o hover pane
-     * @param {string} pathSlash - Path completo
-     * @param {string} phaseKey - Chiave fase
-     */
     function expandAndHighlightPath(container, pathSlash, phaseKey) {
         if (!container || !pathSlash) return;
 
         expandAncestors(container, pathSlash);
 
-        container.querySelectorAll('.folder-leaf.active, .leaf.active, .section-title.active')
-            .forEach(n => n.classList.remove('active'));
+        container.querySelectorAll(SELECTORS.activeNodes)
+            .forEach(n => n.classList.remove(CLASSES.active));
 
         const activeEl = container.querySelector(
             `.folder-leaf[data-path="${pathSlash}"], .leaf[data-path="${pathSlash}"]`
         );
-        if (activeEl) activeEl.classList.add('active');
+        if (activeEl) activeEl.classList.add(CLASSES.active);
 
         highlightActivePath(phaseKey);
     }
@@ -441,34 +453,32 @@ const TIMINGS = {
         return html;
     }
 
+    // Ottimizzato: loop inverso senza creare array intermedio
     function markLastVisible(container) {
         if (!container) return;
+
         container.querySelectorAll(':scope > .folder-leaf.is-last-visible')
             .forEach(n => n.classList.remove('is-last-visible'));
-        const visibles = Array.from(container.querySelectorAll(':scope > .folder-leaf'))
-            .filter(isNodeVisible);
-        if (visibles.length) visibles[visibles.length - 1].classList.add('is-last-visible');
+
+        const folders = container.querySelectorAll(':scope > .folder-leaf');
+        for (let i = folders.length - 1; i >= 0; i--) {
+            if (isNodeVisible(folders[i])) {
+                folders[i].classList.add('is-last-visible');
+                break;
+            }
+        }
     }
 
-    /**
-     * Aggiorna has-active-path sui container in base ai nodi di ricerca
-     * @param {HTMLElement} root - Il container root da aggiornare (navItem o hoverPane)
-     */
     function updateSearchContainersVLines(root) {
         if (!root) return;
 
         root.querySelectorAll('.children, .children-nested, .hover-root').forEach(container => {
-            // Controlla solo i figli diretti
             const hasSearchNodes = Array.from(container.children).some(child =>
-                child.classList.contains('search-hit') ||
-                child.classList.contains('search-path-intermediate')
+                child.classList.contains(CLASSES.searchHit) ||
+                child.classList.contains(CLASSES.searchIntermediate)
             );
 
-            if (hasSearchNodes) {
-                container.classList.add('has-active-path');
-            } else {
-                container.classList.remove('has-active-path');
-            }
+            container.classList.toggle(CLASSES.hasActivePath, hasSearchNodes);
         });
     }
 
@@ -506,80 +516,70 @@ const TIMINGS = {
         positionFlyouts();
     }
 
+    // Con controllo difensivo
     function forceReflow(element) {
-        if (!element) return;
+        if (!element || !element.offsetHeight) return;
         void element.offsetHeight;
     }
 
-    // ==========================================================================
-    // SEZIONE D · HIGHLIGHT & THEME
-    // ==========================================================================
-    function resetPathHighlight(navItem) {
-        if (!navItem) return;
-        navItem.classList.remove('has-active-path');
-        navItem.querySelectorAll('.folder-leaf').forEach(el => el.classList.remove('in-active-path'));
-        navItem.querySelectorAll('.children-nested').forEach(n => n.classList.remove('has-active-path'));
-    }
+    // HIGHLIGHT & THEME
+    function clearPathHighlight(scope) {
+        if (!scope) return;
 
-    function clearAllPathHighlights() {
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('has-active-path'));
-        document.querySelectorAll('.folder-leaf, .leaf, .section-title')
-            .forEach(el => el.classList.remove('in-active-path', 'active'));
-        document.querySelectorAll('.children, .children-nested')
-            .forEach(n => n.classList.remove('has-active-path'));
-        document.querySelectorAll('.nav-item > .btn.active')
-            .forEach(b => b.classList.remove('active'));
-    }
+        if (scope.classList && scope.classList.contains('nav-item')) {
+            scope.classList.remove(CLASSES.hasActivePath);
+        }
 
-    function clearHighlightInContainer(container) {
-        if (!container) return;
+        scope.querySelectorAll(SELECTORS.pathNodes)
+            .forEach(el => el.classList.remove(CLASSES.inActivePath, CLASSES.active));
 
-        container.querySelectorAll('.folder-leaf, .leaf, .section-title')
-            .forEach(el => el.classList.remove('in-active-path', 'active'));
+        scope.querySelectorAll(SELECTORS.containers)
+            .forEach(n => n.classList.remove(CLASSES.hasActivePath));
 
-        container.querySelectorAll('.children, .children-nested')
-            .forEach(n => n.classList.remove('has-active-path'));
+        if (scope === document) {
+            scope.querySelectorAll('.nav-item').forEach(i => i.classList.remove(CLASSES.hasActivePath));
+            scope.querySelectorAll('.nav-item > .btn.active')
+                .forEach(b => b.classList.remove(CLASSES.active));
+        }
     }
 
     function highlightActivePath(phaseKey) {
         const sb = document.getElementById('sidebar');
-        if (sb && sb.classList.contains('search-mode')) return; // niente highlight in ricerca
+        if (sb && sb.classList.contains(CLASSES.searchMode)) return;
 
-        const navItem = document.querySelector(`.nav-item[data-phase="${phaseKey}"]`);
+        const navItem = getNavItem(phaseKey);
         if (!navItem) return;
 
         const activeSlash = getActivePathSlash(phaseKey);
         if (!activeSlash) {
-            navItem.classList.remove('has-active-path');
-            resetPathHighlight(navItem);
+            navItem.classList.remove(CLASSES.hasActivePath);
+            clearPathHighlight(navItem);
             return;
         }
 
-        navItem.classList.add('has-active-path');
-        const parts = activeSlash.split('/');
+        navItem.classList.add(CLASSES.hasActivePath);
+        const parts = splitPath(activeSlash);
 
-        // Rimuovi solo nella fase CORRENTE
-        navItem.querySelectorAll('.folder-leaf').forEach(el => el.classList.remove('in-active-path'));
+        navItem.querySelectorAll('.folder-leaf').forEach(el => el.classList.remove(CLASSES.inActivePath));
 
         for (let i = 1; i <= parts.length; i++) {
             const partial = parts.slice(0, i).join('/');
             const node = navItem.querySelector(`.folder-leaf[data-path="${partial}"]`);
-            if (node) node.classList.add('in-active-path');
+            if (node) node.classList.add(CLASSES.inActivePath);
         }
 
         navItem.querySelectorAll('.children-nested').forEach(n => {
-            if (n.querySelector('.folder-leaf.in-active-path')) n.classList.add('has-active-path');
-            else n.classList.remove('has-active-path');
+            if (n.querySelector(`.folder-leaf.${CLASSES.inActivePath}`)) n.classList.add(CLASSES.hasActivePath);
+            else n.classList.remove(CLASSES.hasActivePath);
         });
 
-        // Applica active al nodo finale nella fase corrente
-        navItem.querySelectorAll('.folder-leaf.active, .leaf.active').forEach(n => n.classList.remove('active'));
+        QueryHelpers.clearActive(navItem);
         const finalNode = navItem.querySelector(`.folder-leaf[data-path="${activeSlash}"], .leaf[data-path="${activeSlash}"]`);
-        if (finalNode) finalNode.classList.add('active');
+        if (finalNode) finalNode.classList.add(CLASSES.active);
     }
 
     function applyPhaseThemeToPane(pane, phaseKey) {
-        const navItem = document.querySelector(`.nav-item[data-phase="${phaseKey}"]`);
+        const navItem = getNavItem(phaseKey);
         if (!navItem || !pane) return;
 
         const cs = getComputedStyle(navItem);
@@ -595,26 +595,22 @@ const TIMINGS = {
     }
 
     function highlightPathInContainer(container, activeSlash) {
-        const sb = document.getElementById('sidebar');
-        const inSearch = !!(sb && sb.classList.contains('search-mode'));
-        // NEW — in search-mode: nessun highlight di percorso in NAV né in HOVER
+        const inSearch = isSearchMode();
         if (inSearch) {
             activeSlash = null;
         }
         if (!container) return;
 
-        // reset
-        container.querySelectorAll('.folder-leaf, .leaf, .section-title')
-            .forEach(el => el.classList.remove('in-active-path'));
-        container.querySelectorAll('.children, .children-nested')
-            .forEach(n => n.classList.remove('has-active-path'));
+        container.querySelectorAll(SELECTORS.pathNodes)
+            .forEach(el => el.classList.remove(CLASSES.inActivePath));
+        container.querySelectorAll(SELECTORS.containers)
+            .forEach(n => n.classList.remove(CLASSES.hasActivePath));
 
         if (!activeSlash) return;
 
-        const parts = activeSlash.split('/');
+        const parts = splitPath(activeSlash);
         const targets = [];
 
-        // Cerca TUTTI i segmenti del path, inclusa la fase root
         for (let i = 1; i <= parts.length; i++) {
             const partial = parts.slice(0, i).join('/');
             const node = container.querySelector(
@@ -625,25 +621,18 @@ const TIMINGS = {
             }
         }
 
-        // Applica la classe
-        targets.forEach(n => n.classList.add('in-active-path'));
+        targets.forEach(n => n.classList.add(CLASSES.inActivePath));
 
-        // Aggiorna i container
-        container.querySelectorAll('.children, .children-nested').forEach(n => {
+        container.querySelectorAll(SELECTORS.containers).forEach(n => {
             const directNodes = Array.from(
                 n.querySelectorAll(':scope > .leaf, :scope > .folder-leaf, :scope > .section-title')
             );
-            const should = directNodes.some(el => el.classList.contains('in-active-path'));
-            n.classList.toggle('has-active-path', should);
+            const should = directNodes.some(el => el.classList.contains(CLASSES.inActivePath));
+            n.classList.toggle(CLASSES.hasActivePath, should);
         });
     }
 
-    // ==========================================================================
-    // SEZIONE E · SYNC ESPANSIONI (NAV / HOVER-PANE)
-    // ==========================================================================
-    /** @param {Document|HTMLElement|Element} container
-     * @param path
-     */
+    // SYNC ESPANSIONI
     function ensureExpandedInContainer(container, path) {
         const leaf = container.querySelector(`.folder-leaf[data-path="${path}"]`);
         if (!leaf) return;
@@ -654,19 +643,13 @@ const TIMINGS = {
         const node = getNodeByPath(taxonomy, path);
         if (!hasChildrenNode(node)) return;
 
-        // ========== PATCH 2: USA createNestedContainer ==========
-        const nest = createNestedContainer(path, node, false); // NO animazione
-        // ========== FINE PATCH 2 ==========
-
+        const nest = createNestedContainer(path, node, false);
         leaf.after(nest);
         markLastVisible(leaf.parentElement);
         markLastVisible(nest);
         attachFolderLeafDrilldown(nest);
     }
 
-    /** @param {Document|HTMLElement|Element} container
-     * @param phaseKey
-     */
     function expandFromMemoryInContainer(container, phaseKey) {
         getExpandedPaths(phaseKey).forEach(p => ensureExpandedInContainer(container, p));
         refreshAllVLinesDebounced(container);
@@ -675,11 +658,10 @@ const TIMINGS = {
         if (!container) return;
 
         if (container.classList && container.classList.contains('hover-pane')) {
-            // non impostare .active se siamo in search-mode (sidebar o pane)
             const sbEl = document.getElementById('sidebar');
             const inSearch =
-                !!(sbEl && sbEl.classList.contains('search-mode')) ||
-                container.classList.contains('search-mode');
+                !!(sbEl && sbEl.classList.contains(CLASSES.searchMode)) ||
+                container.classList.contains(CLASSES.searchMode);
 
             highlightPathInContainer(container, current);
 
@@ -688,9 +670,8 @@ const TIMINGS = {
                     container.querySelector(`.folder-leaf[data-path="${current}"]`) ||
                     container.querySelector(`.leaf[data-path="${current}"]`);
                 if (last) {
-                    container.querySelectorAll('.folder-leaf.active, .leaf.active')
-                        .forEach(n => n.classList.remove('active'));
-                    last.classList.add('active');
+                    QueryHelpers.clearActive(container);
+                    last.classList.add(CLASSES.active);
                 }
             }
         } else {
@@ -699,19 +680,15 @@ const TIMINGS = {
         window.SidebarAutoGrow?.schedule();
     }
 
-    // ==========================================================================
-    // SEZIONE F · DISPATCH FILTRO (tm:scope:set) + COLORE FASE
-    // ==========================================================================
+    // DISPATCH FILTRO
     function dispatchScopeAndPhase(slashPath, opts = {}) {
-        const phaseKey = slashPath.split('/')[0];
+        const phaseKey = getPhaseFromPath(slashPath);
         const {pathKey, ids} = resolveToolIdsForSlashPath(slashPath);
 
-        // salva memoria globale (ma NON durante la search)
         const sidebarEl = document.getElementById('sidebar');
-        const inSearch = !!(sidebarEl && sidebarEl.classList.contains('search-mode'));
+        const inSearch = !!(sidebarEl && sidebarEl.classList.contains(CLASSES.searchMode));
 
-        // Salva memoria PER-FASE prima di aggiornare quella globale
-        const currentPhase = slashPath.split('/')[0];
+        const currentPhase = getPhaseFromPath(slashPath);
         setActivePathSlash(currentPhase, slashPath);
 
         if (!inSearch) {
@@ -719,19 +696,15 @@ const TIMINGS = {
             if (pathKey) localStorage.setItem(MEM.pathKey, pathKey);
             else localStorage.removeItem(MEM.pathKey);
         } else {
-            // tieni traccia solo come temporaneo
             localStorage.setItem(MEM.searchTempSlash, slashPath);
         }
-        // Notifica filtro + colore fase
+
         window.dispatchEvent(new CustomEvent('tm:scope:set', {detail: {pathKey, ids, ...opts}}));
         const color = derivePhaseColor(phaseKey, ids);
         window.dispatchEvent(new CustomEvent('tm:phase:color', {detail: {color}}));
     }
 
-    // ==========================================================================
-    // SEZIONE G · INTERAZIONE NEL NAV (sidebar aperta) + TOGGLES
-    // ==========================================================================
-    /** @param {Document|HTMLElement|Element} [scope=document] */
+    // INTERAZIONE NEL NAV
     function attachFolderLeafDrilldown(scope = document) {
         scope.querySelectorAll('.children .folder-leaf').forEach(el => {
             if (el.dataset._drillbound) return;
@@ -743,32 +716,26 @@ const TIMINGS = {
                 const pathSlash = el.dataset.path;
                 const node = getNodeByPath(taxonomy, pathSlash);
                 const hasKids = hasChildrenNode(node);
-                const phaseKey = pathSlash.split('/')[0];
+                const phaseKey = getPhaseFromPath(pathSlash);
 
-                // Salva e preserva lo stato di TUTTE le altre fasi (SOLO colori, NO background)
                 Object.keys(taxonomy).forEach(otherPhase => {
                     if (otherPhase !== phaseKey) {
                         const otherActive = getActivePathSlash(otherPhase);
                         const otherNavItem = document.querySelector(`.nav-item[data-phase="${otherPhase}"]`);
                         if (otherActive && otherNavItem) {
-                            // Preserva in-active-path (colori)
                             const otherParts = otherActive.split('/');
                             for (let i = 1; i <= otherParts.length; i++) {
                                 const partial = otherParts.slice(0, i).join('/');
                                 const node = otherNavItem.querySelector(`.folder-leaf[data-path="${partial}"]`);
-                                if (node && !node.classList.contains('in-active-path')) {
-                                    node.classList.add('in-active-path');
+                                if (node && !node.classList.contains(CLASSES.inActivePath)) {
+                                    node.classList.add(CLASSES.inActivePath);
                                 }
                             }
-                            // RIMUOVI active dalle altre fasi (NO background)
-                            otherNavItem.querySelectorAll('.folder-leaf.active, .leaf.active').forEach(n => {
-                                n.classList.remove('active');
-                            });
-                            // Preserva has-active-path sui container (per linee verticali)
-                            otherNavItem.classList.add('has-active-path');
+                            QueryHelpers.clearActive(otherNavItem);
+                            otherNavItem.classList.add(CLASSES.hasActivePath);
                             otherNavItem.querySelectorAll('.children-nested').forEach(n => {
-                                if (n.querySelector('.folder-leaf.in-active-path')) {
-                                    n.classList.add('has-active-path');
+                                if (n.querySelector(`.folder-leaf.${CLASSES.inActivePath}`)) {
+                                    n.classList.add(CLASSES.hasActivePath);
                                 }
                             });
                         }
@@ -776,37 +743,31 @@ const TIMINGS = {
                 });
 
                 setActivePathSlash(phaseKey, pathSlash);
-                const inSearch = document.getElementById('sidebar')?.classList.contains('search-mode');
-
+                const inSearch = isSearchMode();
                 const currentNavItem = el.closest('.nav-item');
                 if (currentNavItem) {
-                    currentNavItem.querySelectorAll('.leaf.active, .folder-leaf.active, .section-title.active')
-                        .forEach(n => n.classList.remove('active'));
+                    QueryHelpers.clearActive(currentNavItem);
                 }
-                if (!inSearch) el.classList.add('active');
+                if (!inSearch) el.classList.add(CLASSES.active);
                 if (!inSearch) highlightActivePath(phaseKey);
 
                 dispatchScopeAndPhase(pathSlash, {source: 'sidebar'});
 
-                // BG sull'ultimo cliccato — NON in search-mode
                 if (currentNavItem) {
-                    currentNavItem.querySelectorAll('.leaf.active, .folder-leaf.active, .section-title.active')
-                        .forEach(n => n.classList.remove('active'));
+                    QueryHelpers.clearActive(currentNavItem);
                 }
-                if (!inSearch) el.classList.add('active');
+                if (!inSearch) el.classList.add(CLASSES.active);
 
-                // Se terminale → fine
                 if (!hasKids) {
                     refreshAllVLinesDebounced();
                     return;
                 }
 
-                // Toggle nested
                 const next = el.nextElementSibling;
                 const isOpen = !!(next && next.classList.contains('children-nested') && next.dataset.parent === pathSlash);
 
                 if (isOpen) {
-                    animateNestedClose(next, () => {
+                    animateNested(next, false, () => {
                         markLastVisible(el.parentElement);
                         highlightActivePath(phaseKey);
                         collapseSubtree(phaseKey, pathSlash);
@@ -815,12 +776,13 @@ const TIMINGS = {
                     });
                     return;
                 }
+
                 const nest = createNestedContainer(pathSlash, node, true);
                 el.after(nest);
                 markLastVisible(el.parentElement);
                 markLastVisible(nest);
 
-                animateNestedOpen(nest, () => {
+                animateNested(nest, true, () => {
                     highlightActivePath(phaseKey);
                     expandBranch(phaseKey, pathSlash);
                     refreshAllVLinesDebounced();
@@ -834,7 +796,7 @@ const TIMINGS = {
 
     function expandAncestors(container, slashPath) {
         if (!slashPath) return;
-        const parts = slashPath.split('/');
+        const parts = splitPath(slashPath);
         const acc = [];
         for (const p of parts) {
             acc.push(p);
@@ -842,13 +804,9 @@ const TIMINGS = {
         }
     }
 
-    /**
-     * Espande solo i path che fanno parte di una catena di ricerca
-     */
     function expandAncestorsWithHits(container, slashPath, pathArray) {
         if (!slashPath || !pathArray || pathArray.length === 0) return;
 
-        // Espandi tutti gli antenati del path di ricerca (escluso l'ultimo che è il leaf)
         const acc = [];
         for (let i = 0; i < pathArray.length - 1; i++) {
             acc.push(pathArray[i]);
@@ -863,163 +821,52 @@ const TIMINGS = {
                 const navItem = btn.closest('.nav-item');
                 const phaseKey = navItem.dataset.phase;
 
-                // Blocca click su fasi disabilitate in search-mode
                 const sidebar = document.getElementById('sidebar');
-                const inSearch = sidebar && sidebar.classList.contains('search-mode');
+                const inSearch = sidebar && sidebar.classList.contains(CLASSES.searchMode);
                 if (inSearch && navItem.classList.contains('search-disabled')) {
-                    return; // Fase disabilitata, ignora il click
-                }
-
-                const wasOpen = navItem.classList.contains('open');
-
-                // Se sidebar collapsed: aprila ma NON cambiare il filtro attivo
-                if (sidebar && sidebar.classList.contains('collapsed')) {
-                    sidebar.classList.remove('collapsed');
-                    localStorage.setItem(MEM.collapsed, '0');
-                    hideHoverPane();
-
-                    // Chiudi eventuali altre fasi aperte (coerenza visiva)
-                    document.querySelectorAll('.nav-item.open').forEach(item => {
-                        if (item !== navItem) {
-                            item.classList.remove('open');
-                            item.querySelector('.btn')?.classList.remove('active');
-                            resetPathHighlight(item);
-                        }
-                    });
-
-                    navItem.classList.add('open');
-                    btn.classList.add('active');
-
-                    // ripulisci nested stantii, poi ricostruisci da memoria
-                    navItem.querySelectorAll('.children-nested').forEach(n => n.remove());
-
-                    // Se in search-mode, ri-applica le espansioni della ricerca
-                    if (inSearch) {
-                        const lastCtx = window.__lastSearchContext;
-                        if (lastCtx && lastCtx.hasQuery && lastCtx.paths) {
-                            // Trova i path relativi a questa fase
-                            const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phaseKey);
-
-                            // Espandi tutti i path di ricerca per questa fase
-                            for (const arr of phasePaths) {
-                                if (!arr || arr.length === 0) continue;
-                                const slash = arr.join('/');
-                                expandAncestorsWithHits(navItem, slash, arr);
-                            }
-
-                            // Marca i nodi: terminali come search-hit, intermedi come search-path-intermediate
-                            for (const arr of phasePaths) {
-                                // Marca l'ultimo nodo (terminale con tools)
-                                const fullPath = arr.join('/');
-                                const terminalNode = navItem.querySelector(
-                                    `.folder-leaf[data-path="${fullPath}"], .leaf[data-path="${fullPath}"]`
-                                );
-                                if (terminalNode) {
-                                    terminalNode.classList.add('search-hit');
-                                }
-
-                                // Marca gli intermedi
-                                const parts = [];
-                                for (let i = 0; i < arr.length - 1; i++) {
-                                    parts.push(arr[i]);
-                                    const partial = parts.join('/');
-                                    const node = navItem.querySelector(
-                                        `.folder-leaf[data-path="${partial}"], .leaf[data-path="${partial}"]`
-                                    );
-                                    if (node) {
-                                        node.classList.add('search-path-intermediate');
-                                    }
-                                }
-                            }
-                            updateSearchContainersVLines(navItem);
-                        }
-                    } else {
-                        // Comportamento normale: espandi da memoria
-                        expandFromMemoryInContainer(navItem, phaseKey);
-                    }
-
-                    window.SidebarAutoGrow?.schedule();
-
-                    const current = getActivePathSlash(phaseKey);
-                    if (current && typeof current === 'string') {
-                        highlightActivePath(phaseKey);
-                        dispatchScopeAndPhase(current, {source: 'sidebar'});
-                    } else {
-                        const slash = phaseKey; // solo la fase come selezione minima
-                        setActivePathSlash(phaseKey, slash);
-                        highlightActivePath(phaseKey);
-                        dispatchScopeAndPhase(slash, {source: 'sidebar'});
-                    }
-                    // Allinea l'UI al nodo attivo (se esiste) o almeno alla fase
-                    let targetSlash = getActivePathSlash(phaseKey) || phaseKey;
-                    if (!inSearch && targetSlash !== phaseKey) {
-                        // Solo se NON in search: espandi path attivo normale
-                        expandAncestors(navItem, targetSlash);
-                        navItem.querySelectorAll('.folder-leaf.active, .leaf.active, .section-title.active')
-                            .forEach(n => n.classList.remove('active'));
-                        const activeEl = navItem.querySelector(`.folder-leaf[data-path="${targetSlash}"], .leaf[data-path="${targetSlash}"]`);
-                        if (activeEl) activeEl.classList.add('active');
-                    }
-
-                    if (!inSearch) {
-                        highlightActivePath(phaseKey);
-                        dispatchScopeAndPhase(targetSlash, {source: 'sidebar'});
-                    }
-
-                    // opzionale: porta il focus sul bottone per rendere evidente lo stato
-                    btn.focus?.();
-
-                    requestAnimationFrame(() => {
-                        if (!inSearch) highlightActivePath(phaseKey);
-                        refreshAllVLinesDebounced(navItem);
-                    });
                     return;
                 }
 
-                // Chiudi altre fasi SOLO se NON in search-mode
-                if (!inSearch) {
+                const wasOpen = navItem.classList.contains(CLASSES.open);
+
+                if (sidebar && sidebar.classList.contains(CLASSES.collapsed)) {
+                    sidebar.classList.remove(CLASSES.collapsed);
+                    localStorage.setItem(MEM.collapsed, '0');
+                    hideHoverPane();
+
                     document.querySelectorAll('.nav-item.open').forEach(item => {
                         if (item !== navItem) {
-                            item.classList.remove('open');
-                            item.querySelector('.btn')?.classList.remove('active');
-                            resetPathHighlight(item);
+                            item.classList.remove(CLASSES.open);
+                            item.querySelector('.btn')?.classList.remove(CLASSES.active);
+                            clearPathHighlight(item);
                         }
                     });
-                }
 
-                if (!wasOpen) {
-                    navItem.classList.add('open');
-                    btn.classList.add('active');
+                    navItem.classList.add(CLASSES.open);
+                    btn.classList.add(CLASSES.active);
 
-                    // PATCH: In search-mode, espandi i path di ricerca
+                    navItem.querySelectorAll('.children-nested').forEach(n => n.remove());
+
                     if (inSearch) {
                         const lastCtx = window.__lastSearchContext;
                         if (lastCtx && lastCtx.hasQuery && lastCtx.paths) {
-                            // Rimuovi nested esistenti
-                            navItem.querySelectorAll('.children-nested').forEach(nest => nest.remove());
-
-                            // Filtra i path per questa fase
                             const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phaseKey);
 
-                            // Espandi tutti i path di ricerca per questa fase
                             for (const arr of phasePaths) {
                                 if (!arr || arr.length === 0) continue;
                                 const slash = arr.join('/');
                                 expandAncestorsWithHits(navItem, slash, arr);
                             }
 
-                            // Marca i nodi: terminali come search-hit, intermedi come search-path-intermediate
                             for (const arr of phasePaths) {
-                                // Marca l'ultimo nodo (terminale con tools)
                                 const fullPath = arr.join('/');
                                 const terminalNode = navItem.querySelector(
                                     `.folder-leaf[data-path="${fullPath}"], .leaf[data-path="${fullPath}"]`
                                 );
                                 if (terminalNode) {
-                                    terminalNode.classList.add('search-hit');
+                                    terminalNode.classList.add(CLASSES.searchHit);
                                 }
 
-                                // Marca gli intermedi
                                 const parts = [];
                                 for (let i = 0; i < arr.length - 1; i++) {
                                     parts.push(arr[i]);
@@ -1028,19 +875,16 @@ const TIMINGS = {
                                         `.folder-leaf[data-path="${partial}"], .leaf[data-path="${partial}"]`
                                     );
                                     if (node) {
-                                        node.classList.add('search-path-intermediate');
+                                        node.classList.add(CLASSES.searchIntermediate);
                                     }
                                 }
                             }
                             updateSearchContainersVLines(navItem);
 
-                            // NUOVA PATCH: Ricalcola e mostra i tool delle fasi aperte
-                            setTimeout(() => {
-                                const openPhases = Array.from(document.querySelectorAll('.nav-item.open'))
-                                    .map(item => item.dataset.phase);
+                            requestAnimationFrame(() => {
+                                const openPhases = getOpenNavItems().map(item => item.dataset.phase);
 
                                 if (openPhases.length === 0) {
-                                    // Nessuna fase aperta: mostra tutti i tool della ricerca
                                     const allToolIds = new Set();
                                     if (lastCtx.paths) {
                                         lastCtx.paths.forEach(pathArr => {
@@ -1060,7 +904,6 @@ const TIMINGS = {
                                         }
                                     }));
                                 } else {
-                                    // Fasi aperte: mostra solo i tool di quelle fasi
                                     const phaseToolIds = new Set();
 
                                     openPhases.forEach(phase => {
@@ -1081,46 +924,175 @@ const TIMINGS = {
                                         }
                                     }));
                                 }
-                            }, 50);
+                            });
                         }
                     } else {
-                        // Modalità normale: comportamento originale
+                        expandFromMemoryInContainer(navItem, phaseKey);
+                    }
+
+                    window.SidebarAutoGrow?.schedule();
+
+                    const current = getActivePathSlash(phaseKey);
+                    if (current && typeof current === 'string') {
+                        highlightActivePath(phaseKey);
+                        dispatchScopeAndPhase(current, {source: 'sidebar'});
+                    } else {
+                        const slash = phaseKey;
+                        setActivePathSlash(phaseKey, slash);
+                        highlightActivePath(phaseKey);
+                        dispatchScopeAndPhase(slash, {source: 'sidebar'});
+                    }
+
+                    let targetSlash = getActivePathSlash(phaseKey) || phaseKey;
+                    if (!inSearch && targetSlash !== phaseKey) {
+                        expandAncestors(navItem, targetSlash);
+                        QueryHelpers.clearActive(navItem);
+                        const activeEl = navItem.querySelector(`.folder-leaf[data-path="${targetSlash}"], .leaf[data-path="${targetSlash}"]`);
+                        if (activeEl) activeEl.classList.add(CLASSES.active);
+                    }
+
+                    if (!inSearch) {
+                        highlightActivePath(phaseKey);
+                        dispatchScopeAndPhase(targetSlash, {source: 'sidebar'});
+                    }
+
+                    btn.focus?.();
+
+                    requestAnimationFrame(() => {
+                        if (!inSearch) highlightActivePath(phaseKey);
+                        refreshAllVLinesDebounced(navItem);
+                    });
+                    return;
+                }
+
+                if (!inSearch) {
+                    document.querySelectorAll('.nav-item.open').forEach(item => {
+                        if (item !== navItem) {
+                            item.classList.remove(CLASSES.open);
+                            item.querySelector('.btn')?.classList.remove(CLASSES.active);
+                            clearPathHighlight(item);
+                        }
+                    });
+                }
+
+                if (!wasOpen) {
+                    navItem.classList.add(CLASSES.open);
+                    btn.classList.add(CLASSES.active);
+
+                    if (inSearch) {
+                        const lastCtx = window.__lastSearchContext;
+                        if (lastCtx && lastCtx.hasQuery && lastCtx.paths) {
+                            navItem.querySelectorAll('.children-nested').forEach(nest => nest.remove());
+
+                            const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phaseKey);
+
+                            for (const arr of phasePaths) {
+                                if (!arr || arr.length === 0) continue;
+                                const slash = arr.join('/');
+                                expandAncestorsWithHits(navItem, slash, arr);
+                            }
+
+                            for (const arr of phasePaths) {
+                                const fullPath = arr.join('/');
+                                const terminalNode = navItem.querySelector(
+                                    `.folder-leaf[data-path="${fullPath}"], .leaf[data-path="${fullPath}"]`
+                                );
+                                if (terminalNode) {
+                                    terminalNode.classList.add(CLASSES.searchHit);
+                                }
+
+                                const parts = [];
+                                for (let i = 0; i < arr.length - 1; i++) {
+                                    parts.push(arr[i]);
+                                    const partial = parts.join('/');
+                                    const node = navItem.querySelector(
+                                        `.folder-leaf[data-path="${partial}"], .leaf[data-path="${partial}"]`
+                                    );
+                                    if (node) {
+                                        node.classList.add(CLASSES.searchIntermediate);
+                                    }
+                                }
+                            }
+                            updateSearchContainersVLines(navItem);
+
+                            requestAnimationFrame(() => {
+                                const openPhases = getOpenNavItems().map(item => item.dataset.phase);
+
+                                if (openPhases.length === 0) {
+                                    const allToolIds = new Set();
+                                    if (lastCtx.paths) {
+                                        lastCtx.paths.forEach(pathArr => {
+                                            if (!pathArr || pathArr.length === 0) return;
+                                            const slash = pathArr.join('/');
+                                            const {ids} = resolveToolIdsForSlashPath(slash);
+                                            ids.forEach(id => allToolIds.add(id));
+                                        });
+                                    }
+
+                                    window.dispatchEvent(new CustomEvent('tm:scope:set', {
+                                        detail: {
+                                            ids: Array.from(allToolIds),
+                                            pathKey: 'search:all',
+                                            all: false,
+                                            source: 'search-phase-all-closed'
+                                        }
+                                    }));
+                                } else {
+                                    const phaseToolIds = new Set();
+
+                                    openPhases.forEach(phase => {
+                                        const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phase);
+                                        phasePaths.forEach(pathArr => {
+                                            const slash = pathArr.join('/');
+                                            const {ids} = resolveToolIdsForSlashPath(slash);
+                                            ids.forEach(id => phaseToolIds.add(id));
+                                        });
+                                    });
+
+                                    window.dispatchEvent(new CustomEvent('tm:scope:set', {
+                                        detail: {
+                                            ids: Array.from(phaseToolIds),
+                                            pathKey: `search:phases:${openPhases.join(',')}`,
+                                            all: false,
+                                            source: 'search-phases-open'
+                                        }
+                                    }));
+                                }
+                            });
+                        }
+                    } else {
                         highlightActivePath(phaseKey);
                         expandFromMemoryInContainer(navItem, phaseKey);
 
-                        // Se c'è un 'ultimo nodo visitato' per questa fase, attivalo subito
                         const last = getActivePathSlash(phaseKey);
                         if (last && typeof last === 'string') {
-                            navItem.querySelectorAll('.folder-leaf.active, .leaf.active, .section-title.active').forEach(n => n.classList.remove('active'));
+                            QueryHelpers.clearActive(navItem);
                             const lastEl = navItem.querySelector(`.folder-leaf[data-path="${last}"], .leaf[data-path="${last}"]`);
-                            if (lastEl) lastEl.classList.add('active');
+                            if (lastEl) lastEl.classList.add(CLASSES.active);
                             dispatchScopeAndPhase(last, {source: 'sidebar'});
                             highlightActivePath(phaseKey);
                         }
 
                         const current = getActivePathSlash(phaseKey);
                         if (!current) {
-                            const slash = phaseKey; // solo fase
+                            const slash = phaseKey;
                             setActivePathSlash(phaseKey, slash);
                             highlightActivePath(phaseKey);
                             dispatchScopeAndPhase(slash, {source: 'sidebar'});
                         }
                     }
                 } else {
-                    navItem.classList.remove('open');
-                    btn.classList.remove('active');
-                    resetPathHighlight(navItem);
+                    navItem.classList.remove(CLASSES.open);
+                    btn.classList.remove(CLASSES.active);
+                    clearPathHighlight(navItem);
 
                     if (inSearch) {
-                        // PATCH: Ricalcola tool quando chiudi una fase
                         const lastCtx = window.__lastSearchContext;
                         if (lastCtx && lastCtx.hasQuery && lastCtx.paths) {
-                            setTimeout(() => {
-                                const openPhases = Array.from(document.querySelectorAll('.nav-item.open'))
-                                    .map(item => item.dataset.phase);
+                            requestAnimationFrame(() => {
+                                const openPhases = getOpenNavItems().map(item => item.dataset.phase);
 
                                 if (openPhases.length === 0) {
-                                    // Nessuna fase aperta: mostra tutti i tool della ricerca
                                     const allToolIds = new Set();
                                     lastCtx.paths.forEach(pathArr => {
                                         if (!pathArr || pathArr.length === 0) return;
@@ -1138,7 +1110,6 @@ const TIMINGS = {
                                         }
                                     }));
                                 } else {
-                                    // Fasi aperte: mostra solo i tool di quelle fasi
                                     const phaseToolIds = new Set();
 
                                     openPhases.forEach(phase => {
@@ -1159,16 +1130,15 @@ const TIMINGS = {
                                         }
                                     }));
                                 }
-                            }, 50);
+                            });
                         }
                     }
                 }
             });
 
-            // Hover → riquadro quando sidebar è collapsed
             btn.addEventListener('mouseenter', () => {
                 const sidebarEl = document.getElementById('sidebar');
-                if (sidebarEl && sidebarEl.classList.contains('collapsed')) {
+                if (sidebarEl && sidebarEl.classList.contains(CLASSES.collapsed)) {
                     const navItem = btn.closest('.nav-item');
                     const phaseKey = navItem.dataset.phase;
                     const phaseData = taxonomy[phaseKey];
@@ -1176,25 +1146,20 @@ const TIMINGS = {
                         clearTimeout(hoverTimeout);
 
                         const lastCtx = window.__lastSearchContext;
-                        const inSearch = sidebarEl.classList.contains('search-mode');
+                        const inSearch = sidebarEl.classList.contains(CLASSES.searchMode);
 
-                        // Se in search-mode, verifica che la fase abbia risultati
                         if (inSearch && lastCtx && lastCtx.hasQuery) {
-                            // Controlla se questa fase ha risultati
                             const phasePaths = (lastCtx.paths || []).filter(arr => arr && arr[0] === phaseKey);
 
-                            // Se la fase non ha risultati (è disabilitata), NON mostrare l'hover
                             if (phasePaths.length === 0) {
-                                return; // Fase disabilitata, ignora hover
+                                return;
                             }
 
-                            // Mostra hover-pane con i path di questa fase
                             showHoverPaneForNode(btn, phaseData, phaseKey);
 
                             setTimeout(() => {
                                 window.applySearchToHoverPane && window.applySearchToHoverPane(lastCtx);
 
-                                // Filtra i tools per mostrare SOLO quelli di questa fase
                                 const phaseToolIds = new Set();
 
                                 phasePaths.forEach(pathArr => {
@@ -1203,7 +1168,6 @@ const TIMINGS = {
                                     ids.forEach(id => phaseToolIds.add(id));
                                 });
 
-                                // Dispatch evento per filtrare i tools
                                 if (phaseToolIds.size > 0) {
                                     window.dispatchEvent(new CustomEvent('tm:scope:set', {
                                         detail: {
@@ -1216,10 +1180,8 @@ const TIMINGS = {
                                 }
                             }, TIMINGS.searchApply);
                         } else {
-                            // Modalità normale: mostra hover-pane
                             showHoverPaneForNode(btn, phaseData, phaseKey);
 
-                            // Se esiste un ultimo nodo visitato, attivalo
                             const last = getActivePathSlash(phaseKey);
                             if (last && typeof last === 'string') {
                                 dispatchScopeAndPhase(last);
@@ -1231,24 +1193,21 @@ const TIMINGS = {
 
             btn.addEventListener('mouseleave', () => {
                 const sidebarEl = document.getElementById('sidebar');
-                if (sidebarEl && sidebarEl.classList.contains('collapsed')) {
+                if (sidebarEl && sidebarEl.classList.contains(CLASSES.collapsed)) {
                     hoverTimeout = setTimeout(() => {
                         hideHoverPane();
-                        // Se NON in search-mode, ripristina i tools
-                        const inSearch = sidebarEl.classList.contains('search-mode');
+                        const inSearch = sidebarEl.classList.contains(CLASSES.searchMode);
                         if (!inSearch) {
                             const lastSlash = localStorage.getItem(MEM.pathSlash);
                             if (lastSlash) {
                                 dispatchScopeAndPhase(lastSlash, {source: 'hover-leave'});
                             }
                         }
-                        // Se IN search-mode, NON ripristinare: i tools restano quelli della fase
                     }, TIMINGS.hoverDelay);
                 }
             });
         });
 
-        // se il mouse entra nel riquadro, non chiudere
         document.addEventListener('mouseenter', (e) => {
             if (e.target.closest('.hover-pane')) clearTimeout(hoverTimeout);
         }, true);
@@ -1261,7 +1220,7 @@ const TIMINGS = {
             if (!flyout) return;
 
             item.addEventListener('mouseenter', () => {
-                if (!sidebar || !sidebar.classList.contains('collapsed')) return;
+                if (!sidebar || !sidebar.classList.contains(CLASSES.collapsed)) return;
                 const rect = item.getBoundingClientRect();
                 flyout.style.left = `${rect.right + 10}px`;
                 flyout.style.top = `${rect.top}px`;
@@ -1269,9 +1228,7 @@ const TIMINGS = {
         });
     }
 
-    // ==========================================================================
-    // SEZIONE H · SIDEBAR CONTROLS (collapse/open)
-    // ==========================================================================
+    // SIDEBAR CONTROLS
     function attachSidebarControls() {
         const sidebar = document.getElementById('sidebar');
         const collapseBtn = document.getElementById('collapseBtn');
@@ -1280,34 +1237,32 @@ const TIMINGS = {
         const headerActions = document.querySelector('.header-actions');
 
         function applyCollapsedStyle() {
-            const isColl = sidebar.classList.contains('collapsed');
+            const isColl = sidebar.classList.contains(CLASSES.collapsed);
             sidebar.querySelectorAll('.btn').forEach(b => {
                 b.style.gap = isColl ? '0px' : '10px';
             });
             sidebar.querySelectorAll('.toggle, .icon-btn').forEach(el => {
-                if (isColl) el.style.marginLeft = '-10px'; else el.style.removeProperty('margin-left');
+                if (isColl) el.style.marginLeft = '-10px';
+                else el.style.removeProperty('margin-left');
             });
         }
 
         collapseBtn?.addEventListener('click', () => {
-            const now = !sidebar.classList.contains('collapsed');
-            sidebar.classList.toggle('collapsed', now);
+            const now = !sidebar.classList.contains(CLASSES.collapsed);
+            sidebar.classList.toggle(CLASSES.collapsed, now);
             localStorage.setItem(MEM.collapsed, now ? '1' : '0');
             applyCollapsedStyle();
 
             if (now) {
-                // Sidebar si sta chiudendo
                 document.querySelectorAll('.nav-item.open').forEach(item => {
-                    item.classList.remove('open');
-                    item.querySelector('.btn')?.classList.remove('active');
+                    item.classList.remove(CLASSES.open);
+                    item.querySelector('.btn')?.classList.remove(CLASSES.active);
                 });
-                clearAllPathHighlights();
+                clearPathHighlight();
                 hideHoverPane();
             } else {
-                // Sidebar si sta aprendo: nascondi hover-pane
                 hideHoverPane();
             }
-            // NON si altera il filtro attivo: resta valido
             window.dispatchEvent(new CustomEvent('tm:sidebar:toggle', {detail: {collapsed: now}}));
         });
 
@@ -1321,74 +1276,61 @@ const TIMINGS = {
         applyCollapsedStyle();
 
         collapseAllBtn?.addEventListener('click', () => {
-            // Chiudi tutte le fasi
             document.querySelectorAll('.nav-item.open').forEach(item => {
-                item.classList.remove('open');
-                item.querySelector('.btn')?.classList.remove('active');
+                item.classList.remove(CLASSES.open);
+                item.querySelector('.btn')?.classList.remove(CLASSES.active);
             });
 
-            // Rimuovi tutti i nested
             document.querySelectorAll('.children-nested').forEach(n => n.remove());
 
-            // Pulisci highlights
-            clearAllPathHighlights();
+            clearPathHighlight();
             refreshAllVLinesDebounced();
             window.SidebarAutoGrow?.schedule();
         });
 
         expandAllBtn?.addEventListener('click', () => {
             const sb = document.getElementById('sidebar');
-            const inSearch = sb && sb.classList.contains('search-mode');
+            const inSearch = sb && sb.classList.contains(CLASSES.searchMode);
 
-            // MODALITÀ RICERCA
             if (inSearch) {
                 const lastCtx = window.__lastSearchContext;
                 if (!lastCtx || !lastCtx.hasQuery || !lastCtx.paths) return;
 
-                // Raccogli le fasi con risultati
                 const phasesWithResults = new Set();
                 lastCtx.paths.forEach(arr => {
                     if (arr && arr.length > 0) phasesWithResults.add(arr[0]);
                 });
 
-                // Chiudi TUTTE le fasi prima
                 document.querySelectorAll('.nav-item').forEach(item => {
-                    item.classList.remove('open');
-                    item.querySelector('.btn')?.classList.remove('active');
+                    item.classList.remove(CLASSES.open);
+                    item.querySelector('.btn')?.classList.remove(CLASSES.active);
                     item.querySelectorAll('.children-nested').forEach(nest => nest.remove());
                 });
 
-                // Apri SOLO le fasi con risultati ed espandi i path di ricerca
                 phasesWithResults.forEach(phaseKey => {
-                    const item = document.querySelector(`.nav-item[data-phase="${phaseKey}"]`);
+                    const item = getNavItem(phaseKey);
                     if (!item) return;
 
-                    // Apri la fase
-                    item.classList.add('open');
-                    item.querySelector('.btn')?.classList.add('active');
+                    item.classList.add(CLASSES.open);
+                    item.querySelector('.btn')?.classList.add(CLASSES.active);
 
-                    // Filtra i path per questa fase
                     const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phaseKey);
 
-                    // Espandi tutti i path di questa fase
                     for (const arr of phasePaths) {
                         if (!arr || arr.length === 0) continue;
                         const slash = arr.join('/');
                         expandAncestorsWithHits(item, slash, arr);
                     }
 
-                    // Marca i nodi: solo terminali come search-hit, intermedi come search-path-intermediate
                     for (const arr of phasePaths) {
-                        // Marca l'ultimo nodo (terminale con tools)
                         const fullPath = arr.join('/');
                         const terminalNode = item.querySelector(
                             `.folder-leaf[data-path="${fullPath}"], .leaf[data-path="${fullPath}"]`
                         );
                         if (terminalNode) {
-                            terminalNode.classList.add('search-hit');
+                            terminalNode.classList.add(CLASSES.searchHit);
                         }
 
-                        // Marca gli intermedi
                         const parts = [];
                         for (let i = 0; i < arr.length - 1; i++) {
                             parts.push(arr[i]);
@@ -1397,7 +1339,7 @@ const TIMINGS = {
                                 `.folder-leaf[data-path="${partial}"], .leaf[data-path="${partial}"]`
                             );
                             if (node) {
-                                node.classList.add('search-path-intermediate');
+                                node.classList.add(CLASSES.searchIntermediate);
                             }
                         }
                     }
@@ -1429,7 +1371,6 @@ const TIMINGS = {
                 return;
             }
 
-            // MODALITÀ NORMALE
             const globalActiveSlash = localStorage.getItem(MEM.pathSlash);
             const globalActivePhase = globalActiveSlash ? globalActiveSlash.split('/')[0] : null;
 
@@ -1438,14 +1379,13 @@ const TIMINGS = {
                 const btn = item.querySelector('.btn');
                 const isGloballyActive = (phaseKey === globalActivePhase);
 
-                if (!item.classList.contains('open')) {
-                    item.classList.add('open');
-                    btn?.classList.add('active');
+                if (!item.classList.contains(CLASSES.open)) {
+                    item.classList.add(CLASSES.open);
+                    btn?.classList.add(CLASSES.active);
                 }
 
                 const activeSlash = getActivePathSlash(phaseKey);
                 if (activeSlash && typeof activeSlash === 'string') {
-                    // Espandi tutti gli antenati del path attivo
                     const parts = activeSlash.split('/');
                     let acc = [];
                     for (const p of parts) {
@@ -1456,40 +1396,31 @@ const TIMINGS = {
                     }
 
                     if (isGloballyActive) {
-                        // Fase attiva globalmente: usa highlightActivePath normalmente (con active)
                         highlightActivePath(phaseKey);
                     } else {
-                        // Fasi non attive: applica SOLO i colori manualmente, NO active
-                        item.classList.add('has-active-path');
+                        item.classList.add(CLASSES.hasActivePath);
 
-                        // Applica in-active-path ai nodi del percorso
                         for (let i = 1; i <= parts.length; i++) {
                             const partial = parts.slice(0, i).join('/');
                             const node = item.querySelector(`.folder-leaf[data-path="${partial}"]`);
-                            if (node) node.classList.add('in-active-path');
+                            if (node) node.classList.add(CLASSES.inActivePath);
                         }
 
-                        // Aggiorna has-active-path sui container
                         item.querySelectorAll('.children-nested').forEach(n => {
-                            if (n.querySelector('.folder-leaf.in-active-path')) {
-                                n.classList.add('has-active-path');
+                            if (n.querySelector(`.folder-leaf.${CLASSES.inActivePath}`)) {
+                                n.classList.add(CLASSES.hasActivePath);
                             } else {
-                                n.classList.remove('has-active-path');
+                                n.classList.remove(CLASSES.hasActivePath);
                             }
                         });
 
-                        // NON applicare active
-                        item.querySelectorAll('.folder-leaf.active, .leaf.active')
-                            .forEach(n => n.classList.remove('active'));
+                        QueryHelpers.clearActive(item);
                     }
                 } else {
-                    // Nessun path attivo: espandi da memoria esistente
                     expandFromMemoryInContainer(item, phaseKey);
 
-                    // Rimuovi active se non è la fase globale
                     if (!isGloballyActive) {
-                        item.querySelectorAll('.folder-leaf.active, .leaf.active')
-                            .forEach(n => n.classList.remove('active'));
+                        QueryHelpers.clearActive(item);
                     }
                 }
             });
@@ -1498,9 +1429,7 @@ const TIMINGS = {
         });
     }
 
-    // ==========================================================================
-    // SEZIONE I · HOVER-PANE (sidebar chiusa)
-    // ==========================================================================
+    // HOVER-PANE
     let hoverPane = null;
     let hoverTimeout = null;
 
@@ -1515,25 +1444,21 @@ const TIMINGS = {
                 hoverTimeout = setTimeout(() => hideHoverPane(), TIMINGS.hoverDelay);
             });
 
-            // click dentro il riquadro
             hoverPane.addEventListener('click', (e) => {
                 const leaf = e.target.closest('.folder-leaf');
                 if (!leaf || !hoverPane.contains(leaf)) return;
 
                 const pathSlash = leaf.dataset.path;
-                const phaseKey = pathSlash.split('/')[0];
+                const phaseKey = getPhaseFromPath(pathSlash);
                 const node = getNodeByPath(taxonomy, pathSlash);
                 const hasKids = hasChildrenNode(node);
 
-                // Memoria & dispatch filtro
                 setActivePathSlash(phaseKey, pathSlash);
                 dispatchScopeAndPhase(pathSlash, {source: 'hover'});
 
-                // Reset e riapplicazione nell'hover
-                const sb = document.getElementById('sidebar');
-                const inSearch = !!(sb && sb.classList.contains('search-mode'));
+                const inSearch = isSearchMode();
 
-                clearHighlightInContainer(hoverPane);
+                clearPathHighlight(hoverPane);
 
                 document.querySelectorAll('.nav-item').forEach(navItem => {
                     if (navItem.dataset.phase !== phaseKey) {
@@ -1542,21 +1467,19 @@ const TIMINGS = {
                             const activeEl = navItem.querySelector(
                                 `.folder-leaf[data-path="${activeInPhase}"], .leaf[data-path="${activeInPhase}"]`
                             );
-                            if (activeEl && !activeEl.classList.contains('active')) {
-                                activeEl.classList.add('active');
+                            if (activeEl && !activeEl.classList.contains(CLASSES.active)) {
+                                activeEl.classList.add(CLASSES.active);
                             }
                         }
                     }
                 });
 
-                // Reflow
                 forceReflow(hoverPane);
 
                 applyPhaseThemeToPane(hoverPane, phaseKey);
                 forceReflow(hoverPane);
 
-                // Espandi antenati del path cliccato
-                const parts = pathSlash.split('/');
+                const parts = splitPath(pathSlash);
                 let acc = [];
                 for (const p of parts.slice(0, -1)) {
                     acc.push(p);
@@ -1566,9 +1489,9 @@ const TIMINGS = {
 
                 if (!inSearch) {
                     highlightPathInContainer(hoverPane, pathSlash);
-                    leaf.classList.add('active');
+                    leaf.classList.add(CLASSES.active);
                 } else {
-                    hoverPane.classList.add('search-mode');
+                    hoverPane.classList.add(CLASSES.searchMode);
                 }
 
                 highlightActivePath(phaseKey);
@@ -1577,13 +1500,12 @@ const TIMINGS = {
                     refreshAllVLines(hoverPane);
                 });
 
-                // Toggle nested in-place
                 if (hasKids) {
                     const next = leaf.nextElementSibling;
                     const isOpen = !!(next && next.classList.contains('children-nested') && next.dataset.parent === pathSlash);
 
                     if (isOpen) {
-                        animateNestedClose(next, () => {
+                        animateNested(next, false, () => {
                             markLastVisible(leaf.parentElement);
                             collapseSubtree(phaseKey, pathSlash);
                             refreshAllVLinesDebounced(hoverPane);
@@ -1596,12 +1518,13 @@ const TIMINGS = {
                         });
                         return;
                     }
+
                     const nest = createNestedContainer(pathSlash, node, true);
                     leaf.after(nest);
                     markLastVisible(leaf.parentElement);
                     markLastVisible(nest);
 
-                    animateNestedOpen(nest, () => {
+                    animateNested(nest, true, () => {
                         expandBranch(phaseKey, pathSlash);
                         refreshAllVLinesDebounced(hoverPane);
                         window.SidebarAutoGrow?.schedule();
@@ -1627,14 +1550,13 @@ const TIMINGS = {
 
     function hideHoverPane() {
         if (hoverPane) {
-            hoverPane.classList.remove('active');
+            hoverPane.classList.remove(CLASSES.active);
             hoverPane.style.removeProperty('width');
         }
 
         const sidebar = document.getElementById('sidebar');
-        if (sidebar && sidebar.classList.contains('collapsed')) {
+        if (sidebar && sidebar.classList.contains(CLASSES.collapsed)) {
             window.SidebarAutoGrow?.reset();
-            // Resetta anche la misurazione dell'hover
             if (window.SidebarAutoGrow?.apply?._last) {
                 window.SidebarAutoGrow.apply._last = {key: null, value: null};
             }
@@ -1662,12 +1584,9 @@ const TIMINGS = {
 
         const phaseKey = path.includes('/') ? path.split('/')[0] : path;
 
-        // CRITICO: Verifica se siamo in search-mode PRIMA del rebuild
         const lastCtx = window.__lastSearchContext;
-        const sb = document.getElementById('sidebar');
-        const inSearch = !!(sb && sb.classList.contains('search-mode'));
+        const inSearch = isSearchMode();
 
-        // REBUILD del DOM base
         const childrenHTML = buildChildren(node, phaseKey);
         pane.innerHTML = `
           <div class="children children-nested hover-root" data-parent="${phaseKey}" style="--level: 1">
@@ -1682,7 +1601,6 @@ const TIMINGS = {
         applyPhaseThemeToPane(pane, phaseKey);
         forceReflow(pane);
 
-        // Posizione PRIMA di attivare
         const fromPane = !!(element.closest && element.closest('.hover-pane'));
         if (!fromPane) {
             const rect = element.getBoundingClientRect();
@@ -1690,13 +1608,11 @@ const TIMINGS = {
             pane.style.top = `${rect.top}px`;
         }
 
-        // Attiva il pane PRIMA di applicare la search
-        pane.classList.add('active');
+        pane.classList.add(CLASSES.active);
 
         if (inSearch && lastCtx && lastCtx.hasQuery) {
-            pane.classList.add('search-mode');
+            pane.classList.add(CLASSES.searchMode);
 
-            // Applica search DOPO che il pane è attivo
             setTimeout(() => {
                 applySearchToHoverPane(lastCtx);
             }, 10);
@@ -1705,7 +1621,6 @@ const TIMINGS = {
             expandFromMemoryInContainer(pane, phaseKey);
         }
 
-        // Schedule auto-grow
         setTimeout(() => {
             if (window.SidebarAutoGrow) {
                 window.SidebarAutoGrow.schedule();
@@ -1721,7 +1636,7 @@ const TIMINGS = {
                 if (currentSlash) {
                     highlightPathInContainer(pane, currentSlash);
                     const activeLeaf = pane.querySelector(`.folder-leaf[data-path="${currentSlash}"], .leaf[data-path="${currentSlash}"]`);
-                    if (activeLeaf) activeLeaf.classList.add('active');
+                    if (activeLeaf) activeLeaf.classList.add(CLASSES.active);
                 }
             }
             refreshAllVLines(pane);
@@ -1729,32 +1644,24 @@ const TIMINGS = {
         });
     }
 
-    // === RICERCA: modalità "ghost" + disable non-matching ===
+    // RICERCA
     (function () {
         const SIDEBAR = document.getElementById('sidebar');
         const NAV = document.getElementById('nav');
         if (!SIDEBAR || !NAV) return;
 
         function clearSearchGhost() {
-            SIDEBAR.classList.remove('search-mode');
+            SIDEBAR.classList.remove(CLASSES.searchMode);
             NAV.querySelectorAll('.nav-item').forEach(item => {
                 item.style.removeProperty('display');
-                item.classList.remove('search-disabled'); // NUOVO
+                item.classList.remove('search-disabled');
                 const b = item.querySelector('.btn .search-badge');
                 if (b) b.remove();
-                item.querySelectorAll('.folder-leaf.search-hit, .leaf.search-hit').forEach(el => {
-                    el.classList.remove('search-hit');
-                });
-                item.querySelectorAll('.folder-leaf.search-path-intermediate, .leaf.search-path-intermediate').forEach(el => {
-                    el.classList.remove('search-path-intermediate');
-                });
+                QueryHelpers.clearSearchMarks(item);
             });
-            // Clear anche hover-pane se visibile
-            if (hoverPane && hoverPane.classList.contains('active')) {
-                hoverPane.classList.remove('search-mode');
-                hoverPane.querySelectorAll('.folder-leaf.search-hit, .leaf.search-hit').forEach(el => {
-                    el.classList.remove('search-hit');
-                });
+            if (hoverPane && hoverPane.classList.contains(CLASSES.active)) {
+                hoverPane.classList.remove(CLASSES.searchMode);
+                QueryHelpers.clearSearchMarks(hoverPane);
             }
             refreshAllVLinesDebounced();
             window.SidebarAutoGrow?.schedule();
@@ -1767,74 +1674,58 @@ const TIMINGS = {
                 return;
             }
 
-            SIDEBAR.classList.add('search-mode');
+            SIDEBAR.classList.add(CLASSES.searchMode);
 
-            // pulizia difensiva in NAV: nessun active/percorso residuo durante la ricerca
-            NAV.querySelectorAll('.leaf.active, .folder-leaf.active, .section-title.active')
-                .forEach(el => el.classList.remove('active'));
-            NAV.querySelectorAll('.leaf.in-active-path, .folder-leaf.in-active-path')
-                .forEach(el => el.classList.remove('in-active-path'));
-            NAV.querySelectorAll('.children, .children-nested')
-                .forEach(n => n.classList.remove('has-active-path'));
+            QueryHelpers.clearActive(NAV);
+            NAV.querySelectorAll(SELECTORS.pathNodes)
+                .forEach(el => el.classList.remove(CLASSES.inActivePath));
+            NAV.querySelectorAll(SELECTORS.containers)
+                .forEach(n => n.classList.remove(CLASSES.hasActivePath));
 
             const phaseSet = new Set(phaseKeys);
 
-            // Se non ci sono risultati, chiudi e disabilita tutto
             if (phaseSet.size === 0 || paths.length === 0) {
                 NAV.querySelectorAll('.nav-item').forEach(item => {
-                    item.classList.remove('open', 'has-search-results');
-                    item.querySelector('.btn')?.classList.remove('active');
+                    item.classList.remove(CLASSES.open, 'has-search-results');
+                    item.querySelector('.btn')?.classList.remove(CLASSES.active);
                     item.style.removeProperty('display');
 
-                    // Rimuovi i badge di conteggio
                     const btn = item.querySelector('.btn');
                     if (btn) {
                         btn.querySelector('.search-badge')?.remove();
                     }
 
-                    // Rimuovi anche i search-hit
-                    item.querySelectorAll('.folder-leaf.search-hit, .leaf.search-hit').forEach(el => {
-                        el.classList.remove('search-hit');
-                    });
-                    item.querySelectorAll('.folder-leaf.search-path-intermediate, .leaf.search-path-intermediate').forEach(el => {
-                        el.classList.remove('search-path-intermediate');
-                    });
+                    QueryHelpers.clearSearchMarks(item);
                 });
                 refreshAllVLinesDebounced();
                 return;
             }
 
-            // NON nascondere le fasi, solo chiudere quelle senza risultati
             NAV.querySelectorAll('.nav-item').forEach(item => {
                 const phase = item.dataset.phase;
                 const hasResults = phaseSet.size === 0 || phaseSet.has(phase);
 
-                // Rimuovi display:none, mantieni visibili tutte le fasi
                 item.style.removeProperty('display');
 
-                // Marca le fasi con risultati
                 if (hasResults) {
                     item.classList.add('has-search-results');
                 } else {
                     item.classList.remove('has-search-results');
                 }
 
-                // Apri solo le fasi con risultati
-                if (hasResults && !item.classList.contains('open')) {
-                    item.classList.add('open');
-                    item.querySelector('.btn')?.classList.add('active');
+                if (hasResults && !item.classList.contains(CLASSES.open)) {
+                    item.classList.add(CLASSES.open);
+                    item.querySelector('.btn')?.classList.add(CLASSES.active);
                 } else if (!hasResults) {
-                    // Chiudi le fasi senza risultati
-                    item.classList.remove('open');
-                    item.querySelector('.btn')?.classList.remove('active');
+                    item.classList.remove(CLASSES.open);
+                    item.querySelector('.btn')?.classList.remove(CLASSES.active);
                 }
-                // Badge conteggio
+
                 const btn = item.querySelector('.btn');
                 if (btn) {
                     btn.querySelector('.search-badge')?.remove();
                     const n = countsByPhase[phase] || 0;
                     if (n > 0) {
-                        // Insert search-badge BEFORE the chevron, keep it close
                         const chev = btn.querySelector('.chev');
                         const sb = document.createElement('span');
                         sb.className = 'search-badge';
@@ -1845,46 +1736,42 @@ const TIMINGS = {
                     }
                 }
 
-                // Pulisci hit precedenti
-                item.querySelectorAll('.folder-leaf.search-hit, .leaf.search-hit').forEach(el => {
-                    el.classList.remove('search-hit');
-                });
+                QueryHelpers.clearSearchMarks(item);
                 item.querySelectorAll('.children-nested').forEach(nest => {
                     nest.remove();
                 });
             });
 
-            // Espandi SOLO i path attivi + marca hit
             for (const arr of paths) {
                 if (!arr || !arr.length) continue;
                 const phaseKey = arr[0];
                 const item = NAV.querySelector(`.nav-item[data-phase="${phaseKey}"]`);
                 if (!item) continue;
 
-                // Salta se la fase non ha risultati
                 if (!item.classList.contains('has-search-results')) continue;
 
                 const slash = arr.join('/');
 
-                // Espandi SOLO gli antenati che fanno parte di un path con search-hit
                 expandAncestorsWithHits(item, slash, arr);
 
-                // Marca SOLO l'ultimo nodo del path come search-hit (quello con i tools)
                 const fullPath = arr.join('/');
-                const terminalNode = item.querySelector(`.folder-leaf[data-path="${fullPath}"], .leaf[data-path="${fullPath}"]`);
+                const terminalNode = item.querySelector(
+                    `.folder-leaf[data-path="${fullPath}"], .leaf[data-path="${fullPath}"]`
+                );
 
                 if (terminalNode) {
-                    terminalNode.classList.add('search-hit');
+                    terminalNode.classList.add(CLASSES.searchHit);
                 }
 
-                // Marca gli intermedi per l'evidenziazione del percorso (ma NON come search-hit)
                 const parts = [];
                 for (let i = 0; i < arr.length - 1; i++) {
                     parts.push(arr[i]);
                     const partial = parts.join('/');
-                    const node = item.querySelector(`.folder-leaf[data-path="${partial}"], .leaf[data-path="${partial}"]`);
+                    const node = item.querySelector(
+                        `.folder-leaf[data-path="${partial}"], .leaf[data-path="${partial}"]`
+                    );
                     if (node) {
-                        node.classList.add('search-path-intermediate');
+                        node.classList.add(CLASSES.searchIntermediate);
                     }
                 }
             }
@@ -1893,8 +1780,7 @@ const TIMINGS = {
                 updateSearchContainersVLines(item);
             });
 
-            // Applica anche a hover-pane se visibile
-            if (hoverPane && hoverPane.classList.contains('active')) {
+            if (hoverPane && hoverPane.classList.contains(CLASSES.active)) {
                 applySearchToHoverPane(detail);
             }
             refreshAllVLinesDebounced(NAV);
@@ -1902,93 +1788,77 @@ const TIMINGS = {
         }
 
         function applySearchToHoverPane(detail) {
-            if (!hoverPane || !hoverPane.classList.contains('active')) return;
+            if (!hoverPane || !hoverPane.classList.contains(CLASSES.active)) return;
 
             const {hasQuery, paths = []} = detail || {};
             if (!hasQuery) {
-                hoverPane.classList.remove('search-mode');
+                hoverPane.classList.remove(CLASSES.searchMode);
                 return;
             }
 
-            hoverPane.classList.add('search-mode');
+            hoverPane.classList.add(CLASSES.searchMode);
 
-            // Reset hits
             hoverPane.querySelectorAll('.folder-leaf, .leaf').forEach(el => {
-                el.classList.remove('search-hit', 'search-has-children', 'search-path-intermediate');
+                el.classList.remove(CLASSES.searchHit, 'search-has-children', CLASSES.searchIntermediate);
             });
 
-            // Rimuovi solo i nested DINAMICI, NON il hover-root
             const nestedToRemove = hoverPane.querySelectorAll('.children-nested:not(.hover-root)');
             nestedToRemove.forEach(nest => nest.remove());
 
-            clearHighlightInContainer(hoverPane);
+            clearPathHighlight(hoverPane);
 
             const currentPhase = hoverPane.dataset.phase;
 
-            // Filtra paths per la fase corrente
             const relevantPaths = paths.filter(arr => arr && arr.length > 0 && arr[0] === currentPhase);
 
-            // CRITICO: Prima espandi TUTTI i path necessari creando i nested container
             for (const arr of relevantPaths) {
-                // Espandi tutti gli antenati creando fisicamente i nested container
                 const acc = [];
                 for (let i = 0; i < arr.length; i++) {
                     acc.push(arr[i]);
                     const partial = acc.join('/');
 
-                    // Controlla se esiste già il nested per questo path
                     const existingNested = hoverPane.querySelector(`.children-nested[data-parent="${partial}"]`);
                     if (existingNested) continue;
 
-                    // Trova il leaf padre
                     const parentLeaf = hoverPane.querySelector(`.folder-leaf[data-path="${partial}"]`);
                     if (!parentLeaf) continue;
 
-                    // Ottieni il nodo dalla taxonomy
                     const node = getNodeByPath(taxonomy, partial);
                     if (!hasChildrenNode(node)) continue;
 
-                    // Crea il nested container (senza animazione)
                     const nest = createNestedContainer(partial, node, false);
                     parentLeaf.after(nest);
 
-                    // Marca come visibile
                     markLastVisible(parentLeaf.parentElement);
                     markLastVisible(nest);
 
-                    // Attacca i listener
                     attachFolderLeafDrilldown(nest);
                 }
             }
 
-            // Forza reflow dopo aver creato tutti i nested
             forceReflow(hoverPane);
 
-            // Ora marca SOLO i nodi terminali come search-hit
             for (const arr of relevantPaths) {
-                // Marca SOLO l'ultimo nodo del path
                 const fullPath = arr.join('/');
                 const terminalNode = hoverPane.querySelector(`.folder-leaf[data-path="${fullPath}"], .leaf[data-path="${fullPath}"]`);
 
                 if (terminalNode) {
-                    terminalNode.classList.add('search-hit');
+                    terminalNode.classList.add(CLASSES.searchHit);
                 }
 
-                // Marca gli intermedi per l'evidenziazione del percorso
                 const parts = [];
                 for (let i = 0; i < arr.length - 1; i++) {
                     parts.push(arr[i]);
                     const partial = parts.join('/');
                     const node = hoverPane.querySelector(`.folder-leaf[data-path="${partial}"], .leaf[data-path="${partial}"]`);
                     if (node) {
-                        node.classList.add('search-path-intermediate');
+                        node.classList.add(CLASSES.searchIntermediate);
                     }
                 }
             }
 
             updateSearchContainersVLines(hoverPane);
 
-            // Refresh delle linee dopo tutte le modifiche
             requestAnimationFrame(() => {
                 refreshAllVLines(hoverPane);
                 window.SidebarAutoGrow?.schedule();
@@ -1997,23 +1867,19 @@ const TIMINGS = {
 
         window.applySearchToHoverPane = applySearchToHoverPane;
 
-        // Eventi
         window.addEventListener('tm:search:context', (ev) => {
             const detail = ev.detail || {};
             if (!detail.hasQuery) clearSearchGhost();
             else applySearchGhost(detail);
         });
 
-        // Quando hover-pane diventa attivo, applica search se presente
         window.addEventListener('tm:hover:show', () => {
             window.SidebarAutoGrow?.schedule();
 
             const lastContext = window.__lastSearchContext;
-            const sb = document.getElementById('sidebar');
-            const inSearch = !!(sb && sb.classList.contains('search-mode'));
+            const inSearch = isSearchMode();
 
             if (inSearch && lastContext && lastContext.hasQuery) {
-                // Applica immediatamente + retry dopo timing
                 if (window.applySearchToHoverPane) {
                     window.applySearchToHoverPane(lastContext);
                     setTimeout(() => window.applySearchToHoverPane(lastContext), TIMINGS.searchApply);
@@ -2024,14 +1890,14 @@ const TIMINGS = {
         const sidebar = document.getElementById('sidebar');
 
         function saveAndClearPathHighlight() {
-            NAV.querySelectorAll('.has-active-path').forEach(el => el.classList.remove('has-active-path'));
-            NAV.querySelectorAll('.in-active-path').forEach(el => el.classList.remove('in-active-path'));
-            NAV.querySelectorAll('.leaf.active, .folder-leaf.active, .section-title.active')
-                .forEach(el => el.classList.remove('active'));
+            NAV.querySelectorAll(`.${CLASSES.hasActivePath}`).forEach(el => el.classList.remove(CLASSES.hasActivePath));
+            NAV.querySelectorAll(SELECTORS.pathNodes)
+                .forEach(el => el.classList.remove(CLASSES.inActivePath));
+            QueryHelpers.clearActive(NAV);
         }
 
         function clearSearchDecorations() {
-            document.querySelectorAll('.search-hit').forEach(el => el.classList.remove('search-hit'));
+            QueryHelpers.clearSearchMarks(document);
             document.querySelectorAll('.search-badge').forEach(el => el.remove());
         }
 
@@ -2042,69 +1908,58 @@ const TIMINGS = {
                 localStorage.getItem(MEM.preSearchSlash) ||
                 localStorage.getItem(MEM.pathSlash);
 
-            // 0) Uscita sicura dalla search-mode (idempotente) + pulizia search
-            sidebarEl?.classList.remove('search-mode');
-            document.querySelectorAll('.search-hit').forEach(el => el.classList.remove('search-hit'));
-            document.querySelectorAll('.search-badge').forEach(el => el.remove());
+            sidebarEl?.classList.remove(CLASSES.searchMode);
+            clearSearchDecorations();
 
-            // 1) Chiudi TUTTE le fasi e rimuovi display forzati della ricerca
             document.querySelectorAll('.nav-item.open').forEach(item => {
-                item.classList.remove('open');
-                item.querySelector('.btn')?.classList.remove('active');
-                item.style.removeProperty('display'); // la ricerca poteva aver messo display:none
+                item.classList.remove(CLASSES.open);
+                item.querySelector('.btn')?.classList.remove(CLASSES.active);
+                item.style.removeProperty('display');
             });
 
-            // 2) Rimuovi tutti i nested generati/lasciati dalla ricerca
             document.querySelectorAll('.children-nested').forEach(n => n.remove());
 
-            // 3) Pulisci qualsiasi evidenza (attivi/percorso)
-            clearAllPathHighlights();
+            clearPathHighlight();
 
             if (!lastSlash) {
                 if (typeof refreshAllVLinesDebounced === 'function') refreshAllVLinesDebounced();
                 return;
             }
 
-            // 5) Apri SOLO la fase del path attivo (header in stato "open")
             const parts = lastSlash.split('/').filter(Boolean);
             const phaseKey = parts[0];
-            const phaseItem = document.querySelector(`.nav-item[data-phase="${phaseKey}"]`);
+            const phaseItem = getNavItem(phaseKey);
             if (phaseItem) {
-                phaseItem.classList.add('open');
-                phaseItem.querySelector('.btn')?.classList.add('active');
+                phaseItem.classList.add(CLASSES.open);
+                phaseItem.querySelector('.btn')?.classList.add(CLASSES.active);
                 phaseItem.style.removeProperty('display');
             }
 
-            // 6) Espandi esclusivamente gli antenati del path attivo (DOM + memoria)
             for (let i = 1; i <= parts.length; i++) {
                 const p = parts.slice(0, i).join('/');
-                expandBranch(phaseKey, p);         // memoria
-                ensureExpandedInContainer(phaseItem || nav, p); // DOM
+                expandBranch(phaseKey, p);
+                ensureExpandedInContainer(phaseItem || nav, p);
             }
 
-            // 7) Memorizza attivo e applica evidenze
             setActivePathSlash(phaseKey, lastSlash);
             highlightPathInContainer(phaseItem || nav, lastSlash);
 
-            // 8) Forza il background "attivo" SOLO sul leaf finale
             const leaf = (phaseItem || nav).querySelector(
                 `.folder-leaf[data-path="${lastSlash}"], .leaf[data-path="${lastSlash}"]`
             );
             if (leaf) {
-                (phaseItem || nav).querySelectorAll('.folder-leaf.active, .leaf.active')
-                    .forEach(n => n.classList.remove('active'));
-                leaf.classList.add('active');
+                QueryHelpers.clearActive(phaseItem || nav);
+                leaf.classList.add(CLASSES.active);
 
-                // Propaga le classi lungo la catena
-                leaf.classList.add('in-active-path');
+                leaf.classList.add(CLASSES.inActivePath);
                 let p = leaf.parentElement;
                 while (p && p !== (phaseItem || nav)) {
                     if (p.classList) {
                         if (p.classList.contains('children') || p.classList.contains('children-nested')) {
-                            p.classList.add('has-active-path');
+                            p.classList.add(CLASSES.hasActivePath);
                         }
                         if (p.classList.contains('folder-leaf') || p.classList.contains('leaf') || p.classList.contains('section-title')) {
-                            p.classList.add('in-active-path');
+                            p.classList.add(CLASSES.inActivePath);
                         }
                     }
                     p = p.parentElement;
@@ -2116,138 +1971,124 @@ const TIMINGS = {
             }
             window.SidebarAutoGrow?.schedule();
 
-            // cleanup memoria di ricerca e riallinea lo stato persistente
+            if (lastSlash) {
+                try {
+                    localStorage.setItem(MEM.pathSlash, lastSlash);
+                    // Dispatch del path corretto per aggiornare il pathKey visualizzato
+                    dispatchScopeAndPhase(lastSlash, {source: 'search-clear'});
+                } catch (e) {
+                    // Silently fail
+                }
+            }
             try {
-                if (lastSlash) localStorage.setItem(MEM.pathSlash, lastSlash);
                 localStorage.removeItem(MEM.preSearchSlash);
                 localStorage.removeItem(MEM.searchTempSlash);
-            } catch (_) {
+            } catch (e) {
+                // Silently fail
             }
         }
 
-        // Entra/esci da search-mode in base all'evento già emesso dal search manager
         window.addEventListener('tm:search:set', (ev) => {
             const hasQuery = !!(ev.detail && ev.detail.hasQuery);
             if (hasQuery) {
-                // salva il path pre-ricerca una sola volta
                 try {
                     if (!localStorage.getItem(MEM.preSearchSlash)) {
                         const cur = localStorage.getItem(MEM.pathSlash);
                         if (cur) localStorage.setItem(MEM.preSearchSlash, cur);
                     }
-                } catch (_) {
+                } catch (e) {
+                    console.warn('[sidebar] Failed to save pre-search path:', e);
                 }
 
-                sidebar.classList.add('search-mode');
+                sidebar.classList.add(CLASSES.searchMode);
                 saveAndClearPathHighlight();
 
-                NAV.querySelectorAll('.folder-leaf.active, .leaf.active, .section-title.active')
-                    .forEach(el => el.classList.remove('active'));
-                NAV.querySelectorAll('.folder-leaf.in-active-path, .leaf.in-active-path')
-                    .forEach(el => el.classList.remove('in-active-path'));
-                NAV.querySelectorAll('.children, .children-nested')
-                    .forEach(n => n.classList.remove('has-active-path'));
+                QueryHelpers.clearActive(NAV);
+                NAV.querySelectorAll(SELECTORS.pathNodes)
+                    .forEach(el => el.classList.remove(CLASSES.inActivePath));
+                NAV.querySelectorAll(SELECTORS.containers)
+                    .forEach(n => n.classList.remove(CLASSES.hasActivePath));
                 NAV.querySelectorAll('.nav-item > .btn.active')
-                    .forEach(b => b.classList.remove('active'));
+                    .forEach(b => b.classList.remove(CLASSES.active));
 
                 if (hoverPane) {
-                    hoverPane.classList.add('search-mode');
-                    // rimuovi attivi/percorsi residui
-                    hoverPane.querySelectorAll('.folder-leaf, .leaf, .section-title').forEach(el => el.classList.remove('in-active-path', 'active'));
-                    hoverPane.querySelectorAll('.children, .children-nested').forEach(n => n.classList.remove('has-active-path'));
+                    hoverPane.classList.add(CLASSES.searchMode);
+                    hoverPane.querySelectorAll('.folder-leaf, .leaf, .section-title').forEach(el => el.classList.remove(CLASSES.inActivePath, CLASSES.active));
+                    hoverPane.querySelectorAll(SELECTORS.containers).forEach(n => n.classList.remove(CLASSES.hasActivePath));
                 }
             } else {
                 try {
-                    // clearSearchGhost: toglie search-mode, badge, search-hit e ripristina display
                     clearSearchGhost();
                 } catch (_) {
-                    // fallback: rimuovi decorazioni base (idempotente)
-                    sidebar.classList.remove('search-mode');
+                    sidebar.classList.remove(CLASSES.searchMode);
                     clearSearchDecorations();
                 }
 
-                // Pulisci eventuale hover ancora marcato "search"
                 if (hoverPane) {
-                    hoverPane.classList.remove('search-mode');
+                    hoverPane.classList.remove(CLASSES.searchMode);
                     hoverPane.querySelectorAll('.folder-leaf, .leaf, .section-title')
-                        .forEach(el => el.classList.remove('in-active-path', 'active', 'search-hit'));
-                    hoverPane.querySelectorAll('.children, .children-nested')
-                        .forEach(n => n.classList.remove('has-active-path'));
+                        .forEach(el => el.classList.remove(CLASSES.inActivePath, CLASSES.active, CLASSES.searchHit));
+                    hoverPane.querySelectorAll(SELECTORS.containers)
+                        .forEach(n => n.classList.remove(CLASSES.hasActivePath));
                 }
-
-                // Comportamento richiesto: chiudi tutto e apri SOLO la catena del path attivo
                 openOnlyActivePathOnClear();
             }
         });
 
-        // Reset globale: azzera tutto (memoria path/expanded/hover + ricerca + DOM)
         window.addEventListener('tm:reset', () => {
-            // 0) Memoria globale
             localStorage.removeItem(MEM.pathKey);
             localStorage.removeItem(MEM.pathSlash);
 
-            // 1) Memoria per-fase
             Object.keys(phaseMemory).forEach(k => {
                 phaseMemory[k].activePathSlash = null;
                 phaseMemory[k].expanded.clear();
             });
 
-            // 2) Esci dalla search-mode e pulisci i “ghost” della ricerca
             const sidebarEl = document.getElementById('sidebar');
-            sidebarEl?.classList.remove('search-mode');
+            sidebarEl?.classList.remove(CLASSES.searchMode);
             document.querySelectorAll('.search-badge').forEach(el => el.remove());
-            document.querySelectorAll('.folder-leaf.search-hit, .leaf.search-hit').forEach(el => el.classList.remove('search-hit'));
+            QueryHelpers.clearSearchMarks(document);
 
-            // 3) Chiudi fasi, rimuovi display forzati dalla ricerca e ripulisci nested
             document.querySelectorAll('.nav-item').forEach(item => {
-                item.classList.remove('open', 'has-active-path');
-                item.style.removeProperty('display'); // la ricerca può aver messo display:none
-                item.querySelector('.btn')?.classList.remove('active');
+                item.classList.remove(CLASSES.open, CLASSES.hasActivePath);
+                item.style.removeProperty('display');
+                item.querySelector('.btn')?.classList.remove(CLASSES.active);
             });
             document.querySelectorAll('.children-nested').forEach(n => n.remove());
 
-            // 4) Pulisci evidenze attivo/percorso
-            clearAllPathHighlights();
+            clearPathHighlight();
 
-            // 5) Hover pane: spegni tutto
             if (hoverPane) {
-                hoverPane.classList.remove('search-mode', 'active');
+                hoverPane.classList.remove(CLASSES.searchMode, CLASSES.active);
                 hoverPane.querySelectorAll('.folder-leaf, .leaf, .section-title')
-                    .forEach(el => el.classList.remove('in-active-path', 'active', 'search-hit'));
-                hoverPane.querySelectorAll('.children, .children-nested')
-                    .forEach(n => n.classList.remove('has-active-path'));
+                    .forEach(el => el.classList.remove(CLASSES.inActivePath, CLASSES.active, CLASSES.searchHit));
+                hoverPane.querySelectorAll(SELECTORS.containers)
+                    .forEach(n => n.classList.remove(CLASSES.hasActivePath));
                 hideHoverPane();
             }
 
-            // 6) Refresh linee
             refreshAllVLinesDebounced();
             window.SidebarAutoGrow?.schedule();
         });
 
-        // Show All: gestisce sia modalità normale che ricerca
         window.addEventListener('tm:show:all', (ev) => {
             const sb = document.getElementById('sidebar');
-            const inSearch = sb && sb.classList.contains('search-mode');
+            const inSearch = sb && sb.classList.contains(CLASSES.searchMode);
 
-            // MODALITÀ RICERCA
             if (inSearch) {
                 const lastCtx = window.__lastSearchContext;
                 if (!lastCtx || !lastCtx.hasQuery || !lastCtx.paths) return;
 
-                // Previeni altri handler
                 ev.stopImmediatePropagation();
 
-                // Se sidebar è collapsed, NON aprire le fasi, solo aggiorna i tools
-                const isCollapsed = sb && sb.classList.contains('collapsed');
+                const isCollapsed = sb && sb.classList.contains(CLASSES.collapsed);
                 if (isCollapsed) {
-                    // Chiudi l'hover pane se aperto
                     const hoverPane = document.querySelector('.hover-pane');
                     if (hoverPane) {
-                        hoverPane.classList.remove('active');
+                        hoverPane.classList.remove(CLASSES.active);
                         hoverPane.style.removeProperty('width');
                     }
 
-                    // Raccogli TUTTI gli IDs dei tools dalla ricerca
                     const allToolIds = new Set();
                     if (lastCtx.paths) {
                         lastCtx.paths.forEach(pathArr => {
@@ -2258,7 +2099,6 @@ const TIMINGS = {
                         });
                     }
 
-                    // Notifica che mostriamo TUTTI i tools (senza aprire fasi)
                     window.dispatchEvent(new CustomEvent('tm:search:filter:all', {
                         detail: {
                             context: lastCtx,
@@ -2268,7 +2108,6 @@ const TIMINGS = {
                         }
                     }));
 
-                    // Forza aggiornamento griglia tools
                     window.dispatchEvent(new CustomEvent('tm:scope:set', {
                         detail: {
                             ids: Array.from(allToolIds),
@@ -2278,73 +2117,63 @@ const TIMINGS = {
                         }
                     }));
 
-                    return; // Fine - sidebar collapsed
+                    return;
                 }
 
-                // Sidebar APERTA: apri le fasi con risultati
-
-                // Raccogli le fasi che hanno risultati
                 const phasesWithResults = new Set();
                 lastCtx.paths.forEach(arr => {
                     if (arr && arr.length > 0) phasesWithResults.add(arr[0]);
                 });
 
-                // Chiudi tutte le fasi prima
                 document.querySelectorAll('.nav-item').forEach(item => {
-                    item.classList.remove('open');
-                    item.querySelector('.btn')?.classList.remove('active');
+                    item.classList.remove(CLASSES.open);
+                    item.querySelector('.btn')?.classList.remove(CLASSES.active);
                 });
 
-                // Apri solo le fasi con risultati ed espandi i path
                 phasesWithResults.forEach(phaseKey => {
-                    const item = document.querySelector(`.nav-item[data-phase="${phaseKey}"]`);
+                    const item = getNavItem(phaseKey);
                     if (!item) return;
 
-                    // Apri la fase
-                    item.classList.add('open');
-                    item.querySelector('.btn')?.classList.add('active');
+                    item.classList.add(CLASSES.open);
+                    item.querySelector('.btn')?.classList.add(CLASSES.active);
 
-                    // Rimuovi nested esistenti
                     item.querySelectorAll('.children-nested').forEach(nest => nest.remove());
 
-                    // Filtra i path per questa fase
                     const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phaseKey);
 
-                    // Espandi tutti i path di questa fase
                     for (const arr of phasePaths) {
                         const slash = arr.join('/');
                         expandAncestorsWithHits(item, slash, arr);
                     }
 
-                    // Forza reflow
                     forceReflow(item);
 
-                    // Marca i nodi: solo terminali come search-hit, intermedi come search-path-intermediate
                     for (const arr of phasePaths) {
-                        // Marca l'ultimo nodo (terminale con tools)
                         const fullPath = arr.join('/');
-                        const terminalNode = item.querySelector(`.folder-leaf[data-path="${fullPath}"], .leaf[data-path="${fullPath}"]`);
+                        const terminalNode = item.querySelector(
+                            `.folder-leaf[data-path="${fullPath}"], .leaf[data-path="${fullPath}"]`
+                        );
                         if (terminalNode) {
-                            terminalNode.classList.add('search-hit');
+                            terminalNode.classList.add(CLASSES.searchHit);
                         }
 
-                        // Marca gli intermedi
                         const parts = [];
                         for (let i = 0; i < arr.length - 1; i++) {
                             parts.push(arr[i]);
                             const partial = parts.join('/');
-                            const node = item.querySelector(`.folder-leaf[data-path="${partial}"], .leaf[data-path="${partial}"]`);
+                            const node = item.querySelector(
+                                `.folder-leaf[data-path="${partial}"], .leaf[data-path="${partial}"]`
+                            );
                             if (node) {
-                                node.classList.add('search-path-intermediate');
+                                node.classList.add(CLASSES.searchIntermediate);
                             }
                         }
                     }
+                    updateSearchContainersVLines(item);
                 });
-
                 refreshAllVLinesDebounced();
                 window.SidebarAutoGrow?.schedule();
 
-                // Raccogli TUTTI gli IDs dei tools dalla ricerca
                 const allToolIds = new Set();
                 if (lastCtx.paths) {
                     lastCtx.paths.forEach(pathArr => {
@@ -2355,7 +2184,6 @@ const TIMINGS = {
                     });
                 }
 
-                // Notifica che mostriamo TUTTI i tools della ricerca
                 window.dispatchEvent(new CustomEvent('tm:search:filter:all', {
                     detail: {
                         context: lastCtx,
@@ -2365,7 +2193,6 @@ const TIMINGS = {
                     }
                 }));
 
-                // Forza aggiornamento griglia tools
                 window.dispatchEvent(new CustomEvent('tm:scope:set', {
                     detail: {
                         ids: Array.from(allToolIds),
@@ -2374,58 +2201,47 @@ const TIMINGS = {
                         source: 'search-show-all'
                     }
                 }));
-
-                return; // Blocca l'esecuzione di altri handler
+                return;
             }
-
-            // MODALITÀ NORMALE: lascia passare l'evento agli altri handler
-            // (nessun codice qui, gli altri listener gestiranno)
-        }, true); // IMPORTANTE: usa capture phase per essere il primo
+        }, true);
     })();
 
-    // ==========================================================================
-    // SEZIONE J · BOOTSTRAP + RESET
-    // ==========================================================================
+    // BOOTSTRAP
     window.addEventListener('tm:scope:set', (ev) => {
         const detail = ev.detail || {};
         if (detail.all) {
-            // Reset evidenze
-            clearAllPathHighlights();
+            clearPathHighlight();
             localStorage.removeItem(MEM.pathKey);
             localStorage.removeItem(MEM.pathSlash);
             return;
         }
-        // se siamo in search-mode, non toccare la memoria persistente/side UI
+
         const __sb = document.getElementById('sidebar');
-        if (__sb && __sb.classList.contains('search-mode')) {
-            return; // lasciamo comunque passare l'evento ad altri listener dell'app
+        if (__sb && __sb.classList.contains(CLASSES.searchMode)) {
+            return;
         }
+
         const key = detail.pathKey;
         if (!key || typeof key !== 'string') return;
 
-        // Calcola slash (senza Root/)
         let slash = key.replace(/>/g, '/').replace(/^Root\//, '');
         const parts = slash.split('/').filter(Boolean);
         const phaseKey = parts[0];
         if (!phaseKey) return;
 
-        // Memoria globale
         localStorage.setItem(MEM.pathKey, key);
         localStorage.setItem(MEM.pathSlash, slash);
 
-        // Stato sidebar
-        const navItem = document.querySelector(`.nav-item[data-phase="${phaseKey}"]`);
+        const navItem = getNavItem(phaseKey);
         const sidebarEl = document.getElementById('sidebar');
-        const isCollapsed = !!(sidebarEl && sidebarEl.classList.contains('collapsed'));
+        const isCollapsed = !!(sidebarEl && sidebarEl.classList.contains(CLASSES.collapsed));
 
         if (navItem) {
-            // NON aprire visivamente se la sidebar è collassata
-            if (!isCollapsed && !navItem.classList.contains('open')) {
-                navItem.classList.add('open');
-                navItem.querySelector('.btn')?.classList.add('active');
+            if (!isCollapsed && !navItem.classList.contains(CLASSES.open)) {
+                navItem.classList.add(CLASSES.open);
+                navItem.querySelector('.btn')?.classList.add(CLASSES.active);
             }
 
-            // Espansione rami: solo se sidebar è aperta E l'evento NON proviene da click nella sidebar
             const fromSidebar = detail && detail.source === 'sidebar';
             if (!isCollapsed && !fromSidebar) {
                 const pane = navItem;
@@ -2436,7 +2252,6 @@ const TIMINGS = {
                 }
             }
 
-            // Evidenzia path attivo (guardata da highlightActivePath)
             setActivePathSlash(phaseKey, slash);
             highlightActivePath(phaseKey);
 
@@ -2444,31 +2259,22 @@ const TIMINGS = {
                 if (!fromSidebar) {
                     expandAndHighlightPath(navItem, slash, phaseKey);
                 } else {
-                    // Solo highlight, no expand (già fatto dal click)
-                    navItem.querySelectorAll('.folder-leaf.active, .leaf.active, .section-title.active')
-                        .forEach(n => n.classList.remove('active'));
-                    const activeEl = navItem.querySelector(
-                        `.folder-leaf[data-path="${slash}"], .leaf[data-path="${slash}"]`
-                    );
-                    if (activeEl) activeEl.classList.add('active');
+                    QueryHelpers.clearActive(navItem);
+                    const activeEl = navItem.querySelector(`.folder-leaf[data-path="${slash}"], .leaf[data-path="${slash}"]`);
+                    if (activeEl) activeEl.classList.add(CLASSES.active);
                 }
                 if (typeof refreshAllVLinesDebounced === 'function') refreshAllVLinesDebounced(navItem);
                 window.SidebarAutoGrow?.schedule();
             }
 
-            // --- SYNC anche Hover Pane quando la sidebar è collassata ---
             try {
-                if (typeof isCollapsed !== 'undefined' && isCollapsed && typeof hoverPane !== 'undefined' && hoverPane && document.body.contains(hoverPane)) {
-                    try {
-                        clearTimeout(hoverTimeout);
-                    } catch (e) {
-                    }
+                if (isCollapsed && hoverPane && document.body.contains(hoverPane)) {
+                    clearTimeout(hoverTimeout);
 
                     const currentPhase = phaseKey;
                     const currentPath = slash;
 
                     if (!currentPhase || !currentPath) {
-                        // no-op
                     } else if (hoverPane.dataset.phase !== currentPhase) {
                         const btn = document.querySelector(`.nav-item[data-phase="${currentPhase}"] > .btn`);
                         const phaseData = (typeof taxonomy !== 'undefined') ? taxonomy[currentPhase] : null;
@@ -2476,40 +2282,30 @@ const TIMINGS = {
                         if (btn && phaseData && hasChildrenNode(phaseData) && typeof showHoverPaneForNode === 'function') {
                             showHoverPaneForNode(btn, phaseData, currentPhase);
                             requestAnimationFrame(() => {
-                                if (typeof highlightPathInContainer === 'function') {
-                                    highlightPathInContainer(hoverPane, currentPath);
-                                }
-                                hoverPane.querySelectorAll('.leaf.active, .folder-leaf.active, .section-title.active')
-                                    .forEach(n => n.classList.remove('active'));
-                                const activeLeaf = hoverPane.querySelector(
-                                    `.folder-leaf[data-path="${currentPath}"], .leaf[data-path="${currentPath}"]`
-                                );
-                                if (activeLeaf) activeLeaf.classList.add('active');
+                                highlightPathInContainer(hoverPane, currentPath);
+                                QueryHelpers.clearActive(hoverPane);
+                                const activeLeaf = hoverPane.querySelector(`.folder-leaf[data-path="${currentPath}"], .leaf[data-path="${currentPath}"]`);
+                                if (activeLeaf) activeLeaf.classList.add(CLASSES.active);
                                 if (typeof refreshAllVLinesDebounced === 'function') {
                                     refreshAllVLinesDebounced(hoverPane);
                                 }
                             });
                         }
                     } else {
-                        // stessa fase: reset + reapply highlight/expanded + refresh linee
                         hoverPane.querySelectorAll('.folder-leaf, .leaf, .section-title')
-                            .forEach(el => el.classList.remove('in-active-path', 'active'));
-                        hoverPane.querySelectorAll('.children, .children-nested')
-                            .forEach(n => n.classList.remove('has-active-path'));
+                            .forEach(el => el.classList.remove(CLASSES.inActivePath, CLASSES.active));
+                        hoverPane.querySelectorAll(SELECTORS.containers)
+                            .forEach(n => n.classList.remove(CLASSES.hasActivePath));
 
                         forceReflow(hoverPane);
 
-                        if (typeof highlightPathInContainer === 'function') {
-                            highlightPathInContainer(hoverPane, currentPath);
-                        }
+                        highlightPathInContainer(hoverPane, currentPath);
                         if (typeof expandFromMemoryInContainer === 'function') {
                             expandFromMemoryInContainer(hoverPane, currentPhase);
                         }
 
-                        const activeLeaf = hoverPane.querySelector(
-                            `.folder-leaf[data-path="${currentPath}"], .leaf[data-path="${currentPath}"]`
-                        );
-                        if (activeLeaf) activeLeaf.classList.add('active');
+                        const activeLeaf = hoverPane.querySelector(`.folder-leaf[data-path="${currentPath}"], .leaf[data-path="${currentPath}"]`);
+                        if (activeLeaf) activeLeaf.classList.add(CLASSES.active);
 
                         requestAnimationFrame(() => {
                             if (typeof refreshAllVLinesDebounced === 'function') {
@@ -2522,33 +2318,28 @@ const TIMINGS = {
                 console.warn('[hover-sync] errore nel sync hover pane:', e);
             }
 
-            //  PRESERVA colori delle altre fasi, MA rimuovi background (active)
             document.querySelectorAll('.nav-item').forEach(i => {
                 if (i.dataset.phase !== phaseKey) {
                     const otherPhaseKey = i.dataset.phase;
                     const otherActive = getActivePathSlash(otherPhaseKey);
 
                     if (otherActive && typeof otherActive === 'string') {
-                        // Ripristina colori (in-active-path)
-                        i.classList.add('has-active-path');
+                        i.classList.add(CLASSES.hasActivePath);
 
                         const otherParts = otherActive.split('/');
                         for (let j = 1; j <= otherParts.length; j++) {
                             const partial = otherParts.slice(0, j).join('/');
                             const node = i.querySelector(`.folder-leaf[data-path="${partial}"]`);
-                            if (node && !node.classList.contains('in-active-path')) {
-                                node.classList.add('in-active-path');
+                            if (node && !node.classList.contains(CLASSES.inActivePath)) {
+                                node.classList.add(CLASSES.inActivePath);
                             }
                         }
 
-                        // RIMUOVI active (background) dalle altre fasi
-                        i.querySelectorAll('.folder-leaf.active, .leaf.active, .section-title.active')
-                            .forEach(el => el.classList.remove('active'));
+                        QueryHelpers.clearActive(i);
 
-                        // Ripristina has-active-path sui container (per linee verticali)
                         i.querySelectorAll('.children-nested').forEach(n => {
-                            if (n.querySelector('.folder-leaf.in-active-path')) {
-                                n.classList.add('has-active-path');
+                            if (n.querySelector(`.folder-leaf.${CLASSES.inActivePath}`)) {
+                                n.classList.add(CLASSES.hasActivePath);
                             }
                         });
                     }
@@ -2560,7 +2351,7 @@ const TIMINGS = {
 
     function setCollapsed(v) {
         const sidebar = document.getElementById('sidebar');
-        sidebar.classList.toggle('collapsed', v);
+        sidebar.classList.toggle(CLASSES.collapsed, v);
         localStorage.setItem(MEM.collapsed, v ? '1' : '0');
         window.dispatchEvent(new CustomEvent('tm:sidebar:toggle', {detail: {collapsed: v}}));
     }
@@ -2575,10 +2366,8 @@ const TIMINGS = {
         buildNav();
         attachSidebarControls();
 
-        // ripristina stato collapsed
         setCollapsed(getCollapsed());
 
-        // restore ultima selezione (se c'è)
         const lastSlash = localStorage.getItem(MEM.pathSlash);
         if (lastSlash) {
             const phaseKey = lastSlash.split('/')[0];
@@ -2588,7 +2377,6 @@ const TIMINGS = {
         }
     });
 
-    // Reset globale: azzera tutto (memoria path/expanded/hover)
     window.addEventListener('tm:reset', () => {
         localStorage.removeItem(MEM.preSearchSlash);
         localStorage.removeItem(MEM.searchTempSlash);
@@ -2598,38 +2386,42 @@ const TIMINGS = {
             phaseMemory[k].expanded.clear();
         });
 
-        // chiudi fasi, rimuovi nested, highlight, hover
         document.querySelectorAll('.nav-item.open').forEach(item => {
-            item.classList.remove('open');
-            item.querySelector('.btn')?.classList.remove('active');
+            item.classList.remove(CLASSES.open);
+            item.querySelector('.btn')?.classList.remove(CLASSES.active);
         });
         document.querySelectorAll('.children-nested').forEach(n => n.remove());
-        clearAllPathHighlights();
+        clearPathHighlight();
         hideHoverPane();
         refreshAllVLinesDebounced();
         window.SidebarAutoGrow?.schedule();
     });
 
-
-    // ==========================================================================
-    // SEZIONE Z · PHASE TOOL COUNT BADGE (numero tool per fase attiva)
-    // Mostra il badge solo con sidebar aperta, solo sulla fase con path attivo,
-    // si aggiorna su tm:context:summary. Niente badge in reset/show-all/search.
-    // ==========================================================================
+    // PHASE TOOL COUNT BADGE
     (function PhaseBadgeModule() {
         function isSidebarOpen() {
             const sb = document.getElementById('sidebar');
-            return !!sb && !sb.classList.contains('collapsed');
+            return !!sb && !sb.classList.contains(CLASSES.collapsed);
         }
 
-        function removeBadges(phaseKey) {
-            const sel = phaseKey
-                ? `.nav-item[data-phase="${phaseKey}"] .btn .phase-badge`
-                : `.nav-item .btn .phase-badge`;
-            document.querySelectorAll(sel).forEach(n => n.remove());
+        function removeBadges(phaseKey, badgeClass) {
+            const phaseSelector = phaseKey ? `.nav-item[data-phase="${phaseKey}"]` : '.nav-item';
+            const badgeSelector = badgeClass ? `.${badgeClass}` : '.phase-badge, .search-badge';
+            document.querySelectorAll(`${phaseSelector} .btn ${badgeSelector}`).forEach(n => n.remove());
         }
 
-        function placeBeforeChevron(btn, badge) {
+        function setBadge(btn, badgeClass, value) {
+            if (!btn) return;
+
+            btn.querySelector(`.${badgeClass}`)?.remove();
+
+            if (!value) return;
+
+            const badge = document.createElement('span');
+            badge.className = badgeClass;
+            badge.setAttribute('aria-label', `${value} risultati`);
+            badge.textContent = String(value);
+
             const chev = btn.querySelector('.chev');
             if (chev) btn.insertBefore(badge, chev);
             else btn.appendChild(badge);
@@ -2640,31 +2432,23 @@ const TIMINGS = {
                 removeBadges();
                 return;
             }
-            // Pulisci badge di altre fasi
+
             document.querySelectorAll('.nav-item .btn .phase-badge').forEach(b => {
                 const owner = b.closest('.nav-item');
                 if (!owner || owner.dataset.phase !== phaseKey) b.remove();
             });
-            const navItem = document.querySelector(`.nav-item[data-phase="${phaseKey}"]`);
+
+            const navItem = getNavItem(phaseKey);
             if (!navItem) return;
-            if (!navItem.classList.contains('has-active-path')) {
+            if (!navItem.classList.contains(CLASSES.hasActivePath)) {
                 removeBadges(phaseKey);
                 return;
             }
+
             const btn = navItem.querySelector('.btn');
             if (!btn) return;
 
-            let badge = btn.querySelector('.phase-badge');
-            if (!badge) {
-                badge = document.createElement('span');
-                badge.className = 'phase-badge';
-                placeBeforeChevron(btn, badge);
-            } else {
-                // assicurati che sia PRIMA della chevron
-                const chev = btn.querySelector('.chev');
-                if (chev && badge.nextElementSibling !== chev) placeBeforeChevron(btn, badge);
-            }
-            badge.textContent = String(count);
+            setBadge(btn, 'phase-badge', count);
         }
 
         window.addEventListener('tm:context:summary', (ev) => {
@@ -2698,27 +2482,18 @@ const TIMINGS = {
         });
     })();
 
-})(); // end IIFE principale
+})();
 
-// ============================================================================
-// SEZIONE L · V-LINE CLAMP UTILITIES (GLOBALI) - invariata
-// ============================================================================
-/** @param {Element|HTMLElement|null} el @returns {boolean} */
+// V-LINE CLAMP UTILITIES
 function isVisible(el) {
     if (!el) return false;
     const rects = el.getClientRects();
     return el.offsetParent !== null || rects.length > 0;
 }
 
-/**
- * Ritorna solo i figli diretti visibili, tipizzati come HTMLElement per usare offsetTop ecc.
- * @param {HTMLElement|Element|Document} container
- * @returns {HTMLElement[]}
- */
 function getDirectNodes(container) {
     const sel = ':scope > .leaf, :scope > .folder-leaf, :scope > .section-title';
     const list = (container || document).querySelectorAll(sel);
-    /** @type {HTMLElement[]} */
     const out = [];
     list.forEach((el) => {
         if (el instanceof HTMLElement && isVisible(el)) out.push(el);
@@ -2726,19 +2501,13 @@ function getDirectNodes(container) {
     return out;
 }
 
-/**
- * @param {HTMLElement|Element} container
- * @returns {number|null}
- */
 function computeVLineEndPx(container) {
-    /** @type {HTMLElement[]} */
     const items = getDirectNodes(container);
     if (items.length === 0) return null;
 
-    /** @type {HTMLElement} */
     const last = items[items.length - 1];
     const csLast = getComputedStyle(last);
-    const csCont = getComputedStyle(/** @type {Element} */(container));
+    const csCont = getComputedStyle(container);
 
     const elbowTop = parseFloat(csLast.getPropertyValue('--elbow-top')) || 0;
     const elbowH = parseFloat(csLast.getPropertyValue('--elbow-h')) || 12;
@@ -2758,7 +2527,6 @@ function computeVLineEndPx(container) {
     return Math.round(endY);
 }
 
-/** @param {Document|HTMLElement|Element} container */
 function setVLine(container) {
     if (!container) return;
     const endPx = computeVLineEndPx(container);
@@ -2766,14 +2534,12 @@ function setVLine(container) {
     else container.style.setProperty('--vline-end', endPx + 'px');
 }
 
-/** @param {Document|HTMLElement|Element|NodeList|Event|Array<Element|HTMLElement>} root */
 function refreshAllVLines(root = document) {
     root = normalizeRoot(root);
     const all = root.querySelectorAll('.children, .children-nested');
     all.forEach(setVLine);
 }
 
-/** @param {Document|HTMLElement|Element|NodeList|Event|Array<Element|HTMLElement>} root */
 function refreshAllVLinesDebounced(root = document) {
     root = normalizeRoot(root);
     if (rafId) cancelAnimationFrame(rafId);
@@ -2783,7 +2549,6 @@ function refreshAllVLinesDebounced(root = document) {
     });
 }
 
-/** @param {Document|HTMLElement|Element|NodeList|Event|Array<Element|HTMLElement>|null|undefined} root */
 function normalizeRoot(root) {
     if (!root) return document;
     if (typeof Event !== 'undefined' && root instanceof Event) return document;
@@ -2837,9 +2602,7 @@ if (document.readyState === 'loading') {
     initVLineClamp();
 }
 
-// ============================================================================
-// SEZIONE M · SIDEBAR AUTO-GROW (larghezza dinamica) - invariata
-// ============================================================================
+// SIDEBAR AUTO-GROW
 (() => {
     "use strict";
 
@@ -2916,7 +2679,6 @@ if (document.readyState === 'loading') {
             const hover = document.querySelector('.hover-pane.active');
             const useHover = isCollapsed() && hover;
 
-            // Consenti l'auto-grow se l'hover è attivo, anche quando sidebar è collapsed
             if (isCollapsed() && !hover) return null;
 
             const sourceRoot = useHover ? hover : nav;
@@ -2936,16 +2698,13 @@ if (document.readyState === 'loading') {
 
                 const isFromHover = !!(hover && hover.contains(el));
 
-                // Quando misuri dall'hover, non filtrare per "albero aperto"
                 if (!isFromHover && !isInOpenTree(parent)) continue;
 
-                // Calcola indentazione per path
                 if (parent.classList.contains("folder-leaf") || parent.classList.contains("leaf")) {
                     const pathWidth = getPathWidth(parent);
                     needed = Math.max(needed, pathWidth + padL + padR);
                 }
 
-                // Misura testo
                 const left = isFromHover ? leftInContainer(el, hover) : leftNoTransform(el);
                 const textWidth = el.scrollWidth || el.offsetWidth || 0;
                 const requiredWidth = Math.ceil(left + textWidth + padR + CFG.safety);
@@ -2966,24 +2725,20 @@ if (document.readyState === 'loading') {
 
             if (!apply._last) apply._last = {key: null, value: null};
 
-            // Se sidebar COLLAPSED + hover attivo => ridimensiona l'HOVER PANE
             if (key === 'hover') {
                 if (!hover) return;
 
                 const current = Math.round(parseFloat(getComputedStyle(hover).width) || hover.offsetWidth || CFG.hoverBaseWidth);
 
-                // Previeni loop se già applicato
                 if (apply._last.key === 'hover' && Math.abs(apply._last.value - target) <= 2) return;
                 if (Math.abs(current - target) <= 2) {
                     apply._last = {key, value: target};
                     return;
                 }
 
-                // Applica la nuova larghezza
                 hover.style.width = target + 'px';
                 apply._last = {key, value: target};
 
-                // Aggiorna le V-lines dopo un frame
                 requestAnimationFrame(() => {
                     if (typeof window.refreshAllVLines === "function") {
                         window.refreshAllVLines(hover);
@@ -2992,7 +2747,6 @@ if (document.readyState === 'loading') {
                 return;
             }
 
-            // Sidebar APERTA => comportamento originale (ridimensiona la sidebar)
             const current = Math.round(parseFloat(getComputedStyle(sidebar).width));
             if (apply._last.key === 'sidebar' && Math.abs(apply._last.value - target) <= 1) return;
             if (Math.abs(current - target) <= 1) {
@@ -3014,7 +2768,6 @@ if (document.readyState === 'loading') {
             requestAnimationFrame(() => {
                 ticking = false;
                 const hoverActive = !!document.querySelector('.hover-pane.active');
-                // Sidebar aperta => applica; Sidebar chiusa => applica solo se c'è hover attivo
                 if (!isCollapsed() || hoverActive) apply();
             });
         };
@@ -3031,9 +2784,9 @@ if (document.readyState === 'loading') {
             if (isCollapsed()) {
                 const hover = document.querySelector('.hover-pane.active');
                 if (!hover) {
-                    reset();        // se non c'è hover, torna alle dimensioni minime
+                    reset();
                 } else {
-                    setTimeout(schedule, 0);    // se c'è hover, calcola subito l'auto-grow
+                    setTimeout(schedule, 0);
                 }
             } else {
                 setTimeout(schedule, TIMINGS.autoGrowInitial);
@@ -3049,7 +2802,6 @@ if (document.readyState === 'loading') {
             attributeFilter: ["class", "style", "data-open", "aria-expanded"]
         });
 
-        // Observer per hover-pane (se esiste)
         const observeHoverPane = () => {
             const hover = document.querySelector('.hover-pane');
             if (hover && !hover.dataset.observed) {
@@ -3067,7 +2819,6 @@ if (document.readyState === 'loading') {
             }
         };
 
-        // Osserva quando viene aggiunto l'hover-pane al DOM
         const moBody = new MutationObserver(() => {
             const hover = document.querySelector('.hover-pane');
             if (hover && !hover.dataset.observed) {
@@ -3076,7 +2827,6 @@ if (document.readyState === 'loading') {
         });
         moBody.observe(document.body, {childList: true, subtree: false});
 
-        // Listener per evento custom di show hover
         window.addEventListener('tm:hover:show', () => {
             observeHoverPane();
             setTimeout(schedule, TIMINGS.autoGrowInitial);
