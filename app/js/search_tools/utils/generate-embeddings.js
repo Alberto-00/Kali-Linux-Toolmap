@@ -18,7 +18,7 @@ import {fileURLToPath} from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// ⭐ CONFIGURAZIONE OFFLINE
+// CONFIGURAZIONE OFFLINE
 const CONFIG = {
     // Input/Output
     registryPath: join(__dirname, '../../../data/registry.json'),
@@ -35,15 +35,19 @@ const CONFIG = {
     progressInterval: 10
 };
 
+
 // CONFIGURA TRANSFORMERS PER USARE MODELLI LOCALI
 console.log('⚙️  Configuring @xenova/transformers for local models...');
+
 env.localModelPath = CONFIG.modelPath;
 env.allowRemoteModels = false;
 env.allowLocalModels = true;
 env.useBrowserCache = false;
+
 console.log(`   localModelPath: ${env.localModelPath}`);
 console.log(`   allowRemoteModels: ${env.allowRemoteModels}`);
 console.log(`   allowLocalModels: ${env.allowLocalModels}\n`);
+
 
 /**
  * Carica registry.json
