@@ -14,7 +14,7 @@
  * @property {string=} repo
  * @property {string=} desc
  * @property {string=} desc_long
- * @property {string[]=} caps
+ * @property {string[]=} installation
  * @property {string[]=} tags
  * @property {string=} icon
  * @property {string=} notes
@@ -53,7 +53,7 @@
 
     const SEARCH_WEIGHTS = {
         name: 6,
-        caps: 4,
+        installation: 4,
         tags: 3,
         desc: 2,
         desc_long: 2,
@@ -682,7 +682,7 @@
 
         const name = norm(tool.title || tool.name || tool.id || '');
         const desc = norm((tool.desc || tool.description || '') + ' ' + (tool.desc_long || ''));
-        const caps = norm(Array.isArray(tool.caps) ? tool.caps.join(' ') : '');
+        const installation = norm(tool.installation || '');
         const tags = norm(Array.isArray(tool.tags) ? tool.tags.join(' ') : '');
         const phaseRaw = tool.phase || (Array.isArray(tool.phases) ? tool.phases[0] : '');
         const phase = normLabel(phaseRaw);
@@ -692,7 +692,7 @@
         return {
             name, nameNS: strip(name),
             desc, descNS: strip(desc),
-            caps, capsNS: strip(caps),
+            installation, installationNS: strip(installation),
             tags, tagsNS: strip(tags),
             phase, phaseNS: strip(phase),
             nodes, nodesJoined, nodesNS: strip(nodesJoined)
@@ -720,12 +720,6 @@
             if (fields.desc.includes(token) || fields.descNS.includes(tokenNS)) {
                 matched = true;
                 bestFieldScore = Math.max(bestFieldScore, SEARCH_WEIGHTS.desc);
-            }
-
-            // Capabilities matching
-            if (fields.caps.includes(token) || fields.capsNS.includes(tokenNS)) {
-                matched = true;
-                bestFieldScore = Math.max(bestFieldScore, SEARCH_WEIGHTS.caps);
             }
 
             // Tags matching
@@ -801,7 +795,7 @@
         };
     }
 
-    function render() {
+function render() {
         if (!grid) return;
 
         const tools = computeVisibleTools();
@@ -817,6 +811,15 @@
         const renderer = getRenderer();
         renderer.render(tools);
         enhanceCardsWithPhase(tools);
+
+        // Apply stagger effect per l'animazione onda
+        requestAnimationFrame(() => {
+            const cards = grid.querySelectorAll('.card');
+            cards.forEach((card, index) => {
+                card.style.setProperty('--card-index', index);
+            });
+        });
+
         window.refreshAllVLinesDebounced?.();
     }
 
@@ -1176,7 +1179,6 @@
 
             const description = tool.desc_long || tool.desc || tool.description || 'No description available';
             const phases = this._getPhasesHTML(tool);
-            const capabilities = this._getCapabilitiesHTML(tool);
             const categoryPath = this._getCategoryPathHTML(tool);
 
             return `
@@ -1191,12 +1193,13 @@
                         <h3>Description</h3>
                         <div class="rt">${description}</div>
                     </div>
-
-                    ${phases}
-                    ${capabilities}
-                    ${tool.kind ? this._getKindHTML(tool.kind) : ''}
-                    ${tool.repo ? this._getRepoHTML(tool.repo) : ''}
-                    ${categoryPath}
+                    
+                    <div class="metadata-row">
+                        ${phases}
+                        ${tool.installation ? this._getInstallationHTML(tool.installation) : ''}
+                        ${categoryPath}
+                        ${tool.repo ? this._getRepoHTML(tool.repo) : ''}
+                    </div>
                 </div>
             `;
         }
@@ -1227,33 +1230,14 @@
             `;
         }
 
-        _getCapabilitiesHTML(tool) {
-            if (!Array.isArray(tool.caps) || !tool.caps.length) return '';
-
-            const capTags = tool.caps.map(cap => `
-                <span class="cap-tag" style="background:hsl(var(--muted));border:1px solid var(--border);
-                      padding:6px 12px;border-radius:8px;font-size:13px;color:var(--muted);
-                      display:inline-block;margin:4px;">
-                    ${DOMUtils.escapeHtml(cap)}
-                </span>
-            `).join('');
-
+        _getInstallationHTML(installation) {
             return `
                 <div class="detail-section">
-                    <h3>Capabilities</h3>
-                    <div class="caps-tags">${capTags}</div>
-                </div>
-            `;
-        }
-
-        _getKindHTML(kind) {
-            return `
-                <div class="detail-section">
-                    <h3>Kind</h3>
+                    <h3>Installation</h3>
                     <div class="kind-tag" style="display:inline-block;background:hsl(var(--muted));
                          border:1px solid var(--border);padding:6px 12px;border-radius:8px;
                          font-size:13px;color:var(--muted);">
-                        ${DOMUtils.escapeHtml(kind)}
+                        ${DOMUtils.escapeHtml(installation)}
                     </div>
                 </div>
             `;

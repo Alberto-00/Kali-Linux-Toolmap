@@ -17,15 +17,33 @@
     position: relative;
     isolation: isolate;
     animation: card-pop .28s ease both;
+    animation-delay: calc(var(--card-index, 0) * 0.03s);
     overflow: hidden;
     --hover-phase: var(--phase, var(--accent-2));
     transition: transform 180ms cubic-bezier(.2, .7, .2, 1),
     box-shadow 180ms cubic-bezier(.2, .7, .2, 1),
     border-color 160ms ease,
     background-color 160ms ease;
-
 }
 
+.tools-grid.updating .card {
+    animation: card-fade-out 0.2s ease forwards;
+}
+
+.tools-grid.updated .card {
+    animation: card-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes card-pop {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
 
 .card:hover,
 .card:focus-within {
