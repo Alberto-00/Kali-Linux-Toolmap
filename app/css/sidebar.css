@@ -74,6 +74,241 @@
     overflow: hidden;
 }
 
+/* ============================================================================
+   SEARCH PROGRESS BAR
+   ============================================================================ */
+
+#search-progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#search-progress-bar:not(:empty) {
+    opacity: 1;
+    visibility: visible;
+}
+
+#search-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    transition: width 0.3s ease;
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Effetto shimmer durante il caricamento */
+#search-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent
+    );
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    100% {
+        left: 100%;
+    }
+}
+
+/* Progress Text */
+#search-progress-text {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+#search-progress-text:not(:empty) {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Icona animata nel testo */
+#search-progress-text::before {
+    content: '⚡';
+    margin-right: 8px;
+    display: inline-block;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+/* Search Input States */
+.search-input:disabled {
+    opacity: 0.6;
+    cursor: wait;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Semantic Badge */
+#semantic-badge {
+    position: absolute;
+    right: 45px;
+    top: 50%;
+    transform: translateY(-50%) scale(0.8);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+#semantic-badge.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%) scale(1);
+}
+
+/* Badge pulse effect */
+#semantic-badge.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: inherit;
+    border-radius: inherit;
+    opacity: 0.5;
+    animation: badgePulse 2s ease-out infinite;
+}
+
+@keyframes badgePulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+/* Search Box */
+.search-box {
+    position: relative;
+}
+
+/* Search Spinner */
+#search-spinner {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%) scale(0);
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(102, 126, 234, 0.2);
+    border-top-color: #667eea;
+    border-radius: 50%;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+}
+
+#search-spinner.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%) scale(1);
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: translateY(-50%) rotate(360deg);
+    }
+}
+
+/* Smooth transitions for all progress elements */
+#search-progress-bar,
+#search-progress-fill,
+#search-progress-text,
+#semantic-badge,
+#search-spinner {
+    will-change: transform, opacity;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    #search-progress-bar {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    #search-progress-text {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+    }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    #search-progress-text {
+        font-size: 11px;
+        padding: 8px 16px;
+        top: 10px;
+    }
+
+    #semantic-badge {
+        right: 40px;
+        font-size: 9px;
+        padding: 4px 10px;
+    }
+}
+
 /* SEARCH BOX */
 .search-box {
     position: relative;
@@ -142,11 +377,25 @@ nav {
     animation: slideIn .3s ease backwards;
 }
 
-.nav-item:nth-child(1) { animation-delay: .05s; }
-.nav-item:nth-child(2) { animation-delay: .1s; }
-.nav-item:nth-child(3) { animation-delay: .15s; }
-.nav-item:nth-child(4) { animation-delay: .2s; }
-.nav-item:nth-child(5) { animation-delay: .25s; }
+.nav-item:nth-child(1) {
+    animation-delay: .05s;
+}
+
+.nav-item:nth-child(2) {
+    animation-delay: .1s;
+}
+
+.nav-item:nth-child(3) {
+    animation-delay: .15s;
+}
+
+.nav-item:nth-child(4) {
+    animation-delay: .2s;
+}
+
+.nav-item:nth-child(5) {
+    animation-delay: .25s;
+}
 
 .nav-item.has-active-path {
     --tree-stroke: rgba(255, 255, 255, .14) !important;
@@ -584,7 +833,41 @@ nav {
     box-shadow: 0 0 0 1px rgba(0, 0, 0, .15), 0 2px 6px rgba(0, 0, 0, .25);
     user-select: none;
     pointer-events: none;
-    animation: badgePulse 0.4s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center;
+}
+
+/* Animazione ingresso badge */
+@keyframes badgePopIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.nav-item .btn .phase-badge {
+    animation: badgePopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Effetto pulse sottile quando il numero cambia */
+@keyframes badgeChange {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+}
+
+.nav-item .btn .phase-badge.updating {
+    animation: badgeChange 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-item .btn .search-badge {

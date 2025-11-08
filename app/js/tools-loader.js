@@ -15,7 +15,7 @@
     const CONFIG = {
         rootName: 'Root',
         registryPaths: [
-            '../data/registry.yml',
+            '../app/data/registry.yml',
             '../../data/registry.yml',
             './data/registry.yml',
             '/data/registry.yml',

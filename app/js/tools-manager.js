@@ -82,6 +82,8 @@
         isResetting: false
     };
 
+    let preSearchSnapshot = null;
+
     let grid, resetBtn, notesModal, detailsModal, rendererAdapter;
     let hasVisitedAnyPhase = false;
     let eventsWired = false;
@@ -341,6 +343,8 @@
         window.addEventListener('tm:tool:toggleStar', handleToggleStar);
         window.addEventListener('tm:search:phases:changed', handleSearchPhasesChanged);
         window.addEventListener('tm:search:set', handleSearchSet);
+        window.addEventListener('tm:search:results', handleSearchResults);
+        window.addEventListener('tm:search:cleared', handleSearchCleared);
         window.addEventListener('tm:phase:color', handlePhaseColor);
         window.addEventListener('tm:tools:showAll', handleShowAll);
         window.addEventListener('tm:reset', handleReset);
@@ -402,7 +406,49 @@
         const hadSearch = !!state.search;
         const hasSearch = !!newSearch;
 
+        // IMPORTANTE: Salva lo stato PRIMA di iniziare la ricerca
+        if (!hadSearch && hasSearch) {
+            // Cattura snapshot completo
+            preSearchSnapshot = captureStateSnapshot();
+
+            // Salva SEMPRE il path corrente in sessionStorage E localStorage
+            if (state.pathKey) {
+                Storage.set(STORAGE_KEYS.pathKey, state.pathKey);
+
+                // Converti pathKey in slash path e salva anche quello
+                const slashPath = state.pathKey.replace(/>/g, '/').replace(/^Root\//, '');
+                Storage.set(STORAGE_KEYS.pathSlash, slashPath);
+
+                // IMPORTANTE: Salva anche in localStorage per la sidebar
+                try {
+                    localStorage.setItem('tm:active:path', state.pathKey);
+                    localStorage.setItem('tm:active:slash', slashPath);
+                } catch (e) {
+                    console.warn('Failed to save to localStorage:', e);
+                }
+            } else {
+                console.warn('⚠️ No pathKey to save!');
+            }
+        }
+
         state.search = newSearch;
+
+        // Se il nuovo search engine è attivo, lascia che gestisca lui la ricerca
+        if (window.searchEngine?.ready) {
+            // Aggiorna solo lo storage
+            if (hasSearch) {
+                Storage.set(STORAGE_KEYS.search, state.search);
+            } else {
+                Storage.remove(STORAGE_KEYS.search);
+            }
+
+            // Build context per sidebar
+            const ctx = buildSearchContext();
+            window.__lastSearchContext = ctx;
+            window.dispatchEvent(new CustomEvent('tm:search:context', {detail: ctx}));
+
+            return;
+        }
 
         if (hasSearch) {
             Storage.set(STORAGE_KEYS.search, state.search);
@@ -421,6 +467,138 @@
         render();
     }
 
+    function handleSearchResults(event) {
+        const {results} = event.detail || {};
+
+        if (!results) return;
+
+        // Build e dispatch context se non già fatto
+        if (results.length > 0) {
+            const ctx = buildSearchContextFromTools(results);
+            window.__lastSearchContext = ctx;
+            window.dispatchEvent(new CustomEvent('tm:search:context', {detail: ctx}));
+
+            renderMLSearchResults(results);
+        } else {
+            const emptyCtx = {
+                hasQuery: true,
+                phaseKeys: [],
+                paths: [],
+                countsByPhase: {},
+                isEmpty: true // Flag importante: dice alla sidebar "disabilita tutto"
+            };
+            window.__lastSearchContext = emptyCtx;
+            window.dispatchEvent(new CustomEvent('tm:search:context', {detail: emptyCtx}));
+            renderEmptyState()
+        }
+    }
+
+    function buildSearchContextFromTools(tools) {
+        const phaseSet = new Set();
+        const paths = [];
+        const countsByPhase = {};
+
+        tools.forEach(tool => {
+            // Estrai fase
+            const catPath = ToolUtils.getCategoryPath(tool);
+            const phaseKey = catPath.length > 0 ? catPath[0] : (tool.phase || (Array.isArray(tool.phases) ? tool.phases[0] : null));
+
+            if (phaseKey) {
+                phaseSet.add(phaseKey);
+                countsByPhase[phaseKey] = (countsByPhase[phaseKey] || 0) + 1;
+            }
+
+            // Estrai path completo
+            if (catPath.length > 0) {
+                paths.push(catPath);
+            }
+        });
+
+        const context = {
+            hasQuery: true,
+            phaseKeys: Array.from(phaseSet),
+            paths,
+            countsByPhase
+        };
+
+        // Se non ci sono fasi trovate, segnala come vuoto
+        if (context.phaseKeys.length === 0 && state.search) {
+            context.isEmpty = true;
+        }
+
+        return context;
+    }
+
+    function renderMLSearchResults(tools) {
+        if (!grid) return;
+
+        // Conta tools per fase
+        const phaseCount = {};
+        tools.forEach(t => {
+            const catPath = ToolUtils.getCategoryPath(t);
+            const phase = catPath[0] || t.phase || (Array.isArray(t.phases) ? t.phases[0] : 'unknown');
+            phaseCount[phase] = (phaseCount[phase] || 0) + 1;
+        });
+
+        // Applica starred state
+        applyStarredState(tools);
+
+        // Sort mantenendo l'ordine della ricerca ML ma raggruppando per starred
+        tools.sort((a, b) => {
+            const starA = a._starred ? 0 : 1;
+            const starB = b._starred ? 0 : 1;
+            if (starA !== starB) return starA - starB;
+
+            // Mantieni l'ordine della ricerca ML (già ordinato per score)
+            return 0;
+        });
+
+        notifyBreadcrumb(tools);
+
+        const renderer = getRenderer();
+        renderer.render(tools);
+        enhanceCardsWithPhase(tools);
+
+        // Apply stagger effect
+        requestAnimationFrame(() => {
+            const cards = grid.querySelectorAll('.card');
+            cards.forEach((card, index) => {
+                card.style.setProperty('--card-index', index);
+            });
+        });
+
+        window.refreshAllVLinesDebounced?.();
+    }
+
+    function handleSearchCleared() {
+
+        // Ripristina snapshot se disponibile
+        if (preSearchSnapshot) {
+            restoreStateSnapshot(preSearchSnapshot);
+            preSearchSnapshot = null;
+            return;
+        }
+
+        // Fallback: ripristina lo scope salvato (vecchia logica)
+        restoreSavedScope();
+
+        // Se c'era un path attivo, renderizza quei tools
+        if (state.pathKey && state.scopeIds && state.scopeIds.length > 0) {
+            const tm = window.Toolmap || {};
+            const tools = state.scopeIds
+                .map(id => tm.toolsById?.[id])
+                .filter(Boolean);
+
+            if (tools.length > 0) {
+                render();
+            }
+        } else {
+            // Nessun path salvato, mostra tutto
+            state.scopeAll = true;
+            render();
+        }
+    }
+
     function restoreSavedScope() {
         const savedPathKey = Storage.get(STORAGE_KEYS.pathKey);
         const savedPathSlash = Storage.get(STORAGE_KEYS.pathSlash);
@@ -436,6 +614,15 @@
 
             window.dispatchEvent(new CustomEvent('tm:scope:set', {
                 detail: {pathKey, ids, source: 'search-cleared'}
+            }));
+        } else {
+            // Nessun path salvato, mostra tutto
+            state.scopeAll = true;
+            state.scopeIds = null;
+            state.pathKey = null;
+
+            window.dispatchEvent(new CustomEvent('tm:scope:set', {
+                detail: {all: true, source: 'search-cleared-no-path'}
             }));
         }
     }
@@ -795,7 +982,7 @@
         };
     }
 
-function render() {
+    function render() {
         if (!grid) return;
 
         const tools = computeVisibleTools();
@@ -1332,6 +1519,87 @@ function render() {
             this.modal.classList.add('open');
             document.body.style.overflow = 'hidden';
         }
+    }
+
+    // ============================================================================
+    // STATE SNAPSHOT FUNCTIONS
+    // ============================================================================
+
+    function captureStateSnapshot() {
+        const sidebar = document.getElementById('sidebar');
+        const openPhases = [];
+        const badgeStates = {};
+
+        if (sidebar) {
+            sidebar.querySelectorAll('.nav-item').forEach(item => {
+                const phase = item.dataset.phase;
+                if (!phase) return;
+
+                // Salva se la fase è aperta
+                if (item.classList.contains('open')) {
+                    openPhases.push(phase);
+                }
+
+                // Salva stato badge SOLO se non è in Show All mode
+                if (!state.scopeAll) {
+                    const badge = item.querySelector('.phase-badge');
+                    if (badge) {
+                        badgeStates[phase] = {
+                            visible: badge.style.display !== 'none',
+                            text: badge.textContent
+                        };
+                    }
+                }
+            });
+        }
+
+        return {
+            scopeAll: state.scopeAll,
+            pathKey: state.scopeAll ? null : state.pathKey, // NON salvare pathKey se scopeAll = true
+            openPhases: openPhases,
+            badgeStates: badgeStates,
+            timestamp: Date.now()
+        };
+    }
+
+    function restoreStateSnapshot(snapshot) {
+        if (!snapshot) return;
+
+        // Ripristina state
+        state.scopeAll = snapshot.scopeAll;
+        state.pathKey = snapshot.pathKey;
+
+        // Se c'era un path, ripristinalo
+        if (snapshot.pathKey) {
+            Storage.set(STORAGE_KEYS.pathKey, snapshot.pathKey);
+            const slashPath = snapshot.pathKey.replace(/>/g, '/').replace(/^Root\//, '');
+            Storage.set(STORAGE_KEYS.pathSlash, slashPath);
+
+            const tm = window.Toolmap || {};
+            if (tm.allToolsUnder?.[snapshot.pathKey]) {
+                state.scopeIds = Array.from(tm.allToolsUnder[snapshot.pathKey]);
+            }
+
+            // Dispatch scope set
+            window.dispatchEvent(new CustomEvent('tm:scope:set', {
+                detail: {pathKey: snapshot.pathKey, ids: state.scopeIds, source: 'snapshot-restore'}
+            }));
+        } else {
+            Storage.remove(STORAGE_KEYS.pathKey);
+            Storage.remove(STORAGE_KEYS.pathSlash);
+            state.scopeIds = null;
+        }
+
+        // Dispatch evento per sidebar per ripristinare fasi
+        window.dispatchEvent(new CustomEvent('tm:sidebar:restore-snapshot', {
+            detail: {
+                openPhases: snapshot.openPhases || [],
+                badgeStates: snapshot.badgeStates || {},
+                scopeAll: snapshot.scopeAll
+            }
+        }));
+
+        render();
     }
 
     window.SearchUtils = SearchUtils;

@@ -1213,6 +1213,27 @@ const QueryHelpers = {
         }, true);
     }
 
+    window.addEventListener('tm:sidebar:closeAll', () => {
+        document.querySelectorAll('.nav-item.open').forEach(item => {
+            item.classList.remove(CLASSES.open);
+            const btn = item.querySelector('.btn');
+            if (btn) btn.classList.remove(CLASSES.active);
+        });
+
+        document.querySelectorAll('.children-nested').forEach(n => n.remove());
+
+        clearPathHighlight();
+
+        // Rimuovi tutti i badge NELLA SIDEBAR
+        document.querySelectorAll('.sidebar .phase-badge, .sidebar .search-badge').forEach(b => {
+            b.style.animation = 'badgePopIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+            setTimeout(() => b.remove(), 300);
+        });
+
+        refreshAllVLinesDebounced();
+        window.SidebarAutoGrow?.schedule();
+    });
+
     function positionFlyouts() {
         const sidebar = document.getElementById('sidebar');
         document.querySelectorAll('.nav-item.has-children').forEach(item => {
@@ -1692,6 +1713,7 @@ const QueryHelpers = {
 
                     const btn = item.querySelector('.btn');
                     if (btn) {
+                        // SEMPRE rimuovi i badge quando non ci sono risultati
                         btn.querySelector('.search-badge')?.remove();
                     }
 
@@ -1723,7 +1745,10 @@ const QueryHelpers = {
 
                 const btn = item.querySelector('.btn');
                 if (btn) {
+                    // SEMPRE aggiorna i badge in base a countsByPhase
                     btn.querySelector('.search-badge')?.remove();
+
+                    // Se questa fase ha risultati, mostra il badge
                     const n = countsByPhase[phase] || 0;
                     if (n > 0) {
                         const chev = btn.querySelector('.chev');
@@ -1898,7 +1923,7 @@ const QueryHelpers = {
 
         function clearSearchDecorations() {
             QueryHelpers.clearSearchMarks(document);
-            document.querySelectorAll('.search-badge').forEach(el => el.remove());
+            document.querySelectorAll('.sidebar .search-badge').forEach(el => el.remove());
         }
 
         function openOnlyActivePathOnClear() {
@@ -2035,6 +2060,58 @@ const QueryHelpers = {
             }
         });
 
+        window.addEventListener('tm:sidebar:restore-snapshot', (ev) => {
+            const {openPhases = [], badgeStates = {}, scopeAll} = ev.detail || {};
+
+            // Rimuovi search mode
+            sidebar.classList.remove(CLASSES.searchMode);
+            clearSearchDecorations();
+
+            // Se era Show All, chiudi tutto e RIMUOVI tutti i badge
+            if (scopeAll) {
+                NAV.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove(CLASSES.open);
+                    item.querySelector('.btn')?.classList.remove(CLASSES.active);
+
+                    // RIMUOVI completamente i badge in Show All mode
+                    const badge = item.querySelector('.phase-badge');
+                    if (badge) {
+                        badge.remove();
+                    }
+                });
+            } else {
+                NAV.querySelectorAll('.nav-item').forEach(item => {
+                    const phase = item.dataset.phase;
+                    if (!phase) return;
+
+                    const wasOpen = openPhases.includes(phase);
+
+                    if (wasOpen) {
+                        item.classList.add(CLASSES.open);
+                        item.querySelector('.btn')?.classList.add(CLASSES.active);
+                    } else {
+                        item.classList.remove(CLASSES.open);
+                        item.querySelector('.btn')?.classList.remove(CLASSES.active);
+                    }
+
+                    const badgeState = badgeStates[phase];
+                    const existingBadge = item.querySelector('.phase-badge');
+
+                    if (badgeState && badgeState.visible) {
+                        if (existingBadge) {
+                            existingBadge.style.display = '';
+                            existingBadge.textContent = badgeState.text;
+                        }
+                    } else if (existingBadge) {
+                        existingBadge.remove();
+                    }
+                });
+            }
+
+            refreshAllVLinesDebounced();
+            window.SidebarAutoGrow?.schedule();
+        });
+
         window.addEventListener('tm:reset', () => {
             localStorage.removeItem(MEM.pathKey);
             localStorage.removeItem(MEM.pathSlash);
@@ -2046,7 +2123,7 @@ const QueryHelpers = {
 
             const sidebarEl = document.getElementById('sidebar');
             sidebarEl?.classList.remove(CLASSES.searchMode);
-            document.querySelectorAll('.search-badge').forEach(el => el.remove());
+            document.querySelectorAll('.sidebar .search-badge').forEach(el => el.remove());
             QueryHelpers.clearSearchMarks(document);
 
             document.querySelectorAll('.nav-item').forEach(item => {
@@ -2377,7 +2454,10 @@ const QueryHelpers = {
         }
     });
 
+    let lastBadgePhase = null;
+
     window.addEventListener('tm:reset', () => {
+        lastBadgePhase = null;
         localStorage.removeItem(MEM.preSearchSlash);
         localStorage.removeItem(MEM.searchTempSlash);
 
@@ -2410,13 +2490,59 @@ const QueryHelpers = {
             document.querySelectorAll(`${phaseSelector} .btn ${badgeSelector}`).forEach(n => n.remove());
         }
 
-        function setBadge(btn, badgeClass, value) {
+        function setBadge(btn, badgeClass, value, phaseChanged = false) {
             if (!btn) return;
 
-            btn.querySelector(`.${badgeClass}`)?.remove();
+            const existing = btn.querySelector(`.${badgeClass}`);
 
-            if (!value) return;
+            if (!value) {
+                if (existing) {
+                    existing.style.animation = 'badgePopIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+                    setTimeout(() => existing.remove(), 300);
+                }
+                return;
+            }
 
+            if (existing) {
+                // Numero diverso: anima il cambio
+                if (existing.textContent !== String(value)) {
+                    // PULSE solo se è cambiata la fase
+                    if (phaseChanged) {
+                        existing.classList.add('updating');
+                    }
+
+                    // Counter animation (sempre)
+                    const start = parseInt(existing.textContent) || 0;
+                    const end = parseInt(value) || 0;
+                    const duration = 400;
+                    const startTime = performance.now();
+
+                    const animate = (currentTime) => {
+                        const elapsed = currentTime - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+
+                        // Easing function
+                        const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+                        const current = Math.round(start + (end - start) * easeOutCubic);
+
+                        existing.textContent = String(current);
+
+                        if (progress < 1) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            existing.textContent = String(end);
+                            if (phaseChanged) {
+                                setTimeout(() => existing.classList.remove('updating'), 100);
+                            }
+                        }
+                    };
+
+                    requestAnimationFrame(animate);
+                }
+                return;
+            }
+
+            // Crea nuovo badge (prima apparizione)
             const badge = document.createElement('span');
             badge.className = badgeClass;
             badge.setAttribute('aria-label', `${value} risultati`);
@@ -2429,7 +2555,9 @@ const QueryHelpers = {
 
         function updateBadge(phaseKey, count) {
             if (!isSidebarOpen()) {
-                removeBadges();
+                const inSearch = isSearchMode();
+                removeBadges(null, inSearch ? 'phase-badge' : null);
+                lastBadgePhase = null;
                 return;
             }
 
@@ -2441,14 +2569,20 @@ const QueryHelpers = {
             const navItem = getNavItem(phaseKey);
             if (!navItem) return;
             if (!navItem.classList.contains(CLASSES.hasActivePath)) {
-                removeBadges(phaseKey);
+                const inSearch = isSearchMode();
+                removeBadges(phaseKey, inSearch ? 'phase-badge' : null);
+                lastBadgePhase = null;
                 return;
             }
 
             const btn = navItem.querySelector('.btn');
             if (!btn) return;
 
-            setBadge(btn, 'phase-badge', count);
+            // Determina se è cambiata la fase
+            const phaseChanged = lastBadgePhase !== phaseKey;
+            lastBadgePhase = phaseKey;
+
+            setBadge(btn, 'phase-badge', count, phaseChanged);
         }
 
         window.addEventListener('tm:context:summary', (ev) => {
@@ -2458,14 +2592,18 @@ const QueryHelpers = {
             const count = Number(d.toolsCount || 0);
 
             if (!isSidebarOpen() || scopeAll || !pathKey) {
-                removeBadges();
+                // Se siamo in search mode, rimuovi solo phase-badge
+                const inSearch = isSearchMode();
+                removeBadges(null, inSearch ? 'phase-badge' : null);
                 return;
             }
 
             const parts = String(pathKey).split('>');
             const phaseKey = parts.length >= 2 ? parts[1] : null;
             if (!phaseKey) {
-                removeBadges();
+                // Se siamo in search mode, rimuovi solo phase-badge
+                const inSearch = isSearchMode();
+                removeBadges(null, inSearch ? 'phase-badge' : null);
                 return;
             }
 
@@ -2473,12 +2611,16 @@ const QueryHelpers = {
         });
 
         window.addEventListener('tm:sidebar:toggle', (ev) => {
-            if (ev.detail?.collapsed) removeBadges();
+            if (ev.detail?.collapsed) {
+                removeBadges();
+                lastBadgePhase = null;
+            }
         });
         window.addEventListener('tm:reset', () => removeBadges());
         window.addEventListener('tm:search:set', (ev) => {
             const hasQuery = !!(ev.detail && ev.detail.hasQuery);
-            if (hasQuery) removeBadges();
+            // Durante la ricerca, rimuovi SOLO i phase-badge (i search-badge sono gestiti da applySearchGhost)
+            if (hasQuery) removeBadges(null, 'phase-badge');
         });
     })();
 
@@ -2860,5 +3002,175 @@ if (document.readyState === 'loading') {
         setTimeout(schedule, TIMINGS.autoGrowVeryLong);
 
         window.SidebarAutoGrow = {schedule, apply, computeNeeded, reset};
+    });
+
+    // ============================================================================
+    // BADGE ON SIDEBAR OPEN (quando chiusa e riaperta)
+    // ============================================================================
+
+    (function setupSidebarOpenBadge() {
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+
+        let badgeTimeout = null;
+
+        // Monitora cambiamenti della classe "collapsed"
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const wasCollapsed = mutation.oldValue?.includes('collapsed');
+                    const isCollapsed = sidebar.classList.contains('collapsed');
+
+                    // Quando la sidebar viene APERTA (collapsed -> non collapsed)
+                    if (wasCollapsed && !isCollapsed) {
+                        clearTimeout(badgeTimeout);
+                        badgeTimeout = setTimeout(() => {
+                            addBadgeForActivePath();
+                        }, 150);
+                    }
+                }
+            });
+        });
+
+        observer.observe(sidebar, {
+            attributes: true,
+            attributeOldValue: true,
+            attributeFilter: ['class']
+        });
+
+        function addBadgeForActivePath() {
+            const savedPath = localStorage.getItem('tm:active:slash');
+            const savedPathKey = localStorage.getItem('tm:active:path');
+
+            // Se non c'è path salvato, non fare nulla
+            if (!savedPath) {
+                return;
+            }
+
+            // Se il pathKey salvato è "Root" (Show All), non mostrare badge
+            if (savedPathKey === 'Root') {
+                return;
+            }
+
+            const phase = savedPath.split('/')[0];
+
+            const navItem = document.querySelector(`.nav-item[data-phase="${phase}"]`);
+            if (!navItem) {
+                return;
+            }
+
+            // NON aggiungere badge se la fase è già aperta
+            if (navItem.classList.contains('open')) {
+                return;
+            }
+
+            const btn = navItem.querySelector('.btn');
+            if (!btn) {
+                return;
+            }
+
+            // Rimuovi badge esistente se presente
+            const existingBadge = btn.querySelector('.phase-badge');
+            if (existingBadge) {
+                existingBadge.remove();
+            }
+
+            // Risolvi i tool IDs
+            const tm = window.Toolmap || {};
+            const root = (tm.registry && (tm.registry.name || tm.registry.title)) || 'Root';
+            const suffix = savedPath.replace(/\//g, '>');
+            const pathKey = `${root}>${suffix}`;
+
+            let toolIds = null;
+            if (tm.allToolsUnder && tm.allToolsUnder[pathKey]) {
+                toolIds = Array.from(tm.allToolsUnder[pathKey]);
+            }
+
+            if (!toolIds || toolIds.length === 0) {
+                return;
+            }
+
+            const toolCount = toolIds.length;
+
+            // Ottieni il colore della fase
+            const computedStyle = getComputedStyle(navItem);
+            let phaseColor = computedStyle.getPropertyValue('--phase').trim();
+
+            if (!phaseColor) {
+                const PHASE_COLORS = {
+                    '00_Common': 'hsl(270 91% 65%)',
+                    '01_Information_Gathering': 'hsl(210 100% 62%)',
+                    '02_Exploitation': 'hsl(4 85% 62%)',
+                    '03_Post_Exploitation': 'hsl(32 98% 55%)',
+                    '04_Miscellaneous': 'hsl(158 64% 52%)'
+                };
+                phaseColor = PHASE_COLORS[phase] || 'hsl(var(--accent))';
+            }
+
+            btn.style.setProperty('--phase', phaseColor);
+
+            // Crea il badge
+            const badge = document.createElement('span');
+            badge.className = 'phase-badge';
+            badge.textContent = String(toolCount);
+            badge.setAttribute('aria-label', `${toolCount} tool${toolCount !== 1 ? 's' : ''}`);
+
+            const chevron = btn.querySelector('.chev');
+            if (chevron) {
+                btn.insertBefore(badge, chevron);
+            } else {
+                btn.appendChild(badge);
+            }
+        }
+
+        // Listener per rimuovere badge quando si clicca Show All
+        window.addEventListener('tm:show:all', () => {
+            // Rimuovi SOLO i badge nella sidebar, non nelle card
+            document.querySelectorAll('.sidebar .phase-badge').forEach(badge => {
+                badge.style.animation = 'badgePopIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+                setTimeout(() => badge.remove(), 300);
+            });
+            localStorage.setItem('tm:scope:showAll', '1');
+        });
+
+        // Listener per rimuovere badge quando si cambia scope
+        window.addEventListener('tm:scope:set', (ev) => {
+            const detail = ev.detail || {};
+
+            if (detail.all || detail.pathKey === 'Root') {
+                // Rimuovi SOLO i badge nella sidebar, non nelle card
+                document.querySelectorAll('.sidebar .phase-badge').forEach(badge => {
+                    badge.style.animation = 'badgePopIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+                    setTimeout(() => badge.remove(), 300);
+                });
+                localStorage.setItem('tm:scope:showAll', '1');
+                localStorage.removeItem('tm:active:slash');
+                localStorage.removeItem('tm:active:path');
+            } else {
+                localStorage.removeItem('tm:scope:showAll');
+            }
+        });
+    })();
+
+    // ============================================================================
+    // LISTENER DIRETTO SUL PULSANTE "SHOW ALL"
+    // ============================================================================
+    document.addEventListener('DOMContentLoaded', function () {
+        const showAllBtn = document.querySelector('.show-all-btn');
+
+        if (showAllBtn) {
+            showAllBtn.addEventListener('click', () => {
+                // Pulisci i path salvati così il badge non si ricrea
+                localStorage.removeItem('tm:active:slash');
+                localStorage.removeItem('tm:active:path');
+                localStorage.setItem('tm:scope:showAll', '1');
+
+                // Rimuovi SOLO i badge nella sidebar, non nelle card
+                document.querySelectorAll('.sidebar .phase-badge').forEach(badge => {
+                    badge.style.animation = 'badgePopIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+                    setTimeout(() => badge.remove(), 300);
+                });
+            });
+        }
     });
 })();

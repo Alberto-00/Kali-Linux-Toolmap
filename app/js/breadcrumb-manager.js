@@ -259,57 +259,78 @@
         animateTextChange(element, oldText, newText) {
             if (!element) return;
 
-            // Aggiungi classe typing per mostrare cursor
-            element.classList.add('typing');
+            // element.classList.add('typing'); --> toglie l'animazione del cursore
 
-            // Trova il prefisso comune
-            let commonLength = 0;
-            const minLength = Math.min(oldText.length, newText.length);
+            // Trova il prefisso E suffisso comuni
+            let prefixLen = 0;
+            let suffixLen = 0;
+            const minLen = Math.min(oldText.length, newText.length);
 
-            for (let i = 0; i < minLength; i++) {
+            // Trova prefisso comune
+            for (let i = 0; i < minLen; i++) {
                 if (oldText[i].toLowerCase() === newText[i].toLowerCase()) {
-                    commonLength = i + 1;
+                    prefixLen = i + 1;
                 } else {
                     break;
                 }
             }
 
-            // Fase 1: Cancella i caratteri in eccesso (da destra verso sinistra)
-            const charsToDelete = oldText.length - commonLength;
-            let currentText = oldText;
+            // Trova suffisso comune (solo se c'è un prefisso)
+            if (prefixLen < minLen) {
+                for (let i = 0; i < minLen - prefixLen; i++) {
+                    const oldIdx = oldText.length - 1 - i;
+                    const newIdx = newText.length - 1 - i;
+
+                    if (oldText[oldIdx].toLowerCase() === newText[newIdx].toLowerCase()) {
+                        suffixLen = i + 1;
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            // Parti da modificare
+            const oldMiddle = oldText.slice(prefixLen, oldText.length - suffixLen);
+            const newMiddle = newText.slice(prefixLen, newText.length - suffixLen);
+
+            const prefix = oldText.slice(0, prefixLen);
+            const suffix = oldText.slice(oldText.length - suffixLen);
+
+            let currentMiddle = oldMiddle;
             let deleteIndex = 0;
 
+            // Fase 1: Cancella la parte centrale
             const deleteInterval = setInterval(() => {
-                if (deleteIndex >= charsToDelete) {
+                if (deleteIndex >= oldMiddle.length) {
                     clearInterval(deleteInterval);
-                    // Fase 2: Inizia a scrivere i nuovi caratteri
                     startTyping();
                     return;
                 }
 
-                currentText = currentText.slice(0, -1);
-                element.textContent = currentText;
+                currentMiddle = currentMiddle.slice(0, -1);
+                element.textContent = prefix + currentMiddle + suffix;
                 deleteIndex++;
-            }, 40); // 40ms per carattere durante la cancellazione
+            }, 40);
 
+            // Fase 2: Scrivi la nuova parte centrale
             const startTyping = () => {
-                const charsToAdd = newText.slice(commonLength);
                 let typeIndex = 0;
+                currentMiddle = '';
 
                 const typeInterval = setInterval(() => {
-                    if (typeIndex >= charsToAdd.length) {
+                    if (typeIndex >= newMiddle.length) {
                         clearInterval(typeInterval);
-                        // Rimuovi cursor dopo aver finito
+                        /* Toglie l'animazione del cursore
                         setTimeout(() => {
                             element.classList.remove('typing');
-                        }, 500);
+                        }, 500);*/
                         return;
                     }
 
-                    currentText += charsToAdd[typeIndex];
-                    element.textContent = currentText;
+                    currentMiddle += newMiddle[typeIndex];
+                    element.textContent = prefix + currentMiddle + suffix;
                     typeIndex++;
-                }, 60); // 60ms per carattere durante la scrittura
+                }, 60);
             };
         },
 
@@ -450,14 +471,17 @@
             const inSearch = sidebar && sidebar.classList.contains('search-mode');
 
             if (inSearch) {
-                // Modalità ricerca: emetti evento specifico per show all in ricerca
+                // Modalità ricerca: chiudi sidebar e mostra tutto
                 window.dispatchEvent(new CustomEvent('tm:show:all', {
-                    detail: {source: 'breadcrumb', searchMode: true}
+                    detail: {source: 'breadcrumb', searchMode: true, closeSidebar: true}
                 }));
             } else {
-                // Modalità normale
+                // Modalità normale: chiudi tutte le fasi
                 state.currentPathSlash = null;
                 BreadcrumbRenderer.render(null);
+
+                // Dispatch evento per chiudere sidebar
+                window.dispatchEvent(new CustomEvent('tm:sidebar:closeAll'));
                 window.dispatchEvent(new CustomEvent('tm:tools:showAll'));
             }
         },

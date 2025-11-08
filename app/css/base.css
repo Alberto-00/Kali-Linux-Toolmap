@@ -287,16 +287,6 @@ nav::-webkit-scrollbar-thumb:hover,
     background: color-mix(in srgb, var(--phase) 22%, transparent);
     color: var(--phase);
     border: 1px solid color-mix(in srgb, var(--phase) 42%, transparent);
-    animation: badgePulse 0.4s ease;
-}
-
-@keyframes badgePulse {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.15);
-    }
 }
 
 .version-chip {
