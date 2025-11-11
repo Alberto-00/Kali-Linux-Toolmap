@@ -1,32 +1,20 @@
 // ============================================================================
 // back-to-top.js
 // ============================================================================
+// Descrizione: Gestisce il pulsante "Back to Top" con scroll detection
+// Dipendenze: Nessuna
 
 (() => {
     'use strict';
 
-    // Prevent double initialization
     if (window.__BackToTopInit) return;
     window.__BackToTopInit = true;
-
-    // ============================================================================
-    // CONSTANTS
-    // ============================================================================
 
     const CONFIG = {
         buttonId: 'backToTopBtn',
         scrollThreshold: 200,
         visibleClass: 'visible'
     };
-
-    const SELECTORS = {
-        toolsGrid: '.tools-grid',
-        scrollingElement: () => document.scrollingElement || document.documentElement
-    };
-
-    // ============================================================================
-    // STATE
-    // ============================================================================
 
     const state = {
         button: null,
@@ -35,13 +23,13 @@
     };
 
     // ============================================================================
-    // SCROLL CONTAINER MANAGEMENT
+    // SCROLL CONTAINER
     // ============================================================================
 
     const ScrollContainer = {
         get() {
-            const grid = document.querySelector(SELECTORS.toolsGrid);
-            return grid || SELECTORS.scrollingElement();
+            const grid = document.querySelector('.tools-grid');
+            return grid || document.scrollingElement || document.documentElement;
         },
 
         isDocument(container) {
@@ -71,7 +59,7 @@
     };
 
     // ============================================================================
-    // BUTTON MANAGEMENT
+    // BUTTON
     // ============================================================================
 
     const Button = {
@@ -142,7 +130,7 @@
     };
 
     // ============================================================================
-    // SCROLL LISTENER MANAGEMENT
+    // SCROLL LISTENER
     // ============================================================================
 
     const ScrollListener = {
@@ -180,40 +168,31 @@
     // EVENT HANDLERS
     // ============================================================================
 
-    const EventHandlers = {
-        handleScopeSet() {
-            ScrollListener.attach();
-        },
+    function handleScopeSet() {
+        ScrollListener.attach();
+    }
 
-        handlePhaseColorApply(event) {
-            const color = event.detail?.color || null;
-            Button.applyPhaseColor(color);
-        },
+    function handlePhaseColor(event) {
+        const color = event.detail?.color || null;
+        Button.applyPhaseColor(color);
+    }
 
-        handleReset() {
-            Button.applyPhaseColor(null);
-            ScrollListener.attach();
-        }
-    };
-
-    // ============================================================================
-    // EVENT WIRING
-    // ============================================================================
-
-    function wireAppEvents() {
-        window.addEventListener('tm:scope:set', () => EventHandlers.handleScopeSet());
-        window.addEventListener('tm:phase:color:apply', (e) => EventHandlers.handlePhaseColorApply(e));
-        window.addEventListener('tm:reset', () => EventHandlers.handleReset());
+    function handleReset() {
+        Button.applyPhaseColor(null);
+        ScrollListener.attach();
     }
 
     // ============================================================================
-    // INITIALIZATION
+    // INIT
     // ============================================================================
 
     function initialize() {
         Button.ensure();
         ScrollListener.attach();
-        wireAppEvents();
+
+        window.addEventListener('tm:scope:set', handleScopeSet);
+        window.addEventListener('tm:phase:color:apply', handlePhaseColor);
+        window.addEventListener('tm:reset', handleReset);
     }
 
     initialize();

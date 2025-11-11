@@ -5,61 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Kali Linux Toolmap - Cybersecurity Toolkit</title>
 
-    <!-- Stylesheets -->
+    <!-- CSS -->
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/sidebar.css">
     <link rel="stylesheet" href="css/card.css">
     <link rel="stylesheet" href="css/main_section.css">
     <link rel="stylesheet" href="css/modal.css">
 
-    <!-- External Libraries -->
-    <script defer src="js/lib/js-yaml.min.js"></script>
-
-    <!-- Search Engine Core -->
-    <script>
-        // Caricamento dinamico di transformers
-        async function loadTransformers() {
-            try {
-                // Importa transformers come modulo ES6
-                const {pipeline, env} = await import('./js/lib/transformers.min.js');
-
-                // Configura l'ambiente
-                env.allowLocalModels = true;
-                env.allowRemoteModels = false;
-                env.localModelPath = './js/search_tools/models/';
-
-                // Esponi sul window per l'uso in altri script
-                window.transformers = {pipeline, env};
-
-                console.log('✅ Transformers loaded dynamically');
-                window.dispatchEvent(new CustomEvent('transformers:ready'));
-            } catch (error) {
-                console.error('❌ Failed to load transformers:', error);
-            }
-        }
-
-        loadTransformers();
-    </script>
-
-    <!-- Search Engine Core -->
-    <script defer src="js/search-manager.js"></script>
-
-    <!-- App Dependencies (ordine importazione) -->
-    <script defer src="js/tools-loader.js"></script>
-    <script defer src="js/tools-renderer.js"></script>
-    <script defer src="js/tools-manager.js"></script>
-    <script defer src="js/breadcrumb-manager.js"></script>
-    <script defer src="js/sidebar.js"></script>
-    <script src="js/notes-modal.js"></script>
-    <script defer src="js/back-to-top.js"></script>
+    <!-- JS -->
+    <script src="js/costant.js" defer></script>
+    <script src="js/utils.js" defer></script>
+    <script src="js/registry.js" defer></script>
+    <script src="js/renderer.js" defer></script>
+    <script src="js/features.js" defer></script>
+    <script src="js/modal.js" defer></script>
+    <script src="js/sidebar.js" defer></script>
+    <script src="js/breadcrumb-manager.js" defer></script>
+    <script src="js/back-to-top.js" defer></script>
+    <script src="js/app.js" defer></script>
 </head>
 <body>
-<!-- Progress Bar -->
-<div id="search-progress-bar">
-    <div id="search-progress-fill"></div>
-</div>
-<div id="search-progress-text">Initializing search...</div>
-
 <div class="app">
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
