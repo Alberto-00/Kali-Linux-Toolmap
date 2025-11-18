@@ -1,20 +1,25 @@
-// ============================================================================
-// renderer.js
-// ============================================================================
-// Descrizione: Renderizza le tool cards nel grid HTML
-// Dipendenze: constants.js, utils.js
+/**
+ * Renderizza le card dei tool nel grid HTML
+ * Genera markup e gestisce eventi interattivi
+ */
 
-(() => {
+(function() {
     'use strict';
 
     const ToolUtils = window.ToolUtils;
     const DOMUtils = window.DOMUtils;
 
-    // ============================================================================
+    // ========================================================================
     // ICON GENERATOR
-    // ============================================================================
+    // ========================================================================
 
+    /**
+     * Generatore di icone SVG per fasi e azioni
+     */
     const Icons = {
+        /**
+         * Ottiene icona per fase (da SIDEBAR_ICONS o fallback)
+         */
         phase(phase) {
             const canonicalKey = this._getCanonicalKey(phase);
             const sidebarIcons = window.SIDEBAR_ICONS;
@@ -26,6 +31,9 @@
             return this._getFallback(canonicalKey);
         },
 
+        /**
+         * Normalizza nome fase per lookup icona
+         */
         _getCanonicalKey(phase) {
             const normalized = String(phase || '')
                 .toLowerCase()
@@ -46,6 +54,9 @@
             return map[normalized] || normalized || 'miscellaneous';
         },
 
+        /**
+         * Icona fallback se non trovata in SIDEBAR_ICONS
+         */
         _getFallback(key) {
             const iconMap = {
                 information_gathering: this.search(),
@@ -56,6 +67,7 @@
             return iconMap[key] || this.dots();
         },
 
+        // Icone SVG inline
         repo() {
             return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>`;
         },
@@ -85,23 +97,41 @@
         }
     };
 
-    // ============================================================================
+    // ========================================================================
     // STAR UTILITIES
-    // ============================================================================
+    // ========================================================================
 
+    /**
+     * Helper per determinare stato "starred" di un tool
+     */
     const StarUtils = {
+        /**
+         * Verifica se tool è starred (locale o da registry)
+         */
         isStarred(tool) {
+            if (!tool) return false;
+
+            // Priorità: flag locale _starred > flag registry best_in
             if (tool._starred === true || tool._starred === 'true') return true;
+
             return !!ToolUtils.readBestInFlag(tool);
         }
     };
 
-    // ============================================================================
+    // ========================================================================
     // MARKUP GENERATOR
-    // ============================================================================
+    // ========================================================================
 
+    /**
+     * Genera HTML per card e componenti
+     */
     const Markup = {
+        /**
+         * Genera HTML completo di una card tool
+         */
         card(tool) {
+            if (!tool) return '';
+
             const phase = ToolUtils.getPrimaryPhase(tool);
             const phaseColor = ToolUtils.getPhaseColor(phase);
             const title = ToolUtils.getName(tool);
@@ -137,6 +167,9 @@
             `;
         },
 
+        /**
+         * Stato vuoto quando non ci sono tool
+         */
         emptyState() {
             return `
                 <div class="empty-state" style="color:var(--muted);text-align:center;padding:2rem;">
@@ -149,13 +182,20 @@
             `;
         },
 
+        /**
+         * Genera style per immagine card (icona o gradient)
+         */
         _imageStyle(tool, phaseColor) {
             if (tool?.icon) {
                 return `background-image:url('${DOMUtils.escapeAttr(tool.icon)}');`;
             }
+            // Gradient sfumato con colore fase
             return `background:linear-gradient(135deg, color-mix(in srgb, ${phaseColor} 22%, transparent), color-mix(in srgb, ${phaseColor} 11%, transparent));`;
         },
 
+        /**
+         * Badge stella (favorito)
+         */
         _starBadge(tool) {
             const categoryPath = ToolUtils.getCategoryPath(tool);
             const label = categoryPath.length ? categoryPath[categoryPath.length - 1] : 'Best in category';
@@ -177,8 +217,12 @@
             `;
         },
 
+        /**
+         * Button link repository (se presente)
+         */
         _repoButton(tool) {
             if (!tool?.repo) return '';
+
             return `
                 <a href="${DOMUtils.escapeAttr(tool.repo)}" target="_blank" rel="noopener noreferrer"
                    class="repo-link icon-btn" data-role="repo" title="Repository" aria-label="Open repository">
@@ -187,6 +231,9 @@
             `;
         },
 
+        /**
+         * Button note (sempre presente)
+         */
         _notesButton() {
             return `
                 <button class="notes-btn icon-btn" data-role="notes" type="button" 
@@ -197,40 +244,64 @@
         }
     };
 
-    // ============================================================================
+    // ========================================================================
     // RENDERER CLASS
-    // ============================================================================
+    // ========================================================================
 
+    /**
+     * Classe principale per rendering delle card
+     * Gestisce rendering e attach event listeners
+     */
     class ToolsRenderer {
         constructor(gridId, onCardClick, onNotesClick) {
+            // Accetta sia ID stringa che elemento DOM
             this.grid = typeof gridId === 'string'
                 ? document.getElementById(gridId)
                 : gridId;
+
             this.onCardClick = onCardClick;
             this.onNotesClick = onNotesClick;
         }
 
+        /**
+         * Renderizza array di tool nel container
+         * @param {Array} tools - Array di oggetti tool
+         * @param {String|Element} containerOverride - Container opzionale (override this.grid)
+         */
         render(tools, containerOverride) {
             const container = containerOverride
                 ? (typeof containerOverride === 'string' ? document.getElementById(containerOverride) : containerOverride)
                 : this.grid;
 
-            if (!container) return;
+            if (!container) {
+                console.warn('[renderer] Container non trovato');
+                return;
+            }
 
+            // Mostra empty state se nessun tool
             if (!Array.isArray(tools) || tools.length === 0) {
                 container.innerHTML = Markup.emptyState();
                 return;
             }
 
+            // Genera HTML e inietta nel DOM
             container.innerHTML = tools.map(tool => Markup.card(tool)).join('');
+
+            // Attacca event listeners
             this._attachEventListeners(container, tools);
         }
 
+        /**
+         * Attacca tutti gli event listener alle card renderizzate
+         * @private
+         */
         _attachEventListeners(container, tools) {
             const cards = Array.from(container.querySelectorAll('.card[data-tool-id]'));
 
             cards.forEach((card, index) => {
                 const tool = tools[index];
+                if (!tool) return;
+
                 this._attachCardClick(card, tool);
                 this._attachNotesButton(card, tool);
                 this._attachRepoLink(card);
@@ -238,22 +309,35 @@
             });
         }
 
+        /**
+         * Click su card (apre dettagli)
+         * @private
+         */
         _attachCardClick(card, tool) {
+            // Previeni doppio binding
             if (card.dataset._boundCard) return;
             card.dataset._boundCard = '1';
 
             card.addEventListener('click', (e) => {
+                // Ignora click su bottoni/link interni
                 const isAction = e.target.closest('[data-role="notes"], [data-role="repo"], [data-role="star"]');
                 if (isAction) return;
 
+                // Chiama callback o dispatch evento
                 if (typeof this.onCardClick === 'function') {
                     this.onCardClick(tool);
                 } else {
-                    window.dispatchEvent(new CustomEvent('tm:card:openDetails', { detail: { tool } }));
+                    window.dispatchEvent(new CustomEvent('tm:card:openDetails', {
+                        detail: { tool }
+                    }));
                 }
             });
         }
 
+        /**
+         * Click su button note
+         * @private
+         */
         _attachNotesButton(card, tool) {
             const btn = card.querySelector('[data-role="notes"]');
             if (!btn || btn.dataset._boundNotes) return;
@@ -261,21 +345,33 @@
 
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
+
                 if (typeof this.onNotesClick === 'function') {
                     this.onNotesClick(tool);
                 } else {
-                    window.dispatchEvent(new CustomEvent('tm:card:openNotes', { detail: { tool } }));
+                    window.dispatchEvent(new CustomEvent('tm:card:openNotes', {
+                        detail: { tool }
+                    }));
                 }
             });
         }
 
+        /**
+         * Click su link repository (previene propagazione)
+         * @private
+         */
         _attachRepoLink(card) {
             const link = card.querySelector('[data-role="repo"]');
             if (!link || link.dataset._boundRepo) return;
             link.dataset._boundRepo = '1';
+
             link.addEventListener('click', (e) => e.stopPropagation());
         }
 
+        /**
+         * Click su stella (toggle favorite)
+         * @private
+         */
         _attachStarButton(card, tool) {
             const star = card.querySelector('[data-role="star"]');
             if (!star || star.dataset._boundStar) return;
@@ -284,11 +380,13 @@
             const toggle = (e) => {
                 e.stopPropagation();
                 const current = star.getAttribute('data-starred') === '1';
+
                 window.dispatchEvent(new CustomEvent('tm:tool:toggleStar', {
                     detail: { id: tool.id, value: !current }
                 }));
             };
 
+            // Click e accessibilità tastiera
             star.addEventListener('click', toggle);
             star.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -298,6 +396,9 @@
             });
         }
 
+        /**
+         * Metodo statico per rendering veloce (senza istanza)
+         */
         static render(tools, containerElOrId) {
             const element = typeof containerElOrId === 'string'
                 ? document.getElementById(containerElOrId)
@@ -308,9 +409,10 @@
         }
     }
 
-    // ============================================================================
+    // ========================================================================
     // EXPORT
-    // ============================================================================
+    // ========================================================================
 
     window.ToolsRenderer = ToolsRenderer;
+
 })();

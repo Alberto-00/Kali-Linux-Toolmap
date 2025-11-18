@@ -1,10 +1,10 @@
-// ============================================================================
-// modals.js
-// ============================================================================
-// Descrizione: Gestisce modali Notes (edit markdown) e Details (info tool)
-// Dipendenze: constants.js, utils.js
+/**
+ * Gestione modali per note e dettagli tool
+ * - NotesModal: editor Markdown con preview
+ * - DetailsModal: visualizzazione info complete tool
+ */
 
-(() => {
+(function() {
     'use strict';
 
     const ToolUtils = window.ToolUtils;
@@ -13,11 +13,18 @@
 
     const TRANSITION_DURATION = 280;
 
-    // ============================================================================
+    // ========================================================================
     // NOTES MODAL
-    // ============================================================================
+    // ========================================================================
 
+    /**
+     * Modale per editing note in Markdown
+     * Supporta preview live e salvataggio con export
+     */
     class NotesModal {
+        /**
+         * @param {Function} onSave - Callback chiamata al salvataggio: (toolId, noteText) => void
+         */
         constructor(onSave) {
             this.onSave = onSave;
             this.currentTool = null;
@@ -29,6 +36,51 @@
             this._attachEventListeners();
         }
 
+        /**
+         * Mostra modale per un tool specifico
+         * @param {Object} tool - Oggetto tool
+         */
+        show(tool) {
+            if (!this.modal || !tool) return;
+
+            this.currentTool = tool;
+            this.isEditing = false;
+
+            this._applyPhaseColor(tool);
+            this._resetToPreviewMode();
+            this._updatePreview();
+            this._openModal();
+        }
+
+        /**
+         * Nasconde modale con animazione
+         */
+        hide() {
+            if (!this.modal) return;
+
+            this.modal.classList.remove('open');
+            this.modal.classList.add('closing');
+
+            const handleEnd = () => this._closeModal();
+
+            this.modal.addEventListener('transitionend', function handler(e) {
+                if (e.target?.classList?.contains('modal-content')) {
+                    e.currentTarget.removeEventListener('transitionend', handler);
+                    handleEnd();
+                }
+            });
+
+            setTimeout(handleEnd, TRANSITION_DURATION);
+        }
+
+        // --------------------------------------------------------------------
+        // PRIVATE METHODS
+        // --------------------------------------------------------------------
+
+        /**
+         * Crea struttura HTML modale
+         * @private
+         */
         _createModal() {
             const html = `
                 <div class="modal-overlay" id="notesModal" role="dialog" aria-modal="true" 
@@ -73,53 +125,32 @@
             this.modal = document.getElementById('notesModal');
         }
 
-        show(tool) {
-            if (!this.modal) return;
-
-            this.currentTool = tool || null;
-            this.isEditing = false;
-
-            this._applyPhaseColor(tool);
-            this._resetToPreviewMode();
-            this._updatePreview();
-            this._openModal();
-        }
-
-        hide() {
-            if (!this.modal) return;
-
-            this.modal.classList.remove('open');
-            this.modal.classList.add('closing');
-
-            const handleEnd = () => this._closeModal();
-
-            this.modal.addEventListener('transitionend', function handler(e) {
-                if (e.target?.classList?.contains('modal-content')) {
-                    e.currentTarget.removeEventListener('transitionend', handler);
-                    handleEnd();
-                }
-            });
-
-            setTimeout(handleEnd, TRANSITION_DURATION);
-        }
-
+        /**
+         * Apre modale
+         * @private
+         */
         _openModal() {
             this.previousFocus = document.activeElement;
             this.modal.style.display = 'flex';
             this.modal.classList.remove('closing');
-            void this.modal.offsetWidth;
+            void this.modal.offsetWidth; // Force reflow
             this.modal.classList.add('open');
             this.modal.setAttribute('aria-hidden', 'false');
             document.body.style.overflow = 'hidden';
             this._focusFirst();
         }
 
+        /**
+         * Chiude modale e cleanup
+         * @private
+         */
         _closeModal() {
             this.modal.style.display = 'none';
             this.modal.classList.remove('closing');
             this.modal.setAttribute('aria-hidden', 'true');
             document.body.style.overflow = '';
 
+            // Ripristina focus precedente
             if (this.previousFocus?.focus) {
                 this.previousFocus.focus();
             }
@@ -128,6 +159,10 @@
             this.currentTool = null;
         }
 
+        /**
+         * Reset a modalità preview
+         * @private
+         */
         _resetToPreviewMode() {
             const els = this._getElements();
 
@@ -142,6 +177,10 @@
             if (els.backBtn) els.backBtn.style.display = 'none';
         }
 
+        /**
+         * Applica colore fase al modale
+         * @private
+         */
         _applyPhaseColor(tool) {
             const content = this.modal?.querySelector('.modal-content');
             if (!content) return;
@@ -156,6 +195,10 @@
             }
         }
 
+        /**
+         * Toggle modalità edit/preview
+         * @private
+         */
         _toggleEdit(editing) {
             this.isEditing = !!editing;
             const els = this._getElements();
@@ -180,21 +223,36 @@
             this._updatePreview();
         }
 
+        /**
+         * Aggiorna preview e titolo
+         * @private
+         */
         _updatePreview() {
             const els = this._getElements();
             this._updateTitle(els.title);
             this._updatePreviewContent(els);
         }
 
+        /**
+         * Aggiorna titolo modale
+         * @private
+         */
         _updateTitle(titleEl) {
             if (!titleEl) return;
 
             const phase = ToolUtils.getPrimaryPhase(this.currentTool);
             const phaseLabel = DOMUtils.formatLabel(phase);
             const baseName = ToolUtils.getName(this.currentTool);
-            titleEl.textContent = phaseLabel ? `Notes: ${baseName} — ${phaseLabel}` : `Notes: ${baseName}`;
+
+            titleEl.textContent = phaseLabel
+                ? `Notes: ${baseName} — ${phaseLabel}`
+                : `Notes: ${baseName}`;
         }
 
+        /**
+         * Aggiorna contenuto preview (renderizza Markdown)
+         * @private
+         */
         _updatePreviewContent(els) {
             if (!els.preview) return;
 
@@ -203,6 +261,10 @@
             els.preview.style.display = this.isEditing ? 'none' : 'block';
         }
 
+        /**
+         * Salva note e chiama callback
+         * @private
+         */
         _save() {
             const els = this._getElements();
             const note = els.textarea?.value || '';
@@ -214,22 +276,30 @@
             this._toggleEdit(false);
         }
 
+        /**
+         * Attacca tutti gli event listeners
+         * @private
+         */
         _attachEventListeners() {
             if (!this.modal) return;
 
             const els = this._getElements();
 
+            // Button actions
             els.closeBtn?.addEventListener('click', () => this.hide());
             els.editBtn?.addEventListener('click', () => this._toggleEdit(true));
             els.saveBtn?.addEventListener('click', () => this._save());
             els.backBtn?.addEventListener('click', () => this._toggleEdit(false));
 
+            // Click fuori modale per chiudere
             this.modal.addEventListener('click', (e) => {
                 if (e.target === this.modal) this.hide();
             });
 
+            // Live preview durante editing
             els.textarea?.addEventListener('input', () => this._updatePreview());
 
+            // Shortcuts tastiera
             document.addEventListener('keydown', (e) => {
                 if (this.modal.style.display !== 'flex') return;
 
@@ -247,11 +317,16 @@
                 }
             });
 
+            // Reset su evento globale
             window.addEventListener('tm:reset', () => {
                 if (this.modal.style.display === 'flex') this.hide();
             });
         }
 
+        /**
+         * Trap focus dentro modale (accessibilità)
+         * @private
+         */
         _trapTab(e) {
             const focusables = this._getFocusables();
             if (!focusables.length) return;
@@ -273,12 +348,20 @@
             }
         }
 
+        /**
+         * Focus primo elemento focusabile
+         * @private
+         */
         _focusFirst() {
             const focusables = this._getFocusables();
             const first = focusables[0] || this.modal?.querySelector('.modal-close');
             first?.focus();
         }
 
+        /**
+         * Ottiene tutti elementi focusabili nel modale
+         * @private
+         */
         _getFocusables() {
             const content = this.modal?.querySelector('.modal-content');
             if (!content) return [];
@@ -289,6 +372,10 @@
             );
         }
 
+        /**
+         * Ottiene riferimenti a tutti gli elementi DOM del modale
+         * @private
+         */
         _getElements() {
             return {
                 textarea: this.modal?.querySelector('.notes-textarea'),
@@ -302,36 +389,26 @@
         }
     }
 
-    // ============================================================================
+    // ========================================================================
     // DETAILS MODAL
-    // ============================================================================
+    // ========================================================================
 
+    /**
+     * Modale per visualizzazione dettagli completi tool
+     * Mostra descrizione lunga, metadata, link repository
+     */
     class DetailsModal {
         constructor() {
             this.modal = null;
             this._createModal();
         }
 
-        _createModal() {
-            const html = `
-                <div class="modal-overlay" id="detailsModal" style="display:none;">
-                    <div class="modal-content" style="max-width:750px;">
-                        <div class="modal-header">
-                            <h2 class="modal-title"></h2>
-                            <button class="modal-close" title="Close">&times;</button>
-                        </div>
-                        <div class="modal-body"></div>
-                    </div>
-                </div>
-            `;
-
-            document.body.insertAdjacentHTML('beforeend', html);
-            this.modal = document.getElementById('detailsModal');
-            this._attachEventListeners();
-        }
-
+        /**
+         * Mostra modale per un tool specifico
+         * @param {Object} tool - Oggetto tool
+         */
         show(tool) {
-            if (!this.modal) return;
+            if (!this.modal || !tool) return;
 
             this._setTitle(tool);
             this._setContent(tool);
@@ -339,6 +416,9 @@
             this._openModal();
         }
 
+        /**
+         * Nasconde modale con animazione
+         */
         hide() {
             if (!this.modal) return;
 
@@ -361,14 +441,48 @@
             setTimeout(handleEnd, TRANSITION_DURATION);
         }
 
+        // --------------------------------------------------------------------
+        // PRIVATE METHODS
+        // --------------------------------------------------------------------
+
+        /**
+         * Crea struttura HTML modale
+         * @private
+         */
+        _createModal() {
+            const html = `
+                <div class="modal-overlay" id="detailsModal" style="display:none;">
+                    <div class="modal-content" style="max-width:750px;">
+                        <div class="modal-header">
+                            <h2 class="modal-title"></h2>
+                            <button class="modal-close" title="Close">&times;</button>
+                        </div>
+                        <div class="modal-body"></div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', html);
+            this.modal = document.getElementById('detailsModal');
+            this._attachEventListeners();
+        }
+
+        /**
+         * Apre modale
+         * @private
+         */
         _openModal() {
             this.modal.style.display = 'flex';
             this.modal.classList.remove('closing');
-            void this.modal.offsetWidth;
+            void this.modal.offsetWidth; // Force reflow
             this.modal.classList.add('open');
             document.body.style.overflow = 'hidden';
         }
 
+        /**
+         * Imposta titolo modale
+         * @private
+         */
         _setTitle(tool) {
             const title = this.modal?.querySelector('.modal-title');
             if (!title) return;
@@ -381,6 +495,10 @@
             title.innerHTML = DOMUtils.escapeHtml(name) + version;
         }
 
+        /**
+         * Imposta contenuto modale
+         * @private
+         */
         _setContent(tool) {
             const content = this.modal?.querySelector('.modal-body');
             if (!content) return;
@@ -389,6 +507,10 @@
             this._attachCopyPathHandler();
         }
 
+        /**
+         * Genera HTML contenuto completo
+         * @private
+         */
         _buildContentHTML(tool) {
             const description = tool.desc_long || tool.desc || tool.description || 'No description available';
             const phases = this._getPhasesHTML(tool);
@@ -417,6 +539,10 @@
             `;
         }
 
+        /**
+         * Genera HTML badge fase
+         * @private
+         */
         _getPhasesHTML(tool) {
             const phase = ToolUtils.getPrimaryPhase(tool);
             if (!phase) return '';
@@ -437,6 +563,10 @@
             `;
         }
 
+        /**
+         * Genera HTML tipo installazione
+         * @private
+         */
         _getInstallationHTML(installation) {
             return `
                 <div class="detail-section">
@@ -450,6 +580,10 @@
             `;
         }
 
+        /**
+         * Genera HTML link repository
+         * @private
+         */
         _getRepoHTML(repo) {
             return `
                 <div class="detail-section">
@@ -462,6 +596,10 @@
             `;
         }
 
+        /**
+         * Genera HTML category path con button copia
+         * @private
+         */
         _getCategoryPathHTML(tool) {
             const catPath = ToolUtils.getCategoryPath(tool);
             if (!catPath.length) return '';
@@ -489,6 +627,10 @@
             `;
         }
 
+        /**
+         * Attacca handler copia path
+         * @private
+         */
         _attachCopyPathHandler() {
             const copyBtn = this.modal?.querySelector('.copy-catpath');
             const pathEl = this.modal?.querySelector('.category-path');
@@ -501,10 +643,16 @@
 
                 navigator.clipboard.writeText(text).then(() => {
                     this._showCopySuccess(copyBtn);
+                }).catch(error => {
+                    console.error('[modal] Errore copia:', error);
                 });
             });
         }
 
+        /**
+         * Mostra feedback copia riuscita (cambia icona temporaneamente)
+         * @private
+         */
         _showCopySuccess(btn) {
             const svg = btn.querySelector('svg');
             if (!svg) return;
@@ -522,6 +670,10 @@
             }, 1200);
         }
 
+        /**
+         * Applica colore fase al modale
+         * @private
+         */
         _applyPhaseColor(tool) {
             const phase = ToolUtils.getPrimaryPhase(tool);
             const color = tool?.phaseColor || ToolUtils.getPhaseColor(phase);
@@ -532,14 +684,20 @@
             }
         }
 
+        /**
+         * Attacca event listeners
+         * @private
+         */
         _attachEventListeners() {
             const closeBtn = this.modal?.querySelector('.modal-close');
             closeBtn?.addEventListener('click', () => this.hide());
 
+            // Click fuori modale per chiudere
             this.modal?.addEventListener('click', (e) => {
                 if (e.target === this.modal) this.hide();
             });
 
+            // ESC per chiudere
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && this.modal?.style.display === 'flex') {
                     this.hide();
@@ -548,9 +706,9 @@
         }
     }
 
-    // ============================================================================
+    // ========================================================================
     // EXPORT
-    // ============================================================================
+    // ========================================================================
 
     window.NotesModal = NotesModal;
     window.DetailsModal = DetailsModal;
