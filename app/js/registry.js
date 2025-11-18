@@ -1,31 +1,28 @@
-// ============================================================================
-// registry.js
-// ============================================================================
-// Descrizione: Carica registry.json SEMPRE fresco dal server (no cache)
-// Dipendenze: constants.js, utils.js
+/**
+ * Caricamento e indicizzazione registry.json
+ * Costruisce indici per accesso veloce ai tool
+ */
 
-(() => {
+(function() {
     'use strict';
 
+    // Previeni doppia inizializzazione
     if (window.Toolmap?.__loaded) return;
 
     const CONSTANTS = window.TOOLMAP_CONSTANTS;
     const ToolUtils = window.ToolUtils;
 
-    // ============================================================================
-    // CONFIGURATION
-    // ============================================================================
     const CONFIG = {
         rootName: CONSTANTS.ROOT_NAME,
-        registryPath: 'data/registry.json' // Path singolo
+        registryPath: 'data/registry.json'
     };
 
     const Toolmap = window.Toolmap || {};
     window.Toolmap = Toolmap;
 
-    // ============================================================================
-    // FETCH REGISTRY - SEMPRE dal server (no cache/session)
-    // ============================================================================
+    // ========================================================================
+    // FETCH REGISTRY (sempre fresco, no cache)
+    // ========================================================================
 
     async function fetchRegistry() {
         try {
@@ -38,20 +35,24 @@
             });
 
             if (response.ok) {
-                const text = await response.text();
-                console.log('[registry] Loaded fresh from server:', CONFIG.registryPath);
-                return text;
+                return await response.text();
             }
         } catch (error) {
-            console.error('[registry] Failed to fetch from:', CONFIG.registryPath, error);
+            console.error('[registry] Errore fetch:', CONFIG.registryPath, error);
         }
         return null;
     }
 
-    // ============================================================================
+    // ========================================================================
     // BUILD INDICES
-    // ============================================================================
+    // ========================================================================
 
+    /**
+     * Costruisce gli indici:
+     * - toolsById: Map ID → tool object
+     * - nodeIndex: Struttura gerarchica categorie
+     * - allToolsUnder: Map path → Set tool IDs sotto quel path
+     */
     function buildIndices(tools) {
         const toolsById = {};
         const nodeIndex = { [CONFIG.rootName]: { tools: [], children: new Set() } };
@@ -59,7 +60,7 @@
         const allPathKeys = new Set([CONFIG.rootName]);
         const toolLeafKey = {};
 
-        // Process each tool
+        // Processa ogni tool
         for (const tool of tools) {
             const id = ToolUtils.normalizeId(tool.id || tool.name || tool.title);
             if (!id) continue;
@@ -70,11 +71,17 @@
             const pathSegments = [CONFIG.rootName, ...categoryPath];
             const leafKey = ToolUtils.createPathKey(pathSegments);
 
-            // Store tool
-            toolsById[id] = { ...tool, id, phase, phaseColor: color, path: pathSegments };
+            // Salva tool arricchito
+            toolsById[id] = {
+                ...tool,
+                id,
+                phase,
+                phaseColor: color,
+                path: pathSegments
+            };
             toolLeafKey[id] = leafKey;
 
-            // Register path nodes
+            // Registra nodi path
             for (let i = 1; i <= pathSegments.length; i++) {
                 const key = ToolUtils.createPathKey(pathSegments.slice(0, i));
 
@@ -84,17 +91,18 @@
 
                 allPathKeys.add(key);
 
+                // Link parent-child
                 if (i > 1) {
                     const parentKey = ToolUtils.createPathKey(pathSegments.slice(0, i - 1));
                     nodeIndex[parentKey].children.add(key);
                 }
             }
 
-            // Assign tool to leaf
+            // Assegna tool al nodo foglia
             nodeIndex[leafKey].tools.push(id);
         }
 
-        // Calculate tool distribution
+        // Calcola distribuzione tool (ogni tool appartiene a tutti i parent)
         for (const [toolId, leafKey] of Object.entries(toolLeafKey)) {
             const segments = leafKey.split('>');
 
@@ -109,7 +117,7 @@
             }
         }
 
-        // Finalize
+        // Finalizza (converti Set in Array per children)
         for (const key of allPathKeys) {
             if (!allToolsUnder[key]) allToolsUnder[key] = new Set();
             nodeIndex[key].children = Array.from(nodeIndex[key].children);
@@ -124,9 +132,9 @@
         };
     }
 
-    // ============================================================================
-    // FALLBACK
-    // ============================================================================
+    // ========================================================================
+    // FALLBACK (in caso di errore caricamento)
+    // ========================================================================
 
     function applyFallback() {
         Object.assign(Toolmap, {
@@ -150,20 +158,18 @@
         window.dispatchEvent(new CustomEvent('tm:scope:set', { detail: { all: true } }));
     }
 
-    // ============================================================================
+    // ========================================================================
     // INIT
-    // ============================================================================
+    // ========================================================================
 
     async function initialize() {
         if (Toolmap.__loaded) return;
 
-        // ========================================================================
-        // CARICA SEMPRE DAL SERVER (no session storage)
-        // ========================================================================
+        // Carica sempre dal server (no cache session)
         const json = await fetchRegistry();
 
         if (!json) {
-            console.error('[registry] JSON not found at:', CONFIG.registryPath);
+            console.warn('[registry] Nessun dato, uso fallback');
             applyFallback();
             return;
         }
@@ -172,19 +178,21 @@
         try {
             tools = JSON.parse(json);
         } catch (error) {
-            console.error('[registry] Parse error:', error);
+            console.error('[registry] Errore parsing JSON:', error);
             applyFallback();
             return;
         }
 
         if (!Array.isArray(tools)) {
-            console.error('[registry] Expected array, got:', typeof tools);
+            console.error('[registry] JSON non è array');
             applyFallback();
             return;
         }
 
+        // Costruisci indici
         const built = buildIndices(tools);
 
+        // Assegna a Toolmap globale
         Object.assign(Toolmap, {
             registry: tools,
             toolsById: built.toolsById,
@@ -195,9 +203,11 @@
             __loaded: true
         });
 
-        console.log(`[registry] Loaded ${tools.length} tools fresh from server`);
+        // Notifica caricamento completato
+        window.dispatchEvent(new CustomEvent('tm:registry:source', {
+            detail: { source: 'server' }
+        }));
 
-        window.dispatchEvent(new CustomEvent('tm:registry:source', { detail: { source: 'server' } }));
         window.dispatchEvent(new CustomEvent('tm:registry:ready', {
             detail: {
                 rootName: built.rootName,
@@ -208,11 +218,16 @@
                 keys: built.allPathKeys
             }
         }));
-        window.dispatchEvent(new CustomEvent('tm:scope:set', { detail: { all: true } }));
+
+        window.dispatchEvent(new CustomEvent('tm:scope:set', {
+            detail: { all: true }
+        }));
     }
 
+    // Avvia inizializzazione
     initialize().catch(error => {
-        console.error('[registry] Init failed:', error);
+        console.error('[registry] Errore init:', error);
         applyFallback();
     });
+
 })();
