@@ -1,29 +1,32 @@
-// ============================================================================
-// breadcrumb-manager.js
-// ============================================================================
+/**
+ * Gestione breadcrumb di navigazione
+ * - Visualizza path corrente o query di ricerca
+ * - Animazioni per cambio query in tempo reale
+ * - Pulsanti: Show All, Copy Path, Download Registry
+ */
 
-(() => {
+(function() {
     'use strict';
 
-    // ============================================================================
-    // CONSTANTS & CONFIGURATION
-    // ============================================================================
+    // ========================================================================
+    // CONSTANTS
+    // ========================================================================
 
-    const SELECTORS = {
+    const SELECTORS = Object.freeze({
         breadcrumb: 'breadcrumb',
         searchInput: 'searchInput',
         breadcrumbBar: '.breadcrumb-bar',
         breadcrumbActions: '.breadcrumb-actions'
-    };
+    });
 
-    const ANIMATION_DURATION = {
+    const ANIMATION_DURATION = Object.freeze({
         iconChange: 1200,
         toastVisible: 1000
-    };
+    });
 
-    // ============================================================================
-    // STATE MANAGEMENT
-    // ============================================================================
+    // ========================================================================
+    // STATE
+    // ========================================================================
 
     const state = {
         currentPathSlash: null,
@@ -37,35 +40,50 @@
         }
     };
 
-    // ============================================================================
+    // ========================================================================
     // DOM ELEMENTS
-    // ============================================================================
+    // ========================================================================
 
     const breadcrumbElement = document.getElementById(SELECTORS.breadcrumb);
-    if (!breadcrumbElement) return;
+    if (!breadcrumbElement) {
+        console.warn('[breadcrumb] Elemento breadcrumb non trovato');
+        return;
+    }
 
-    // ============================================================================
+    // ========================================================================
     // UTILITY FUNCTIONS
-    // ============================================================================
+    // ========================================================================
 
     const Utils = {
+        /**
+         * Formatta label rimuovendo prefissi numerici e underscore
+         */
         formatLabel(text) {
             const str = String(text || '');
             const withoutPrefix = str.replace(/^\d+_/, '');
             return withoutPrefix.replace(/_/g, ' ');
         },
 
+        /**
+         * Escape HTML per prevenire XSS
+         */
         escapeHTML(str) {
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
         },
 
+        /**
+         * Converte pathKey (Root>Phase>Sub) in path slash (Phase/Sub)
+         */
         convertPathToSlash(pathKey) {
             if (!pathKey) return null;
             return pathKey.replace(/>/g, '/').replace(/^Root\//, '');
         },
 
+        /**
+         * Split pathKey in parti e rimuove Root
+         */
         splitPathKey(pathKey) {
             if (!pathKey || typeof pathKey !== 'string') return [];
 
@@ -78,6 +96,9 @@
             return parts;
         },
 
+        /**
+         * Ricostruisce pathKey completo includendo Root se necessario
+         */
         rebuildFullParts(visibleParts, takeCount) {
             const base = [];
 
@@ -91,17 +112,23 @@
             return base.concat(visibleParts.slice(0, takeCount));
         },
 
+        /**
+         * Ottiene query corrente da input ricerca
+         */
         getCurrentSearch() {
             const searchInput = document.getElementById(SELECTORS.searchInput);
             return searchInput ? searchInput.value.trim() : '';
         }
     };
 
-    // ============================================================================
+    // ========================================================================
     // COPY PATH FUNCTIONALITY
-    // ============================================================================
+    // ========================================================================
 
     const CopyPath = {
+        /**
+         * Copia path corrente in clipboard
+         */
         async copy() {
             if (!state.currentPathSlash) return;
 
@@ -109,15 +136,21 @@
                 await navigator.clipboard.writeText(state.currentPathSlash);
                 this.showFeedback();
             } catch (error) {
-                console.error('Failed to copy path:', error);
+                console.error('[breadcrumb] Errore copia path:', error);
             }
         },
 
+        /**
+         * Mostra feedback visivo dopo copia
+         */
         showFeedback() {
             this.updateIcon();
             this.showToast();
         },
 
+        /**
+         * Cambia icona button temporaneamente (checkmark)
+         */
         updateIcon() {
             const icon = document.querySelector('.copy-path-icon');
             if (!icon) return;
@@ -136,11 +169,15 @@
             `;
 
             icon.innerHTML = checkmarkSVG;
+
             setTimeout(() => {
                 icon.innerHTML = copySVG;
             }, ANIMATION_DURATION.iconChange);
         },
 
+        /**
+         * Mostra toast "Copiato!"
+         */
         showToast() {
             const button = document.querySelector('.copy-path-btn');
             if (!button) return;
@@ -157,10 +194,13 @@
                     if (toast.classList.contains('hide')) {
                         toast.remove();
                     }
-                }, {once: true});
+                }, { once: true });
             }, ANIMATION_DURATION.toastVisible);
         },
 
+        /**
+         * Crea elemento toast
+         */
         createToast(buttonRect) {
             const toast = document.createElement('div');
             toast.className = 'copy-toast';
@@ -170,17 +210,27 @@
             return toast;
         },
 
+        /**
+         * Aggiorna stato abilitazione button (disabilita in search mode)
+         */
         updateButtonState() {
             const button = document.querySelector('.copy-path-btn');
             if (!button) return;
 
-            const isDisabled = !state.currentPathSlash;
+            const currentSearch = Utils.getCurrentSearch();
+            const inSearchMode = !!currentSearch;
+
+            // Disabilita se non c'è path O se siamo in search mode
+            const isDisabled = !state.currentPathSlash || inSearchMode;
+
             button.disabled = isDisabled;
             button.style.opacity = isDisabled ? '0.5' : '1';
             button.style.cursor = isDisabled ? 'default' : 'pointer';
             button.style.pointerEvents = isDisabled ? 'none' : 'auto';
 
-            if (isDisabled) {
+            if (inSearchMode) {
+                button.title = 'Cannot copy path in search mode';
+            } else if (!state.currentPathSlash) {
                 button.title = 'No path to copy';
             } else {
                 button.title = 'Copy current path';
@@ -188,16 +238,19 @@
         }
     };
 
-    // ============================================================================
+    // ========================================================================
     // BREADCRUMB RENDERING
-    // ============================================================================
+    // ========================================================================
 
     const BreadcrumbRenderer = {
+        /**
+         * Renderizza breadcrumb basandosi su pathKey
+         */
         render(pathKey) {
             const currentSearch = Utils.getCurrentSearch();
 
+            // Non auto-renderizzare in search mode
             if (currentSearch) {
-                this.renderSearchBreadcrumb(currentSearch);
                 return;
             }
 
@@ -208,6 +261,11 @@
 
             breadcrumbElement.innerHTML = '';
 
+            // Ignora pathKey speciali della ricerca (search:*)
+            if (pathKey && pathKey.startsWith('search:')) {
+                pathKey = null;
+            }
+
             if (!pathKey || typeof pathKey !== 'string') {
                 this.renderDefaultBreadcrumb();
                 return;
@@ -216,7 +274,10 @@
             this.renderPathBreadcrumb(pathKey);
         },
 
-        renderSearchBreadcrumb(searchQuery) {
+        /**
+         * Renderizza breadcrumb ricerca con animazione typing
+         */
+        renderSearchBreadcrumb(searchQuery, mode = 'fuzzy') {
             const existingSearch = breadcrumbElement.querySelector('.search-breadcrumb');
             const queryChanged = state.lastSearchQuery !== searchQuery;
 
@@ -227,7 +288,7 @@
             const oldQuery = state.lastSearchQuery;
             state.lastSearchQuery = searchQuery;
 
-            // Se esiste già un breadcrumb di ricerca e la query è cambiata
+            // Query cambiata: anima solo il testo
             if (existingSearch && queryChanged) {
                 const searchText = existingSearch.querySelector('.search-text strong');
 
@@ -239,7 +300,7 @@
                 return;
             }
 
-            // Prima ricerca: crea il breadcrumb completo
+            // Prima ricerca: crea breadcrumb completo
             const span = document.createElement('span');
             span.className = 'breadcrumb-item search-breadcrumb';
             span.innerHTML = `
@@ -256,17 +317,17 @@
             CopyPath.updateButtonState();
         },
 
+        /**
+         * Anima cambio testo (typing effect)
+         * Identifica prefisso/suffisso comuni e anima solo la parte cambiata
+         */
         animateTextChange(element, oldText, newText) {
             if (!element) return;
 
-            // element.classList.add('typing'); --> toglie l'animazione del cursore
-
-            // Trova il prefisso E suffisso comuni
+            // Trova prefisso comune
             let prefixLen = 0;
-            let suffixLen = 0;
             const minLen = Math.min(oldText.length, newText.length);
 
-            // Trova prefisso comune
             for (let i = 0; i < minLen; i++) {
                 if (oldText[i].toLowerCase() === newText[i].toLowerCase()) {
                     prefixLen = i + 1;
@@ -275,7 +336,8 @@
                 }
             }
 
-            // Trova suffisso comune (solo se c'è un prefisso)
+            // Trova suffisso comune
+            let suffixLen = 0;
             if (prefixLen < minLen) {
                 for (let i = 0; i < minLen - prefixLen; i++) {
                     const oldIdx = oldText.length - 1 - i;
@@ -299,7 +361,7 @@
             let currentMiddle = oldMiddle;
             let deleteIndex = 0;
 
-            // Fase 1: Cancella la parte centrale
+            // Fase 1: Cancella caratteri
             const deleteInterval = setInterval(() => {
                 if (deleteIndex >= oldMiddle.length) {
                     clearInterval(deleteInterval);
@@ -312,7 +374,7 @@
                 deleteIndex++;
             }, 40);
 
-            // Fase 2: Scrivi la nuova parte centrale
+            // Fase 2: Scrivi nuovi caratteri
             const startTyping = () => {
                 let typeIndex = 0;
                 currentMiddle = '';
@@ -320,10 +382,6 @@
                 const typeInterval = setInterval(() => {
                     if (typeIndex >= newMiddle.length) {
                         clearInterval(typeInterval);
-                        /* Toglie l'animazione del cursore
-                        setTimeout(() => {
-                            element.classList.remove('typing');
-                        }, 500);*/
                         return;
                     }
 
@@ -334,12 +392,16 @@
             };
         },
 
+        /**
+         * Renderizza breadcrumb default ("All tools" o "No tools")
+         */
         renderDefaultBreadcrumb() {
             state.currentPathSlash = null;
 
             const span = document.createElement('span');
             span.className = 'breadcrumb-item';
 
+            // Mostra "No tools" solo se nessuna fase è mai stata visitata
             const showNoTools = !state.lastContextSummary.hasVisitedAnyPhase &&
                 !state.lastContextSummary.pathKey &&
                 !state.lastContextSummary.scopeAll &&
@@ -350,6 +412,9 @@
             CopyPath.updateButtonState();
         },
 
+        /**
+         * Renderizza breadcrumb path (es: Phase / Category / Subcategory)
+         */
         renderPathBreadcrumb(pathKey) {
             state.currentPathSlash = Utils.convertPathToSlash(pathKey);
             const parts = Utils.splitPathKey(pathKey);
@@ -359,6 +424,7 @@
                 return;
             }
 
+            // Renderizza ogni parte con separatore
             parts.forEach((part, index) => {
                 this.renderPathSegment(part, index, parts);
 
@@ -370,6 +436,9 @@
             CopyPath.updateButtonState();
         },
 
+        /**
+         * Renderizza singolo segmento path (cliccabile)
+         */
         renderPathSegment(part, index, allParts) {
             const isLast = index === allParts.length - 1;
             const button = document.createElement('button');
@@ -379,10 +448,12 @@
             button.textContent = Utils.formatLabel(part);
             button.setAttribute('aria-current', isLast ? 'page' : 'false');
 
+            // Click: naviga a questo livello
             button.addEventListener('click', () => {
                 this.handleSegmentClick(allParts, index + 1);
             });
 
+            // Accessibilità tastiera
             button.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
@@ -393,6 +464,9 @@
             breadcrumbElement.appendChild(button);
         },
 
+        /**
+         * Renderizza separatore "/"
+         */
         renderSeparator() {
             const separator = document.createElement('span');
             separator.className = 'breadcrumb-separator';
@@ -401,22 +475,28 @@
             breadcrumbElement.appendChild(separator);
         },
 
+        /**
+         * Gestisce click su segmento breadcrumb (navigazione)
+         */
         handleSegmentClick(parts, takeCount) {
             const fullParts = Utils.rebuildFullParts(parts, takeCount);
             const pathKey = fullParts.join('>');
             const ids = Array.from(window.Toolmap?.allToolsUnder?.[pathKey] || []);
 
             window.dispatchEvent(new CustomEvent('tm:scope:set', {
-                detail: {pathKey, ids}
+                detail: { pathKey, ids }
             }));
         }
     };
 
-    // ============================================================================
+    // ========================================================================
     // BREADCRUMB ACTIONS (Buttons)
-    // ============================================================================
+    // ========================================================================
 
     const BreadcrumbActions = {
+        /**
+         * Assicura che i button azioni esistano
+         */
         ensure() {
             const bar = document.querySelector(SELECTORS.breadcrumbBar);
             if (!bar || bar.querySelector(SELECTORS.breadcrumbActions)) return;
@@ -426,6 +506,9 @@
             this.attachEventListeners(actionsDiv);
         },
 
+        /**
+         * Crea container HTML con button azioni
+         */
         createActionsContainer() {
             const div = document.createElement('div');
             div.className = 'breadcrumb-actions';
@@ -456,6 +539,9 @@
             return div;
         },
 
+        /**
+         * Attacca event listeners ai button
+         */
         attachEventListeners(container) {
             const showAllBtn = container.querySelector('.show-all-btn');
             const downloadBtn = container.querySelector('.download-registry-btn');
@@ -466,6 +552,9 @@
             copyBtn?.addEventListener('click', () => CopyPath.copy());
         },
 
+        /**
+         * Handler button "Show All"
+         */
         handleShowAll() {
             const sidebar = document.getElementById('sidebar');
             const inSearch = sidebar && sidebar.classList.contains('search-mode');
@@ -473,37 +562,47 @@
             if (inSearch) {
                 // Modalità ricerca: chiudi sidebar e mostra tutto
                 window.dispatchEvent(new CustomEvent('tm:show:all', {
-                    detail: {source: 'breadcrumb', searchMode: true, closeSidebar: true}
+                    detail: { source: 'breadcrumb', searchMode: true, closeSidebar: true }
                 }));
             } else {
                 // Modalità normale: chiudi tutte le fasi
                 state.currentPathSlash = null;
                 BreadcrumbRenderer.render(null);
 
-                // Dispatch evento per chiudere sidebar
                 window.dispatchEvent(new CustomEvent('tm:sidebar:closeAll'));
                 window.dispatchEvent(new CustomEvent('tm:tools:showAll'));
             }
         },
 
+        /**
+         * Handler button "Download Registry"
+         */
         handleDownload() {
             window.dispatchEvent(new CustomEvent('tm:registry:download'));
         }
     };
 
-    // ============================================================================
-    // EVENT LISTENERS
-    // ============================================================================
-
-    function initializeEventListeners() {
-        window.addEventListener('tm:scope:set', handleScopeSet);
-        window.addEventListener('tm:reset', handleReset);
-        window.addEventListener('tm:context:summary', handleContextSummary);
-        window.addEventListener('tm:search:set', handleSearchSet);
-    }
+    // ========================================================================
+    // EVENT HANDLERS
+    // ========================================================================
 
     function handleScopeSet(event) {
         const pathKey = event.detail?.pathKey || null;
+
+        // Ignora pathKey speciali della ricerca (search:*)
+        if (pathKey && pathKey.startsWith('search:')) {
+            const currentSearch = Utils.getCurrentSearch();
+            if (currentSearch) {
+                // Mantieni breadcrumb di ricerca
+                return;
+            } else {
+                // Nessuna ricerca attiva: ripristina
+                state.lastPathKey = null;
+                BreadcrumbRenderer.render(null);
+                return;
+            }
+        }
+
         state.lastPathKey = pathKey;
         BreadcrumbRenderer.render(pathKey);
     }
@@ -527,9 +626,60 @@
         BreadcrumbRenderer.render(state.lastPathKey);
     }
 
-    // ============================================================================
+    /**
+     * Handler per aggiornamento query in tempo reale (con animazione)
+     */
+    function handleSearchQuery(event) {
+        const { query, mode } = event.detail || {};
+
+        if (!query) {
+            state.lastSearchQuery = '';
+            BreadcrumbRenderer.render(state.lastPathKey);
+            CopyPath.updateButtonState();
+            return;
+        }
+
+        // Update breadcrumb con animazione
+        const existingSearch = breadcrumbElement.querySelector('.search-breadcrumb');
+        const queryChanged = state.lastSearchQuery !== query;
+
+        if (existingSearch && queryChanged) {
+            const searchText = existingSearch.querySelector('.search-text strong');
+            if (searchText) {
+                BreadcrumbRenderer.animateTextChange(searchText, state.lastSearchQuery, query);
+            }
+            state.lastSearchQuery = query;
+
+            // Update mode indicator (se presente)
+            const modeIndicator = existingSearch.querySelector('.search-mode');
+            if (modeIndicator) {
+                modeIndicator.textContent = mode === 'api' ? '🤖' : '🔍';
+                modeIndicator.title = mode === 'api' ? 'AI Search' : 'Fuzzy Search';
+            }
+        } else if (!existingSearch) {
+            // Prima ricerca: crea breadcrumb
+            state.lastSearchQuery = query;
+            BreadcrumbRenderer.renderSearchBreadcrumb(query, mode);
+        }
+
+        CopyPath.updateButtonState();
+    }
+
+    // ========================================================================
+    // EVENT LISTENERS
+    // ========================================================================
+
+    function initializeEventListeners() {
+        window.addEventListener('tm:scope:set', handleScopeSet);
+        window.addEventListener('tm:reset', handleReset);
+        window.addEventListener('tm:context:summary', handleContextSummary);
+        window.addEventListener('tm:search:set', handleSearchSet);
+        window.addEventListener('tm:search:query', handleSearchQuery);
+    }
+
+    // ========================================================================
     // INITIALIZATION
-    // ============================================================================
+    // ========================================================================
 
     function initialize() {
         BreadcrumbActions.ensure();

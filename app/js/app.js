@@ -1,36 +1,46 @@
-// ============================================================================
-// app.js
-// ============================================================================
-// Descrizione: Orchestrator principale - gestisce stato globale, rendering, eventi
-// Dipendenze: constants.js, utils.js, registry.js, renderer.js, features.js
+/**
+ * Orchestratore principale applicazione
+ * - Gestisce stato globale e scope visualizzazione
+ * - Coordina rendering cards e modali
+ * - Sincronizza eventi tra moduli
+ */
 
-(() => {
+(function () {
     'use strict';
 
     const CONSTANTS = window.TOOLMAP_CONSTANTS;
     const ToolUtils = window.ToolUtils;
     const DOMUtils = window.DOMUtils;
 
-    // ============================================================================
+    // ========================================================================
     // STATE
-    // ============================================================================
+    // ========================================================================
 
     const state = {
-        scopeAll: true,
-        scopeIds: null,
-        pathKey: null,
-        isResetting: false
+        scopeAll: true,          // Mostra tutti i tool
+        scopeIds: null,          // Array IDs tool filtrati
+        pathKey: null,           // Path attivo (es: "Root>Phase>Category")
+        isResetting: false       // Flag per evitare race condition durante reset
     };
 
-    let grid, resetBtn, notesModal, detailsModal, toolsRenderer;
-    let hasVisitedAnyPhase = false;
-    let eventsWired = false;
+    let hasVisitedAnyPhase = false;  // Traccia se l'utente ha mai aperto una fase
+    let previousToolIds = '';         // Cache per evitare render inutili
+    let eventsWired = false;          // Previene doppio wiring
 
-    // ============================================================================
-    // STORAGE
-    // ============================================================================
+    // ========================================================================
+    // DOM ELEMENTS
+    // ========================================================================
+
+    let grid, resetBtn, notesModal, detailsModal, toolsRenderer;
+
+    // ========================================================================
+    // STORAGE UTILITIES
+    // ========================================================================
 
     const Storage = {
+        /**
+         * Legge valore da sessionStorage
+         */
         get(key) {
             try {
                 return sessionStorage.getItem(key);
@@ -39,69 +49,85 @@
             }
         },
 
+        /**
+         * Salva valore in sessionStorage
+         */
         set(key, value) {
             try {
                 sessionStorage.setItem(key, value);
-            } catch {}
+            } catch (error) {
+                console.warn('[app] Errore salvataggio storage:', error);
+            }
         },
 
+        /**
+         * Rimuove valore da sessionStorage
+         */
         remove(key) {
             try {
                 sessionStorage.removeItem(key);
-            } catch {}
+            } catch {
+            }
         },
 
-        // ========================================================================
-        // PULIZIA TOTALE (localStorage + sessionStorage)
-        // ========================================================================
+        /**
+         * Pulizia totale localStorage + sessionStorage
+         */
         clearAll() {
             try {
-                // Pulisci tutto il localStorage
                 localStorage.clear();
-                console.log('[app] localStorage cleared');
-            } catch (e) {
-                console.warn('[app] Failed to clear localStorage:', e);
+            } catch (error) {
+                console.warn('[app] Errore pulizia localStorage:', error);
             }
 
             try {
-                // Pulisci tutto il sessionStorage
                 sessionStorage.clear();
-                console.log('[app] sessionStorage cleared');
-            } catch (e) {
-                console.warn('[app] Failed to clear sessionStorage:', e);
+            } catch (error) {
+                console.warn('[app] Errore pulizia sessionStorage:', error);
             }
         }
     };
 
-    // ============================================================================
+    // ========================================================================
     // INITIALIZATION
-    // ============================================================================
+    // ========================================================================
 
+    /**
+     * Inizializzazione principale
+     */
     DOMUtils.ready(() => {
-        // ========================================================================
-        // PULIZIA AL CARICAMENTO DELLA PAGINA (Ctrl+R)
-        // ========================================================================
         cleanupOnLoad();
-
         initializeDOM();
         restoreState();
         wireEvents();
         render();
     });
 
+    /**
+     * Pulisce storage al reload pagina (Ctrl+R, F5)
+     */
     function cleanupOnLoad() {
-        // Rileva se è un reload (Ctrl+R, F5, ecc.)
-        const isReload = performance.getEntriesByType('navigation')[0]?.type === 'reload';
+        const nav = performance.getEntriesByType('navigation')[0];
+        const isReload = nav?.type === 'reload';
 
         if (isReload) {
             Storage.clearAll();
         }
     }
 
+    /**
+     * Inizializza riferimenti DOM e istanze modali/renderer
+     */
     function initializeDOM() {
         grid = document.getElementById(CONSTANTS.SELECTORS.grid);
         resetBtn = document.getElementById(CONSTANTS.SELECTORS.resetBtn);
 
+        if (!grid) {
+            console.error('[app] Grid non trovato');
+            return;
+        }
+
+        // Inizializza modali
         if (window.NotesModal) {
             notesModal = new window.NotesModal(saveNoteAndExport);
         }
@@ -110,6 +136,7 @@
             detailsModal = new window.DetailsModal();
         }
 
+        // Inizializza renderer
         if (window.ToolsRenderer) {
             toolsRenderer = new window.ToolsRenderer(
                 grid,
@@ -119,6 +146,9 @@
         }
     }
 
+    /**
+     * Ripristina stato salvato da sessione precedente
+     */
     function restoreState() {
         const savedPathKey = Storage.get(CONSTANTS.STORAGE_KEYS.pathKey);
 
@@ -133,94 +163,86 @@
         }
     }
 
-    // ============================================================================
+    // ========================================================================
     // EVENT WIRING
-    // ============================================================================
+    // ========================================================================
 
+    /**
+     * Attacca tutti gli event listener (chiamato una sola volta)
+     */
     function wireEvents() {
         if (eventsWired) return;
         eventsWired = true;
 
+        // Eventi globali applicazione
         window.addEventListener('tm:scope:set', handleScopeSet);
         window.addEventListener('tm:tool:toggleStar', handleToggleStar);
+        window.addEventListener('tm:stars:updated', handleStarsUpdated);
         window.addEventListener('tm:tools:showAll', handleShowAll);
         window.addEventListener('tm:reset', handleReset);
         window.addEventListener('tm:registry:ready', handleRegistryReady);
+
+        // Eventi card (apertura modali)
         window.addEventListener('tm:card:openNotes', handleCardOpenNotes);
         window.addEventListener('tm:card:openDetails', handleCardOpenDetails);
-        window.addEventListener('tm:stars:updated', handleStarsUpdated);
 
+        // Button reset
         resetBtn?.addEventListener('click', handleResetClick);
 
-        // ========================================================================
-        // LISTENER CTRL+R / F5 - Pulisce tutto prima del reload
-        // ========================================================================
+        // Pulizia storage prima del reload
         window.addEventListener('beforeunload', () => {
-            console.log('[app] Page unloading - clearing all storage');
             Storage.clearAll();
         });
+
+        // ESC per pulire ricerca
+        document.addEventListener('keydown', handleEscapeKey);
     }
 
+    // ========================================================================
+    // EVENT HANDLERS - Scope & Navigation
+    // ========================================================================
+
+    /**
+     * Gestisce cambio scope (filtro tool visualizzati)
+     */
     function handleScopeSet(event) {
+        // Durante reset, ignora eventi non espliciti
         if (state.isResetting && !event.detail?.all) return;
 
-        const { all, ids, pathKey } = event.detail || {};
+        const {all, ids, pathKey} = event.detail || {};
+
         state.scopeAll = !!all || (!ids && !pathKey);
         state.scopeIds = ids || null;
         state.pathKey = pathKey || null;
 
+        // Traccia se l'utente ha visitato almeno una fase
         if (state.pathKey && typeof state.pathKey === 'string') {
             const parts = state.pathKey.split('>').filter(Boolean);
             const first = (parts[0]?.toLowerCase() === 'root') ? parts[1] : parts[0];
             if (first) hasVisitedAnyPhase = true;
         }
 
-        render();
+        // Render solo se i tool sono effettivamente cambiati
+        const tools = computeVisibleTools();
+        const currentToolIds = tools.map(t => t.id).sort().join(',');
+
+        if (currentToolIds !== previousToolIds) {
+            previousToolIds = currentToolIds;
+            render();
+        }
     }
 
-    function handleToggleStar() {
-        render();
-    }
-
-    function handleStarsUpdated() {
-        render();
-    }
-
+    /**
+     * Gestisce click "Show All"
+     */
     function handleShowAll() {
         state.scopeAll = true;
         render();
     }
 
-    function handleResetClick() {
-        console.log('[app] Reset button clicked - clearing all storage');
-
-        state.isResetting = true;
-
-        // ========================================================================
-        // PULIZIA TOTALE (localStorage + sessionStorage)
-        // ========================================================================
-        Storage.clearAll();
-
-        // Reset state
-        state.scopeAll = true;
-        state.scopeIds = null;
-        state.pathKey = null;
-        hasVisitedAnyPhase = false;
-
-        // Dispatch events
-        window.dispatchEvent(new Event('tm:reset'));
-        window.dispatchEvent(new CustomEvent('tm:scope:set', { detail: { all: true } }));
-        window.dispatchEvent(new CustomEvent('tm:phase:color', { detail: { color: null } }));
-
-        render();
-
-        setTimeout(() => {
-            state.isResetting = false;
-        }, 100);
-
-        console.log('[app] Reset completed - state restored to initial');
-    }
-
+    /**
+     * Gestisce evento reset (chiamato da altri moduli)
+     */
     function handleReset() {
         if (state.isResetting) return;
 
@@ -231,12 +253,97 @@
         state.scopeIds = null;
         state.pathKey = null;
         hasVisitedAnyPhase = false;
+        previousToolIds = '';
     }
 
+    /**
+     * Gestisce click su button Reset
+     */
+    function handleResetClick() {
+        state.isResetting = true;
+
+        // 1. Pulisci input ricerca
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+
+        // 2. Dispatch reset PRIMA (così search.js pulisce il suo stato)
+        window.dispatchEvent(new Event('tm:reset'));
+
+        // 3. DOPO il reset, pulisci storage
+        Storage.clearAll();
+
+        // 4. Dispatch clear ricerca (DOPO clearAll)
+        window.dispatchEvent(new CustomEvent('tm:search:clear'));
+
+        // 5. Reset stato interno
+        state.scopeAll = true;
+        state.scopeIds = null;
+        state.pathKey = null;
+        hasVisitedAnyPhase = false;
+        previousToolIds = '';
+
+        // 6. Dispatch altri eventi
+        window.dispatchEvent(new CustomEvent('tm:scope:set', {detail: {all: true}}));
+
+        window.dispatchEvent(new CustomEvent('tm:phase:color', {detail: {color: null}}));
+
+        // 7. Render
+        render();
+
+        // 8. Sblocca flag reset
+        setTimeout(() => {
+            state.isResetting = false;
+        }, 100);
+    }
+
+    /**
+     * Gestisce tasto ESC (pulisce ricerca)
+     */
+    function handleEscapeKey(event) {
+        if (event.key !== 'Escape') return;
+
+        const searchInput = document.getElementById('searchInput');
+        if (!searchInput || searchInput !== document.activeElement) return;
+
+        if (searchInput.value) {
+            // Input ha contenuto: puliscilo
+            searchInput.value = '';
+            window.dispatchEvent(new CustomEvent('tm:search:clear'));
+        } else {
+            // Input vuoto: rimuovi focus
+            searchInput.blur();
+        }
+    }
+
+    // ========================================================================
+    // EVENT HANDLERS - Stars & Registry
+    // ========================================================================
+
+    /**
+     * Gestisce toggle stella (re-render)
+     */
+    function handleToggleStar() {
+        render();
+    }
+
+    /**
+     * Gestisce aggiornamento stelle (re-render)
+     */
+    function handleStarsUpdated() {
+        render();
+    }
+
+    /**
+     * Gestisce registry pronto (ripristina stato salvato)
+     */
     function handleRegistryReady() {
         const savedPathKey = Storage.get(CONSTANTS.STORAGE_KEYS.pathKey);
+
         if (savedPathKey && !state.isResetting) {
             const tm = window.Toolmap || {};
+
             if (tm.allToolsUnder?.[savedPathKey]) {
                 state.pathKey = savedPathKey;
                 state.scopeAll = false;
@@ -246,20 +353,37 @@
         }
     }
 
+    // ========================================================================
+    // EVENT HANDLERS - Modali
+    // ========================================================================
+
+    /**
+     * Apre modale note
+     */
     function handleCardOpenNotes(event) {
         const tool = event.detail?.tool;
-        if (tool && notesModal) notesModal.show(tool);
+        if (tool && notesModal) {
+            notesModal.show(tool);
+        }
     }
 
+    /**
+     * Apre modale dettagli
+     */
     function handleCardOpenDetails(event) {
         const tool = event.detail?.tool;
-        if (tool && detailsModal) detailsModal.show(tool);
+        if (tool && detailsModal) {
+            detailsModal.show(tool);
+        }
     }
 
-    // ============================================================================
-    // RENDERING
-    // ============================================================================
+    // ========================================================================
+    // RENDERING LOGIC
+    // ========================================================================
 
+    /**
+     * Rendering principale cards
+     */
     function render() {
         if (!grid) return;
 
@@ -268,16 +392,18 @@
         sortTools(tools);
         notifyBreadcrumb(tools);
 
+        // Empty state
         if (!tools.length) {
             renderEmptyState();
             return;
         }
 
+        // Render cards
         if (toolsRenderer) {
             toolsRenderer.render(tools);
         }
 
-        // Apply stagger animation
+        // Applica animazione stagger
         requestAnimationFrame(() => {
             const cards = grid.querySelectorAll('.card');
             cards.forEach((card, index) => {
@@ -286,6 +412,9 @@
         });
     }
 
+    /**
+     * Calcola tool visibili in base a scope corrente
+     */
     function computeVisibleTools() {
         const tm = window.Toolmap || {};
         const toolsById = tm.toolsById || {};
@@ -295,40 +424,52 @@
         return baseIds.map(id => toolsById[id]).filter(Boolean);
     }
 
+    /**
+     * Applica stato starred ai tool (da localStorage + registry)
+     */
     function applyStarredState(tools) {
         const starsMap = window.StarsManager?.load() || {};
 
         for (const tool of tools) {
+            // Priorità: localStorage > registry
             const localStar = Object.prototype.hasOwnProperty.call(starsMap, tool.id)
                 ? !!starsMap[tool.id]
                 : undefined;
+
             const registryStar = ToolUtils.readBestInFlag(tool);
             tool._starred = localStar !== undefined ? localStar : registryStar;
         }
     }
 
+    /**
+     * Ordina tool per: fase > starred > nome
+     */
     function sortTools(tools) {
         tools.sort((a, b) => {
-            // Sort by phase
+            // 1. Ordina per fase
             const keyA = ToolUtils.getPhaseGroupKey(a);
             const keyB = ToolUtils.getPhaseGroupKey(b);
 
             if (keyA.num !== keyB.num) return keyA.num - keyB.num;
+
             if (keyA.str !== keyB.str) {
-                const cmp = keyA.str.localeCompare(keyB.str, undefined, { sensitivity: 'base' });
+                const cmp = keyA.str.localeCompare(keyB.str, undefined, {sensitivity: 'base'});
                 if (cmp !== 0) return cmp;
             }
 
-            // Sort by starred
+            // 2. Ordina per starred (starred prima)
             const starA = a._starred ? 0 : 1;
             const starB = b._starred ? 0 : 1;
             if (starA !== starB) return starA - starB;
 
-            // Sort by name
+            // 3. Ordina per nome
             return ToolUtils.compareByName(a, b);
         });
     }
 
+    /**
+     * Notifica breadcrumb del contesto corrente
+     */
     function notifyBreadcrumb(tools) {
         try {
             const summary = {
@@ -337,10 +478,18 @@
                 pathKey: state.pathKey || null,
                 hasVisitedAnyPhase: !!hasVisitedAnyPhase
             };
-            window.dispatchEvent(new CustomEvent('tm:context:summary', { detail: summary }));
-        } catch {}
+
+            window.dispatchEvent(new CustomEvent('tm:context:summary', {
+                detail: summary
+            }));
+        } catch (error) {
+            console.warn('[app] Errore notifica breadcrumb:', error);
+        }
     }
 
+    /**
+     * Renderizza stato vuoto (nessun tool trovato)
+     */
     function renderEmptyState() {
         const message = 'No tools available for this category.';
 
@@ -356,33 +505,37 @@
         `;
     }
 
-    // ============================================================================
+    // ========================================================================
     // NOTES & EXPORT
-    // ============================================================================
+    // ========================================================================
 
+    /**
+     * Salva nota e scarica JSON aggiornato
+     * Chiamato da NotesModal al salvataggio
+     */
     function saveNoteAndExport(toolId, note) {
         const tm = window.Toolmap || {};
         const tool = tm.toolsById?.[toolId];
 
-        // Salva la nota in memoria
+        // Salva nota in memoria
         if (tool) {
             tool.notes = note ?? '';
         }
 
-        // Salva e scarica JSON
+        // Serializza e scarica JSON
         if (window.JSONExporter) {
             const json = window.JSONExporter.serialize();
+
             if (json) {
                 sessionStorage.setItem(CONSTANTS.STORAGE_KEYS.registryJSON, json);
                 window.JSONExporter.download();
-                console.log('[app] Note saved and JSON exported for tool:', toolId);
             }
         }
     }
 
-    // ============================================================================
-    // EXPORT
-    // ============================================================================
+    // ========================================================================
+    // PUBLIC API
+    // ========================================================================
 
     window.ToolmapApp = {
         render,
