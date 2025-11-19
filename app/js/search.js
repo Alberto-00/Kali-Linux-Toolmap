@@ -4,7 +4,7 @@
  * - API: ricerca semantica AI
  */
 
-(function() {
+(function () {
     'use strict';
 
     // ========================================================================
@@ -57,7 +57,7 @@
 
         // Notifica che siamo in modalità ricerca
         window.dispatchEvent(new CustomEvent('tm:search:set', {
-            detail: { hasQuery: true }
+            detail: {hasQuery: true}
         }));
 
         // Converti query in termini separati (lowercase)
@@ -85,7 +85,7 @@
             }
 
             if (score > 0) {
-                results.push({ tool, score });
+                results.push({tool, score});
 
                 const categoryPath = tool.category_path || [];
                 if (categoryPath.length > 0) {
@@ -155,7 +155,7 @@
 
         // Notifica stato (per UI feedback)
         window.dispatchEvent(new CustomEvent('tm:search:set', {
-            detail: { hasQuery: true }
+            detail: {hasQuery: true}
         }));
 
         // Placeholder per futura implementazione
@@ -207,12 +207,13 @@
 
         // Notifica sistema
         window.dispatchEvent(new CustomEvent('tm:search:set', {
-            detail: { hasQuery: false }
+            detail: {hasQuery: false}
         }));
 
-        // Ripristina stato pre-ricerca
-        if (state.preSearchState) {
+        if (state.preSearchState && state.preSearchState.pathKey) {
             restorePreSearchState();
+        } else {
+            localStorage.removeItem(STORAGE_KEYS.preSearchState);
         }
     }
 
@@ -222,7 +223,7 @@
     function restorePreSearchState() {
         if (!state.preSearchState) return;
 
-        const { pathKey, pathSlash, openPhases } = state.preSearchState;
+        const {pathKey, pathSlash, openPhases} = state.preSearchState;
 
         // Ripristina scope
         if (pathKey && pathSlash) {
@@ -231,7 +232,7 @@
                 const ids = Array.from(tm.allToolsUnder[pathKey]);
 
                 window.dispatchEvent(new CustomEvent('tm:scope:set', {
-                    detail: { pathKey, ids, source: 'search-restore' }
+                    detail: {pathKey, ids, source: 'search-restore'}
                 }));
             }
         }
@@ -314,7 +315,7 @@
 
         // Notifica breadcrumb (animazione query in tempo reale)
         window.dispatchEvent(new CustomEvent('tm:search:query', {
-            detail: { query: queryTrimmed, mode: state.mode }
+            detail: {query: queryTrimmed, mode: state.mode}
         }));
 
         // Solo fuzzy mode esegue ricerca in tempo reale
@@ -350,7 +351,7 @@
         // Se c'è query attiva, ri-trigger ricerca con nuova modalità
         if (state.currentQuery) {
             window.dispatchEvent(new CustomEvent('tm:search:query', {
-                detail: { query: state.currentQuery, mode: state.mode }
+                detail: {query: state.currentQuery, mode: state.mode}
             }));
 
             if (state.mode === SEARCH_MODES.FUZZY) {
@@ -373,8 +374,14 @@
     }
 
     function handleReset() {
-        clearSearch();
         state.preSearchState = null;
+        localStorage.removeItem(STORAGE_KEYS.preSearchState);
+
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        state.currentQuery = '';
+        state.isActive = false;
     }
 
     // ========================================================================
