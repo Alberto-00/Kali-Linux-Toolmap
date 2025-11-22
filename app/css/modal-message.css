@@ -1,0 +1,453 @@
+/* ============================================
+   MODAL MESSAGGIO DINAMICO
+   Modal riutilizzabile per conferme, avvisi, errori
+   ============================================ */
+
+/* Overlay */
+.modal-message-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal-message-overlay.show {
+    display: flex;
+    animation: fadeIn 0.3s ease forwards;
+}
+
+/* Container del Modal */
+.modal-message-container {
+    background: linear-gradient(135deg, var(--panel) 0%, var(--bg) 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    transform: scale(0.9) translateY(-20px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    animation: modalSlideIn 0.4s ease-out forwards;
+}
+
+.modal-message-overlay.show .modal-message-container {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+
+/* Icona del Modal */
+.modal-message-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.modal-message-icon::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    padding: 4px;
+    background: linear-gradient(135deg, currentColor, transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.3;
+    animation: iconRing 2s ease-in-out infinite;
+}
+
+.modal-message-icon svg {
+    width: 32px;
+    height: 32px;
+    stroke-width: 2.5;
+    animation: iconAppear 0.5s ease-out;
+}
+
+/* Varianti Icone */
+.modal-message-icon.modal-message-icon-danger {
+    background: linear-gradient(135deg, hsla(4, 85%, 62%, 0.2) 0%, hsla(4, 85%, 62%, 0.05) 100%);
+    color: #ef4444;
+    animation: dangerPulse 2s ease-in-out infinite;
+}
+
+.modal-message-icon.modal-message-icon-danger svg {
+    animation: dangerShake 0.6s ease-out, iconAppear 0.5s ease-out;
+}
+
+.modal-message-icon.modal-message-icon-warning {
+    background: linear-gradient(135deg, hsla(32, 98%, 55%, 0.2) 0%, hsla(32, 98%, 55%, 0.05) 100%);
+    color: #f59e0b;
+    animation: warningBounce 2s ease-in-out infinite;
+}
+
+.modal-message-icon.modal-message-icon-warning svg {
+    animation: warningSwing 1s ease-in-out infinite, iconAppear 0.5s ease-out;
+}
+
+.modal-message-icon.modal-message-icon-success {
+    background: linear-gradient(135deg, hsla(158, 64%, 52%, 0.2) 0%, hsla(158, 64%, 52%, 0.05) 100%);
+    color: #10b981;
+    animation: successPop 0.6s ease-out;
+}
+
+.modal-message-icon.modal-message-icon-success svg {
+    animation: successCheck 0.8s ease-out;
+}
+
+.modal-message-icon.modal-message-icon-info {
+    background: linear-gradient(135deg, hsla(210, 100%, 62%, 0.2) 0%, hsla(210, 100%, 62%, 0.05) 100%);
+    color: #3b82f6;
+    animation: infoPulse 2s ease-in-out infinite;
+}
+
+.modal-message-icon.modal-message-icon-info svg {
+    animation: infoFloat 2s ease-in-out infinite, iconAppear 0.5s ease-out;
+}
+
+/* Contenuto del Modal */
+.modal-message-content {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.modal-message-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.75rem;
+    animation: slideDown 0.5s ease-out;
+}
+
+.modal-message-text {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 0;
+    animation: slideDown 0.6s ease-out;
+}
+
+/* Azioni del Modal */
+.modal-message-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    animation: slideUp 0.5s ease-out;
+}
+
+.modal-message-actions .btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border);
+    display: block;
+}
+
+.modal-message-btn-cancel {
+    background: var(--bg) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border);
+}
+
+.modal-message-btn-cancel:hover:not(:disabled) {
+    background: var(--panel) !important;
+    color: var(--text) !important;
+    border-color: var(--accent);
+}
+
+/* Varianti Bottone Conferma */
+.modal-message-btn-confirm.btn-danger {
+    background: #ef4444 !important;
+    color: white !important;
+}
+
+.modal-message-btn-confirm.btn-danger:hover:not(:disabled) {
+    background: #dc2626 !important;
+}
+
+.modal-message-btn-confirm.btn-warning {
+    background: #f59e0b !important;
+    color: white !important;
+}
+
+.modal-message-btn-confirm.btn-warning:hover:not(:disabled) {
+    background: #d97706 !important;
+}
+
+.modal-message-btn-confirm.btn-success {
+    background: #10b981 !important;
+    color: white !important;
+}
+
+.modal-message-btn-confirm.btn-success:hover:not(:disabled) {
+    background: #059669 !important;
+}
+
+.modal-message-btn-confirm.btn-info,
+.modal-message-btn-confirm.btn-primary {
+    background: #3b82f6 !important;
+    color: white !important;
+}
+
+.modal-message-btn-confirm.btn-info:hover:not(:disabled),
+.modal-message-btn-confirm.btn-primary:hover:not(:disabled) {
+    background: #2563eb !important;
+}
+
+/* Animazioni */
+@keyframes modalSlideIn {
+    from {
+        transform: scale(0.9) translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   ANIMAZIONI ICONE SPECIFICHE
+   ============================================ */
+
+@keyframes iconAppear {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes iconRing {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.3;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.6;
+    }
+}
+
+@keyframes dangerPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 hsla(4, 85%, 62%, 0.4);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px hsla(4, 85%, 62%, 0);
+    }
+}
+
+@keyframes dangerShake {
+    0%, 100% {
+        transform: translateX(0) rotate(0deg);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-2px) rotate(-2deg);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(2px) rotate(2deg);
+    }
+}
+
+@keyframes warningBounce {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.08);
+    }
+}
+
+@keyframes warningSwing {
+    0%, 100% {
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(-8deg);
+    }
+    75% {
+        transform: rotate(8deg);
+    }
+}
+
+@keyframes successPop {
+    0% {
+        transform: scale(0);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes successCheck {
+    0% {
+        stroke-dasharray: 0 100;
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    50% {
+        stroke-dasharray: 100 100;
+        transform: scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        stroke-dasharray: 100 100;
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes infoPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 hsla(210, 100%, 62%, 0.4);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 8px hsla(210, 100%, 62%, 0);
+    }
+}
+
+@keyframes infoFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 576px) {
+    .modal-message-container {
+        padding: 1.5rem;
+        max-width: 95%;
+    }
+
+    .modal-message-icon {
+        width: 56px;
+        height: 56px;
+        margin-bottom: 1rem;
+    }
+
+    .modal-message-icon svg {
+        width: 28px;
+        height: 28px;
+    }
+
+    .modal-message-title {
+        font-size: 1.25rem;
+    }
+
+    .modal-message-text {
+        font-size: 13px;
+    }
+
+    .modal-message-actions {
+        flex-direction: column;
+    }
+
+    .modal-message-actions .btn {
+        width: 100%;
+        min-width: unset;
+    }
+}
+
+/* Accessibility */
+.modal-message-overlay[aria-hidden="true"] {
+    display: none;
+}
+
+.modal-message-container:focus {
+    outline: none;
+}
+
+/* Chiusura con animazione */
+.modal-message-overlay.hiding {
+    animation: fadeOut 0.3s ease forwards;
+}
+
+.modal-message-overlay.hiding .modal-message-container {
+    animation: modalSlideOut 0.3s ease forwards;
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes modalSlideOut {
+    from {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: scale(0.9) translateY(-20px);
+        opacity: 0;
+    }
+}

@@ -555,7 +555,7 @@
                         <span class="phase-tag" style="border:1px solid;--phase:${color};
                               background:color-mix(in srgb, ${color} 12%, hsl(var(--card)));
                               color:${color};padding:6px 12px;border-radius:8px;
-                              font-size:13px;font-weight:600;display:inline-block;margin:4px;">
+                              font-size:13px;font-weight:600;display:inline-block;margin: 4px 4px 4px 0;">
                             ${DOMUtils.escapeHtml(DOMUtils.formatLabel(phase))}
                         </span>
                     </div>

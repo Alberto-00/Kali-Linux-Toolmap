@@ -95,7 +95,12 @@
     /**
      * Inizializzazione principale
      */
-    DOMUtils.ready(() => {
+    DOMUtils.ready(async () => {
+        // Load environment configuration first
+        if (window.Config) {
+            await window.Config.load();
+        }
+
         cleanupOnLoad();
         initializeDOM();
         restoreState();

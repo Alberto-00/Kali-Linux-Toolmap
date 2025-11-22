@@ -704,6 +704,140 @@ const QueryHelpers = {
         window.dispatchEvent(new CustomEvent('tm:phase:color', {detail: {color}}));
     }
 
+    // ============================================================================
+    // SEARCH MODE PHASE RESTORATION
+    // ============================================================================
+
+    function restoreSearchPhases(clickedPhase = null) {
+        const lastCtx = window.__lastSearchContext;
+        if (!lastCtx || !lastCtx.hasQuery || !lastCtx.paths) return;
+
+        // RIMUOVI TUTTI I PHASE-BADGE
+        document.querySelectorAll('.sidebar .phase-badge').forEach(badge => {
+            badge.remove();
+        });
+
+        // Recupera le fasi che erano aperte prima
+        const savedPhasesStr = localStorage.getItem('tm:search:open-phases');
+        let savedPhases = [];
+        if (savedPhasesStr) {
+            try {
+                savedPhases = JSON.parse(savedPhasesStr);
+            } catch (e) {
+                console.warn('[sidebar] Error parsing saved phases:', e);
+            }
+        }
+
+        // Se è stata cliccata una fase specifica e non era nelle fasi salvate, aggiungila
+        if (clickedPhase && !savedPhases.includes(clickedPhase)) {
+            savedPhases.push(clickedPhase);
+            localStorage.setItem('tm:search:open-phases', JSON.stringify(savedPhases));
+        }
+
+        // Se non ci sono fasi salvate, non aprire nulla ma comunque aggiungi i badge
+        // Identifica TUTTE le fasi con risultati
+        const phasesWithResults = new Set();
+        if (lastCtx.paths) {
+            lastCtx.paths.forEach(pathArr => {
+                if (pathArr && pathArr.length > 0) {
+                    phasesWithResults.add(pathArr[0]);
+                }
+            });
+        }
+
+        // AGGIUNGI I BADGE A TUTTE LE FASI CON RISULTATI (aperte o chiuse)
+        phasesWithResults.forEach(phase => {
+            const item = getNavItem(phase);
+            if (!item) return;
+
+            const phaseBtn = item.querySelector('.btn');
+            if (phaseBtn) {
+                // Rimuovi TUTTI i badge esistenti
+                phaseBtn.querySelectorAll('.phase-badge, .search-badge').forEach(b => b.remove());
+
+                const count = lastCtx.countsByPhase[phase] || 0;
+                if (count > 0) {
+                    const badge = document.createElement('span');
+                    badge.className = 'search-badge';
+                    badge.textContent = String(count);
+                    badge.setAttribute('aria-label', `${count} risultati`);
+
+                    const chev = phaseBtn.querySelector('.chev');
+                    if (chev) phaseBtn.insertBefore(badge, chev);
+                    else phaseBtn.appendChild(badge);
+                }
+            }
+        });
+
+        // APRI SOLO le fasi che erano aperte prima
+        if (savedPhases.length === 0) return;
+
+        savedPhases.forEach(phase => {
+            const item = getNavItem(phase);
+            if (!item) return;
+
+            item.classList.add(CLASSES.open);
+            item.querySelector('.btn')?.classList.add(CLASSES.active);
+
+            const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phase);
+
+            // Espandi i path
+            for (const arr of phasePaths) {
+                if (!arr || arr.length === 0) continue;
+                const slash = arr.join('/');
+                expandAncestorsWithHits(item, slash, arr);
+            }
+
+            // Applica le classi di search
+            for (const arr of phasePaths) {
+                const fullPath = arr.join('/');
+                const terminalNode = item.querySelector(
+                    `.folder-leaf[data-path="${fullPath}"], .leaf[data-path="${fullPath}"]`
+                );
+                if (terminalNode) {
+                    terminalNode.classList.add(CLASSES.searchHit);
+                }
+
+                const parts = [];
+                for (let i = 0; i < arr.length - 1; i++) {
+                    parts.push(arr[i]);
+                    const partial = parts.join('/');
+                    const node = item.querySelector(
+                        `.folder-leaf[data-path="${partial}"], .leaf[data-path="${partial}"]`
+                    );
+                    if (node) {
+                        node.classList.add(CLASSES.searchIntermediate);
+                    }
+                }
+            }
+
+            updateSearchContainersVLines(item);
+        });
+
+        // Dispatch scope per tutte le fasi aperte
+        const tm = window.Toolmap || {};
+        const allSearchIds = lastCtx.foundToolIds || [];
+        const toolsById = tm.toolsById || {};
+
+        const phaseToolIds = allSearchIds.filter(id => {
+            const tool = toolsById[id];
+            if (!tool || !tool.category_path) return false;
+            const toolPhase = tool.category_path[0];
+            return savedPhases.includes(toolPhase);
+        });
+
+        window.dispatchEvent(new CustomEvent('tm:scope:set', {
+            detail: {
+                ids: phaseToolIds,
+                pathKey: `search:phases:${savedPhases.join(',')}`,
+                all: false,
+                source: clickedPhase ? 'search-expand-from-phase-click' : 'search-expand-from-collapse'
+            }
+        }));
+        refreshAllVLinesDebounced();
+        window.SidebarAutoGrow?.schedule();
+    }
+
     // INTERAZIONE NEL NAV
     function attachFolderLeafDrilldown(scope = document) {
         scope.querySelectorAll('.children .folder-leaf').forEach(el => {
@@ -829,11 +963,28 @@ const QueryHelpers = {
 
                 const wasOpen = navItem.classList.contains(CLASSES.open);
 
+                // ============================================================
+                // CASO 1: Sidebar COLLAPSED - si espande cliccando sulla fase
+                // ============================================================
                 if (sidebar && sidebar.classList.contains(CLASSES.collapsed)) {
                     sidebar.classList.remove(CLASSES.collapsed);
                     localStorage.setItem(MEM.collapsed, '0');
                     hideHoverPane();
 
+                    const inSearch = sidebar.classList.contains(CLASSES.searchMode);
+
+                    // Salva il badge prima che venga rimosso (solo per modalità normale)
+                    const currentPhaseBadge = btn.querySelector('.phase-badge, .search-badge');
+                    let savedBadgeData = null;
+                    if (currentPhaseBadge && !inSearch) {
+                        savedBadgeData = {
+                            value: currentPhaseBadge.textContent,
+                            ariaLabel: currentPhaseBadge.getAttribute('aria-label'),
+                            isSearchBadge: currentPhaseBadge.classList.contains('search-badge')
+                        };
+                    }
+
+                    // Chiudi tutte le altre fasi
                     document.querySelectorAll('.nav-item.open').forEach(item => {
                         if (item !== navItem) {
                             item.classList.remove(CLASSES.open);
@@ -842,118 +993,63 @@ const QueryHelpers = {
                         }
                     });
 
+                    // Apri la fase cliccata
                     navItem.classList.add(CLASSES.open);
                     btn.classList.add(CLASSES.active);
 
+                    // Rimuovi eventuali nested children esistenti
                     navItem.querySelectorAll('.children-nested').forEach(n => n.remove());
 
                     if (inSearch) {
-                        const lastCtx = window.__lastSearchContext;
-                        if (lastCtx && lastCtx.hasQuery && lastCtx.paths) {
-                            const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phaseKey);
-
-                            for (const arr of phasePaths) {
-                                if (!arr || arr.length === 0) continue;
-                                const slash = arr.join('/');
-                                expandAncestorsWithHits(navItem, slash, arr);
-                            }
-
-                            for (const arr of phasePaths) {
-                                const fullPath = arr.join('/');
-                                const terminalNode = navItem.querySelector(
-                                    `.folder-leaf[data-path="${fullPath}"], .leaf[data-path="${fullPath}"]`
-                                );
-                                if (terminalNode) {
-                                    terminalNode.classList.add(CLASSES.searchHit);
-                                }
-
-                                const parts = [];
-                                for (let i = 0; i < arr.length - 1; i++) {
-                                    parts.push(arr[i]);
-                                    const partial = parts.join('/');
-                                    const node = navItem.querySelector(
-                                        `.folder-leaf[data-path="${partial}"], .leaf[data-path="${partial}"]`
-                                    );
-                                    if (node) {
-                                        node.classList.add(CLASSES.searchIntermediate);
-                                    }
-                                }
-                            }
-                            updateSearchContainersVLines(navItem);
-
-                            requestAnimationFrame(() => {
-                                const openPhases = getOpenNavItems().map(item => item.dataset.phase);
-
-                                if (openPhases.length === 0) {
-                                    const allToolIds = new Set();
-                                    if (lastCtx.paths) {
-                                        lastCtx.paths.forEach(pathArr => {
-                                            if (!pathArr || pathArr.length === 0) return;
-                                            const slash = pathArr.join('/');
-                                            const {ids} = resolveToolIdsForSlashPath(slash);
-                                            ids.forEach(id => allToolIds.add(id));
-                                        });
-                                    }
-
-                                    window.dispatchEvent(new CustomEvent('tm:scope:set', {
-                                        detail: {
-                                            ids: Array.from(allToolIds),
-                                            pathKey: 'search:all',
-                                            all: false,
-                                            source: 'search-phase-all-closed'
-                                        }
-                                    }));
-                                } else {
-                                    const phaseToolIds = new Set();
-
-                                    openPhases.forEach(phase => {
-                                        const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phase);
-                                        phasePaths.forEach(pathArr => {
-                                            const slash = pathArr.join('/');
-                                            const {ids} = resolveToolIdsForSlashPath(slash);
-                                            ids.forEach(id => phaseToolIds.add(id));
-                                        });
-                                    });
-
-                                    window.dispatchEvent(new CustomEvent('tm:scope:set', {
-                                        detail: {
-                                            ids: Array.from(phaseToolIds),
-                                            pathKey: `search:phases:${openPhases.join(',')}`,
-                                            all: false,
-                                            source: 'search-phases-open'
-                                        }
-                                    }));
-                                }
-                            });
-                        }
+                        // USA LA FUNZIONE HELPER per ripristinare le fasi in search mode
+                        restoreSearchPhases(phaseKey);
                     } else {
+                        // Modalità normale (non search)
                         expandFromMemoryInContainer(navItem, phaseKey);
-                    }
 
-                    window.SidebarAutoGrow?.schedule();
+                        const current = getActivePathSlash(phaseKey);
+                        if (current && typeof current === 'string') {
+                            highlightActivePath(phaseKey);
+                            dispatchScopeAndPhase(current, {source: 'sidebar'});
+                        } else {
+                            const slash = phaseKey;
+                            setActivePathSlash(phaseKey, slash);
+                            highlightActivePath(phaseKey);
+                            dispatchScopeAndPhase(slash, {source: 'sidebar'});
+                        }
 
-                    const current = getActivePathSlash(phaseKey);
-                    if (current && typeof current === 'string') {
-                        highlightActivePath(phaseKey);
-                        dispatchScopeAndPhase(current, {source: 'sidebar'});
-                    } else {
-                        const slash = phaseKey;
-                        setActivePathSlash(phaseKey, slash);
-                        highlightActivePath(phaseKey);
-                        dispatchScopeAndPhase(slash, {source: 'sidebar'});
-                    }
+                        let targetSlash = getActivePathSlash(phaseKey) || phaseKey;
+                        if (!inSearch && targetSlash !== phaseKey) {
+                            expandAncestors(navItem, targetSlash);
+                            QueryHelpers.clearActive(navItem);
+                            const activeEl = navItem.querySelector(`.folder-leaf[data-path="${targetSlash}"], .leaf[data-path="${targetSlash}"]`);
+                            if (activeEl) activeEl.classList.add(CLASSES.active);
+                        }
 
-                    let targetSlash = getActivePathSlash(phaseKey) || phaseKey;
-                    if (!inSearch && targetSlash !== phaseKey) {
-                        expandAncestors(navItem, targetSlash);
-                        QueryHelpers.clearActive(navItem);
-                        const activeEl = navItem.querySelector(`.folder-leaf[data-path="${targetSlash}"], .leaf[data-path="${targetSlash}"]`);
-                        if (activeEl) activeEl.classList.add(CLASSES.active);
-                    }
+                        if (!inSearch) {
+                            highlightActivePath(phaseKey);
+                            dispatchScopeAndPhase(targetSlash, {source: 'sidebar'});
+                        }
 
-                    if (!inSearch) {
-                        highlightActivePath(phaseKey);
-                        dispatchScopeAndPhase(targetSlash, {source: 'sidebar'});
+                        // Ripristina il badge in modalità normale
+                        if (!inSearch && savedBadgeData && !savedBadgeData.isSearchBadge) {
+                            setTimeout(() => {
+                                const existingBadge = btn.querySelector('.phase-badge');
+                                if (!existingBadge && parseInt(savedBadgeData.value) > 0) {
+                                    const badge = document.createElement('span');
+                                    badge.className = 'phase-badge';
+                                    badge.textContent = savedBadgeData.value;
+                                    badge.setAttribute('aria-label', savedBadgeData.ariaLabel || `${savedBadgeData.value} tools`);
+
+                                    const chevron = btn.querySelector('.chev');
+                                    if (chevron) {
+                                        btn.insertBefore(badge, chevron);
+                                    } else {
+                                        btn.appendChild(badge);
+                                    }
+                                }
+                            }, 150);
+                        }
                     }
 
                     btn.focus?.();
@@ -962,8 +1058,14 @@ const QueryHelpers = {
                         if (!inSearch) highlightActivePath(phaseKey);
                         refreshAllVLinesDebounced(navItem);
                     });
+
+                    window.SidebarAutoGrow?.schedule();
                     return;
                 }
+
+                // ============================================================
+                // CASO 2: Sidebar APERTA - toggle normale delle fasi
+                // ============================================================
 
                 if (!inSearch) {
                     document.querySelectorAll('.nav-item.open').forEach(item => {
@@ -976,6 +1078,7 @@ const QueryHelpers = {
                 }
 
                 if (!wasOpen) {
+                    // APERTURA della fase
                     navItem.classList.add(CLASSES.open);
                     btn.classList.add(CLASSES.active);
 
@@ -1015,43 +1118,43 @@ const QueryHelpers = {
                             }
                             updateSearchContainersVLines(navItem);
 
+                            // SALVA lo stato delle fasi aperte
                             requestAnimationFrame(() => {
                                 const openPhases = getOpenNavItems().map(item => item.dataset.phase);
 
+                                // Salva le fasi aperte nel localStorage
+                                if (openPhases.length > 0) {
+                                    localStorage.setItem('tm:search:open-phases', JSON.stringify(openPhases));
+                                }
+
                                 if (openPhases.length === 0) {
-                                    const allToolIds = new Set();
-                                    if (lastCtx.paths) {
-                                        lastCtx.paths.forEach(pathArr => {
-                                            if (!pathArr || pathArr.length === 0) return;
-                                            const slash = pathArr.join('/');
-                                            const {ids} = resolveToolIdsForSlashPath(slash);
-                                            ids.forEach(id => allToolIds.add(id));
-                                        });
-                                    }
+                                    // USA gli IDs dalla ricerca originale
+                                    const allSearchIds = lastCtx.foundToolIds || [];
 
                                     window.dispatchEvent(new CustomEvent('tm:scope:set', {
                                         detail: {
-                                            ids: Array.from(allToolIds),
+                                            ids: allSearchIds,
                                             pathKey: 'search:all',
                                             all: false,
                                             source: 'search-phase-all-closed'
                                         }
                                     }));
                                 } else {
-                                    const phaseToolIds = new Set();
+                                    // Filtra solo i tool che matchano la ricerca per le fasi aperte
+                                    const tm = window.Toolmap || {};
+                                    const allSearchIds = lastCtx.foundToolIds || [];
+                                    const toolsById = tm.toolsById || {};
 
-                                    openPhases.forEach(phase => {
-                                        const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phase);
-                                        phasePaths.forEach(pathArr => {
-                                            const slash = pathArr.join('/');
-                                            const {ids} = resolveToolIdsForSlashPath(slash);
-                                            ids.forEach(id => phaseToolIds.add(id));
-                                        });
+                                    const phaseToolIds = allSearchIds.filter(id => {
+                                        const tool = toolsById[id];
+                                        if (!tool || !tool.category_path) return false;
+                                        const toolPhase = tool.category_path[0];
+                                        return openPhases.includes(toolPhase);
                                     });
 
                                     window.dispatchEvent(new CustomEvent('tm:scope:set', {
                                         detail: {
-                                            ids: Array.from(phaseToolIds),
+                                            ids: phaseToolIds,
                                             pathKey: `search:phases:${openPhases.join(',')}`,
                                             all: false,
                                             source: 'search-phases-open'
@@ -1080,8 +1183,31 @@ const QueryHelpers = {
                             highlightActivePath(phaseKey);
                             dispatchScopeAndPhase(slash, {source: 'sidebar'});
                         }
+
+                        setTimeout(() => {
+                            const existingBadge = btn.querySelector('.phase-badge');
+                            if (!existingBadge) {
+                                const targetPath = getActivePathSlash(phaseKey) || phaseKey;
+                                const {ids} = resolveToolIdsForSlashPath(targetPath);
+
+                                if (ids.length > 0) {
+                                    const badge = document.createElement('span');
+                                    badge.className = 'phase-badge';
+                                    badge.textContent = String(ids.length);
+                                    badge.setAttribute('aria-label', `${ids.length} tool${ids.length !== 1 ? 's' : ''}`);
+
+                                    const chevron = btn.querySelector('.chev');
+                                    if (chevron) {
+                                        btn.insertBefore(badge, chevron);
+                                    } else {
+                                        btn.appendChild(badge);
+                                    }
+                                }
+                            }
+                        }, 150);
                     }
                 } else {
+                    // CHIUSURA della fase
                     navItem.classList.remove(CLASSES.open);
                     btn.classList.remove(CLASSES.active);
                     clearPathHighlight(navItem);
@@ -1089,41 +1215,44 @@ const QueryHelpers = {
                     if (inSearch) {
                         const lastCtx = window.__lastSearchContext;
                         if (lastCtx && lastCtx.hasQuery && lastCtx.paths) {
+                            // SALVA lo stato delle fasi aperte (dopo la chiusura)
                             requestAnimationFrame(() => {
                                 const openPhases = getOpenNavItems().map(item => item.dataset.phase);
 
+                                // Aggiorna le fasi aperte nel localStorage
+                                if (openPhases.length > 0) {
+                                    localStorage.setItem('tm:search:open-phases', JSON.stringify(openPhases));
+                                } else {
+                                    localStorage.removeItem('tm:search:open-phases');
+                                }
+
                                 if (openPhases.length === 0) {
-                                    const allToolIds = new Set();
-                                    lastCtx.paths.forEach(pathArr => {
-                                        if (!pathArr || pathArr.length === 0) return;
-                                        const slash = pathArr.join('/');
-                                        const {ids} = resolveToolIdsForSlashPath(slash);
-                                        ids.forEach(id => allToolIds.add(id));
-                                    });
+                                    const allSearchIds = lastCtx.foundToolIds || [];
 
                                     window.dispatchEvent(new CustomEvent('tm:scope:set', {
                                         detail: {
-                                            ids: Array.from(allToolIds),
+                                            ids: allSearchIds,
                                             pathKey: 'search:all',
                                             all: false,
                                             source: 'search-phase-all-closed'
                                         }
                                     }));
                                 } else {
-                                    const phaseToolIds = new Set();
+                                    // Filtra solo i tool che matchano la ricerca per le fasi aperte
+                                    const tm = window.Toolmap || {};
+                                    const allSearchIds = lastCtx.foundToolIds || [];
+                                    const toolsById = tm.toolsById || {};
 
-                                    openPhases.forEach(phase => {
-                                        const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phase);
-                                        phasePaths.forEach(pathArr => {
-                                            const slash = pathArr.join('/');
-                                            const {ids} = resolveToolIdsForSlashPath(slash);
-                                            ids.forEach(id => phaseToolIds.add(id));
-                                        });
+                                    const phaseToolIds = allSearchIds.filter(id => {
+                                        const tool = toolsById[id];
+                                        if (!tool || !tool.category_path) return false;
+                                        const toolPhase = tool.category_path[0];
+                                        return openPhases.includes(toolPhase);
                                     });
 
                                     window.dispatchEvent(new CustomEvent('tm:scope:set', {
                                         detail: {
-                                            ids: Array.from(phaseToolIds),
+                                            ids: phaseToolIds,
                                             pathKey: `search:phases:${openPhases.join(',')}`,
                                             all: false,
                                             source: 'search-phases-open'
@@ -1160,18 +1289,22 @@ const QueryHelpers = {
                             setTimeout(() => {
                                 window.applySearchToHoverPane && window.applySearchToHoverPane(lastCtx);
 
-                                const phaseToolIds = new Set();
+                                // Filtra i tool trovati per questa fase
+                                const tm = window.Toolmap || {};
+                                const allSearchIds = lastCtx.foundToolIds || [];
+                                const toolsById = tm.toolsById || {};
 
-                                phasePaths.forEach(pathArr => {
-                                    const slash = pathArr.join('/');
-                                    const {ids} = resolveToolIdsForSlashPath(slash);
-                                    ids.forEach(id => phaseToolIds.add(id));
+                                const phaseToolIds = allSearchIds.filter(id => {
+                                    const tool = toolsById[id];
+                                    if (!tool || !tool.category_path) return false;
+                                    const toolPhase = tool.category_path[0];
+                                    return toolPhase === phaseKey;
                                 });
 
-                                if (phaseToolIds.size > 0) {
+                                if (phaseToolIds.length > 0) {
                                     window.dispatchEvent(new CustomEvent('tm:scope:set', {
                                         detail: {
-                                            ids: Array.from(phaseToolIds),
+                                            ids: phaseToolIds,
                                             pathKey: `search:${phaseKey}`,
                                             all: false,
                                             source: 'hover-search-phase'
@@ -1206,11 +1339,11 @@ const QueryHelpers = {
                     }, TIMINGS.hoverDelay);
                 }
             });
-        });
 
-        document.addEventListener('mouseenter', (e) => {
-            if (e.target.closest('.hover-pane')) clearTimeout(hoverTimeout);
-        }, true);
+            document.addEventListener('mouseenter', (e) => {
+                if (e.target.closest('.hover-pane')) clearTimeout(hoverTimeout);
+            }, true);
+        });
     }
 
     window.addEventListener('tm:sidebar:closeAll', () => {
@@ -1270,6 +1403,24 @@ const QueryHelpers = {
 
         collapseBtn?.addEventListener('click', () => {
             const now = !sidebar.classList.contains(CLASSES.collapsed);
+            const inSearch = sidebar.classList.contains(CLASSES.searchMode);
+
+            // SALVA lo stato delle fasi aperte in search mode prima di collassare
+            if (now && inSearch) {
+                const openPhases = Array.from(document.querySelectorAll('.nav-item.open'))
+                    .map(item => item.dataset.phase)
+                    .filter(Boolean);
+
+                if (openPhases.length > 0) {
+                    localStorage.setItem('tm:search:open-phases', JSON.stringify(openPhases));
+                }
+
+                // RIMUOVI SOLO i phase-badge (NON i search-badge) prima di collassare
+                document.querySelectorAll('.sidebar .phase-badge:not(.search-badge)').forEach(badge => {
+                    badge.remove();
+                });
+            }
+
             sidebar.classList.toggle(CLASSES.collapsed, now);
             localStorage.setItem(MEM.collapsed, now ? '1' : '0');
             applyCollapsedStyle();
@@ -1283,7 +1434,15 @@ const QueryHelpers = {
                 hideHoverPane();
             } else {
                 hideHoverPane();
+
+                // RIPRISTINA le fasi aperte in search mode quando si espande
+                if (inSearch) {
+                    setTimeout(() => {
+                        restoreSearchPhases(); // Chiama senza argomenti
+                    }, 100);
+                }
             }
+
             window.dispatchEvent(new CustomEvent('tm:sidebar:toggle', {detail: {collapsed: now}}));
         });
 
@@ -1695,6 +1854,12 @@ const QueryHelpers = {
                 return;
             }
 
+            // RIMUOVI TUTTI I PHASE-BADGE prima di applicare la ricerca
+            document.querySelectorAll('.sidebar .phase-badge').forEach(badge => {
+                badge.remove();
+            });
+
+
             SIDEBAR.classList.add(CLASSES.searchMode);
 
             QueryHelpers.clearActive(NAV);
@@ -1894,6 +2059,9 @@ const QueryHelpers = {
 
         window.addEventListener('tm:search:context', (ev) => {
             const detail = ev.detail || {};
+
+            window.__lastSearchContext = detail;
+
             if (!detail.hasQuery) clearSearchGhost();
             else applySearchGhost(detail);
         });
@@ -1929,9 +2097,29 @@ const QueryHelpers = {
         function openOnlyActivePathOnClear() {
             const sidebarEl = document.getElementById('sidebar');
             const nav = document.getElementById('nav');
-            const lastSlash =
-                localStorage.getItem(MEM.preSearchSlash) ||
-                localStorage.getItem(MEM.pathSlash);
+
+            const preSearchSlash = localStorage.getItem(MEM.preSearchSlash);
+            const pathSlash = localStorage.getItem(MEM.pathSlash);
+            const lastSlash = preSearchSlash || pathSlash;
+
+
+            if (!lastSlash) {
+                sidebarEl?.classList.remove(CLASSES.searchMode);
+                clearSearchDecorations();
+
+                document.querySelectorAll('.nav-item.open').forEach(item => {
+                    item.classList.remove(CLASSES.open);
+                    item.querySelector('.btn')?.classList.remove(CLASSES.active);
+                    item.style.removeProperty('display');
+                });
+
+                document.querySelectorAll('.children-nested').forEach(n => n.remove());
+                clearPathHighlight();
+
+                if (typeof refreshAllVLinesDebounced === 'function') refreshAllVLinesDebounced();
+                window.SidebarAutoGrow?.schedule();
+                return;
+            }
 
             sidebarEl?.classList.remove(CLASSES.searchMode);
             clearSearchDecorations();
@@ -1943,13 +2131,7 @@ const QueryHelpers = {
             });
 
             document.querySelectorAll('.children-nested').forEach(n => n.remove());
-
             clearPathHighlight();
-
-            if (!lastSlash) {
-                if (typeof refreshAllVLinesDebounced === 'function') refreshAllVLinesDebounced();
-                return;
-            }
 
             const parts = lastSlash.split('/').filter(Boolean);
             const phaseKey = parts[0];
@@ -1972,6 +2154,7 @@ const QueryHelpers = {
             const leaf = (phaseItem || nav).querySelector(
                 `.folder-leaf[data-path="${lastSlash}"], .leaf[data-path="${lastSlash}"]`
             );
+
             if (leaf) {
                 QueryHelpers.clearActive(phaseItem || nav);
                 leaf.classList.add(CLASSES.active);
@@ -1999,22 +2182,44 @@ const QueryHelpers = {
             if (lastSlash) {
                 try {
                     localStorage.setItem(MEM.pathSlash, lastSlash);
-                    // Dispatch del path corretto per aggiornare il pathKey visualizzato
                     dispatchScopeAndPhase(lastSlash, {source: 'search-clear'});
-                } catch (e) {
-                    // Silently fail
-                }
+                } catch (e) { }
             }
             try {
                 localStorage.removeItem(MEM.preSearchSlash);
                 localStorage.removeItem(MEM.searchTempSlash);
-            } catch (e) {
-                // Silently fail
+            } catch (e) { }
+
+            // Aggiungi badge per il path ripristinato
+            if (lastSlash && phaseItem) {
+                setTimeout(() => {
+                    const btn = phaseItem.querySelector('.btn');
+                    if (!btn) return;
+
+                    const existingBadge = btn.querySelector('.phase-badge');
+                    if (existingBadge) existingBadge.remove();
+
+                    const {ids} = resolveToolIdsForSlashPath(lastSlash);
+                    if (ids.length === 0) return;
+
+                    const badge = document.createElement('span');
+                    badge.className = 'phase-badge';
+                    badge.textContent = String(ids.length);
+                    badge.setAttribute('aria-label', `${ids.length} tool${ids.length !== 1 ? 's' : ''}`);
+
+                    const chevron = btn.querySelector('.chev');
+                    if (chevron) {
+                        btn.insertBefore(badge, chevron);
+                    } else {
+                        btn.appendChild(badge);
+                    }
+                }, 200);
             }
         }
 
         window.addEventListener('tm:search:set', (ev) => {
             const hasQuery = !!(ev.detail && ev.detail.hasQuery);
+
             if (hasQuery) {
                 try {
                     if (!localStorage.getItem(MEM.preSearchSlash)) {
@@ -2026,6 +2231,12 @@ const QueryHelpers = {
                 }
 
                 sidebar.classList.add(CLASSES.searchMode);
+
+                // RIMUOVI TUTTI I PHASE-BADGE quando entri in search mode
+                document.querySelectorAll('.sidebar .phase-badge').forEach(badge => {
+                    badge.remove();
+                });
+
                 saveAndClearPathHighlight();
 
                 QueryHelpers.clearActive(NAV);
@@ -2042,6 +2253,12 @@ const QueryHelpers = {
                     hoverPane.querySelectorAll(SELECTORS.containers).forEach(n => n.classList.remove(CLASSES.hasActivePath));
                 }
             } else {
+                try {
+                    localStorage.removeItem('tm:search:open-phases');
+                } catch (e) {
+                    console.warn('[sidebar] Failed to remove search phases:', e);
+                }
+
                 try {
                     clearSearchGhost();
                 } catch (_) {
@@ -2113,8 +2330,16 @@ const QueryHelpers = {
         });
 
         window.addEventListener('tm:reset', () => {
+            localStorage.removeItem('tm:search:open-phases');
+
+            document.querySelectorAll('.sidebar .phase-badge, .sidebar .search-badge').forEach(badge => {
+                badge.remove();
+            });
+
             localStorage.removeItem(MEM.pathKey);
             localStorage.removeItem(MEM.pathSlash);
+            localStorage.removeItem(MEM.preSearchSlash);
+            localStorage.removeItem(MEM.searchTempSlash);
 
             Object.keys(phaseMemory).forEach(k => {
                 phaseMemory[k].activePathSlash = null;
@@ -2131,6 +2356,7 @@ const QueryHelpers = {
                 item.style.removeProperty('display');
                 item.querySelector('.btn')?.classList.remove(CLASSES.active);
             });
+
             document.querySelectorAll('.children-nested').forEach(n => n.remove());
 
             clearPathHighlight();
@@ -2159,54 +2385,98 @@ const QueryHelpers = {
                 ev.stopImmediatePropagation();
 
                 const isCollapsed = sb && sb.classList.contains(CLASSES.collapsed);
-                if (isCollapsed) {
-                    const hoverPane = document.querySelector('.hover-pane');
-                    if (hoverPane) {
-                        hoverPane.classList.remove(CLASSES.active);
-                        hoverPane.style.removeProperty('width');
-                    }
 
-                    const allToolIds = new Set();
-                    if (lastCtx.paths) {
-                        lastCtx.paths.forEach(pathArr => {
-                            if (!pathArr || pathArr.length === 0) return;
-                            const slash = pathArr.join('/');
-                            const {ids} = resolveToolIdsForSlashPath(slash);
-                            ids.forEach(id => allToolIds.add(id));
-                        });
-                    }
-
-                    window.dispatchEvent(new CustomEvent('tm:search:filter:all', {
-                        detail: {
-                            context: lastCtx,
-                            allPaths: lastCtx.paths,
-                            allToolIds: Array.from(allToolIds),
-                            showAll: true
-                        }
-                    }));
-
-                    window.dispatchEvent(new CustomEvent('tm:scope:set', {
-                        detail: {
-                            ids: Array.from(allToolIds),
-                            pathKey: 'search:all',
-                            all: false,
-                            source: 'search-show-all'
-                        }
-                    }));
-
-                    return;
-                }
-
+                // Identifica tutte le fasi con risultati
                 const phasesWithResults = new Set();
                 lastCtx.paths.forEach(arr => {
                     if (arr && arr.length > 0) phasesWithResults.add(arr[0]);
                 });
 
+                // Salva lo stato delle fasi da aprire (sia collapsed che aperta)
+                const openPhases = Array.from(phasesWithResults);
+                if (openPhases.length > 0) {
+                    localStorage.setItem('tm:search:open-phases', JSON.stringify(openPhases));
+                }
+
+                // Dispatch scope con TUTTI i tool trovati nella ricerca
+                const allToolIds = lastCtx.foundToolIds || [];
+
+                window.dispatchEvent(new CustomEvent('tm:search:filter:all', {
+                    detail: {
+                        context: lastCtx,
+                        allPaths: lastCtx.paths,
+                        allToolIds: allToolIds,
+                        showAll: true
+                    }
+                }));
+
+                window.dispatchEvent(new CustomEvent('tm:scope:set', {
+                    detail: {
+                        ids: allToolIds,
+                        pathKey: 'search:all-expanded',
+                        all: false,
+                        source: 'search-show-all'
+                    }
+                }));
+
+                // Se la sidebar è COLLAPSED, NON espanderla - salva solo lo stato
+                if (isCollapsed) {
+                    return;
+                }
+
+                // Controlla se le fasi sono già tutte aperte
+                const currentlyOpenPhases = new Set(
+                    Array.from(document.querySelectorAll('.nav-item.open'))
+                        .map(item => item.dataset.phase)
+                        .filter(Boolean)
+                );
+
+                // Se tutte le fasi con risultati sono già aperte, salta chiusura/apertura
+                const allAlreadyOpen = Array.from(phasesWithResults).every(phase =>
+                    currentlyOpenPhases.has(phase)
+                );
+
+                if (allAlreadyOpen && phasesWithResults.size === currentlyOpenPhases.size) {
+                    // Le fasi sono già tutte aperte - aggiorna solo i badge
+                    phasesWithResults.forEach(phaseKey => {
+                        const item = getNavItem(phaseKey);
+                        if (!item) return;
+
+                        const phaseBtn = item.querySelector('.btn');
+                        if (phaseBtn) {
+                            phaseBtn.querySelectorAll('.phase-badge, .search-badge').forEach(b => b.remove());
+
+                            const count = lastCtx.countsByPhase[phaseKey] || 0;
+                            if (count > 0) {
+                                const badge = document.createElement('span');
+                                badge.className = 'search-badge';
+                                badge.textContent = String(count);
+                                badge.setAttribute('aria-label', `${count} risultati`);
+
+                                const chev = phaseBtn.querySelector('.chev');
+                                if (chev) phaseBtn.insertBefore(badge, chev);
+                                else phaseBtn.appendChild(badge);
+                            }
+                        }
+                    });
+
+                    refreshAllVLinesDebounced();
+                    window.SidebarAutoGrow?.schedule();
+                    return;
+                }
+
+                // Se la sidebar è APERTA, espandi tutte le fasi
+                // Chiudi tutte le fasi prima
                 document.querySelectorAll('.nav-item').forEach(item => {
                     item.classList.remove(CLASSES.open);
                     item.querySelector('.btn')?.classList.remove(CLASSES.active);
+                    item.style.removeProperty('display');
                 });
 
+                // Rimuovi tutti i nested children
+                document.querySelectorAll('.children-nested').forEach(n => n.remove());
+
+                // Apri tutte le fasi con risultati
                 phasesWithResults.forEach(phaseKey => {
                     const item = getNavItem(phaseKey);
                     if (!item) return;
@@ -2214,17 +2484,15 @@ const QueryHelpers = {
                     item.classList.add(CLASSES.open);
                     item.querySelector('.btn')?.classList.add(CLASSES.active);
 
-                    item.querySelectorAll('.children-nested').forEach(nest => nest.remove());
-
                     const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phaseKey);
 
+                    // Espandi i path
                     for (const arr of phasePaths) {
                         const slash = arr.join('/');
                         expandAncestorsWithHits(item, slash, arr);
                     }
 
-                    forceReflow(item);
-
+                    // Applica le classi di search
                     for (const arr of phasePaths) {
                         const fullPath = arr.join('/');
                         const terminalNode = item.querySelector(
@@ -2246,40 +2514,41 @@ const QueryHelpers = {
                             }
                         }
                     }
+
                     updateSearchContainersVLines(item);
+
+                    // Aggiungi i badge per ogni fase
+                    const phaseBtn = item.querySelector('.btn');
+                    if (phaseBtn) {
+                        phaseBtn.querySelectorAll('.phase-badge, .search-badge').forEach(b => b.remove());
+
+                        const count = lastCtx.countsByPhase[phaseKey] || 0;
+                        if (count > 0) {
+                            const badge = document.createElement('span');
+                            badge.className = 'search-badge';
+                            badge.textContent = String(count);
+                            badge.setAttribute('aria-label', `${count} risultati`);
+
+                            const chev = phaseBtn.querySelector('.chev');
+                            if (chev) phaseBtn.insertBefore(badge, chev);
+                            else phaseBtn.appendChild(badge);
+                        }
+                    }
                 });
+
                 refreshAllVLinesDebounced();
                 window.SidebarAutoGrow?.schedule();
 
-                const allToolIds = new Set();
-                if (lastCtx.paths) {
-                    lastCtx.paths.forEach(pathArr => {
-                        if (!pathArr || pathArr.length === 0) return;
-                        const slash = pathArr.join('/');
-                        const {ids} = resolveToolIdsForSlashPath(slash);
-                        ids.forEach(id => allToolIds.add(id));
-                    });
-                }
-
-                window.dispatchEvent(new CustomEvent('tm:search:filter:all', {
-                    detail: {
-                        context: lastCtx,
-                        allPaths: lastCtx.paths,
-                        allToolIds: Array.from(allToolIds),
-                        showAll: true
-                    }
-                }));
-
-                window.dispatchEvent(new CustomEvent('tm:scope:set', {
-                    detail: {
-                        ids: Array.from(allToolIds),
-                        pathKey: 'search:all',
-                        all: false,
-                        source: 'search-show-all'
-                    }
-                }));
                 return;
             }
+
+            // MODALITÀ NORMALE - Show All
+            localStorage.removeItem('tm:scope:showAll');
+
+            // Rimuovi TUTTI i badge nella sidebar
+            document.querySelectorAll('.sidebar .phase-badge').forEach(badge => {
+                badge.remove();
+            });
         }, true);
     })();
 
@@ -2458,6 +2727,10 @@ const QueryHelpers = {
 
     window.addEventListener('tm:reset', () => {
         lastBadgePhase = null;
+        localStorage.removeItem('tm:search:open-phases');
+        document.querySelectorAll('.sidebar .phase-badge, .sidebar .search-badge').forEach(badge => {
+            badge.remove();
+        });
         localStorage.removeItem(MEM.preSearchSlash);
         localStorage.removeItem(MEM.searchTempSlash);
 
@@ -2592,16 +2865,18 @@ const QueryHelpers = {
             const count = Number(d.toolsCount || 0);
 
             if (!isSidebarOpen() || scopeAll || !pathKey) {
-                // Se siamo in search mode, rimuovi solo phase-badge
                 const inSearch = isSearchMode();
-                removeBadges(null, inSearch ? 'phase-badge' : null);
+                // Non rimuovere i badge se siamo in una fase aperta
+                const hasOpenPhases = document.querySelectorAll('.nav-item.open').length > 0;
+                if (!hasOpenPhases || scopeAll) {
+                    removeBadges(null, inSearch ? 'phase-badge' : null);
+                }
                 return;
             }
 
             const parts = String(pathKey).split('>');
             const phaseKey = parts.length >= 2 ? parts[1] : null;
             if (!phaseKey) {
-                // Se siamo in search mode, rimuovi solo phase-badge
                 const inSearch = isSearchMode();
                 removeBadges(null, inSearch ? 'phase-badge' : null);
                 return;
@@ -2616,14 +2891,19 @@ const QueryHelpers = {
                 lastBadgePhase = null;
             }
         });
-        window.addEventListener('tm:reset', () => removeBadges());
+        window.addEventListener('tm:reset', () => {
+            localStorage.removeItem('tm:search:open-phases');
+            removeBadges()
+            document.querySelectorAll('.sidebar .phase-badge, .sidebar .search-badge').forEach(badge => {
+                badge.remove();
+            });
+        });
         window.addEventListener('tm:search:set', (ev) => {
             const hasQuery = !!(ev.detail && ev.detail.hasQuery);
             // Durante la ricerca, rimuovi SOLO i phase-badge (i search-badge sono gestiti da applySearchGhost)
             if (hasQuery) removeBadges(null, 'phase-badge');
         });
     })();
-
 })();
 
 // V-LINE CLAMP UTILITIES
@@ -3039,6 +3319,11 @@ if (document.readyState === 'loading') {
         });
 
         function addBadgeForActivePath() {
+            const sidebar = document.getElementById('sidebar');
+
+            if (sidebar && sidebar.classList.contains('search-mode')) {
+                return;
+            }
             const savedPath = localStorage.getItem('tm:active:slash');
             const savedPathKey = localStorage.getItem('tm:active:path');
 
@@ -3059,11 +3344,6 @@ if (document.readyState === 'loading') {
                 return;
             }
 
-            // NON aggiungere badge se la fase è già aperta
-            if (navItem.classList.contains('open')) {
-                return;
-            }
-
             const btn = navItem.querySelector('.btn');
             if (!btn) {
                 return;
@@ -3072,7 +3352,7 @@ if (document.readyState === 'loading') {
             // Rimuovi badge esistente se presente
             const existingBadge = btn.querySelector('.phase-badge');
             if (existingBadge) {
-                existingBadge.remove();
+                return;
             }
 
             // Risolvi i tool IDs

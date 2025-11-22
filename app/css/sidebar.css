@@ -74,11 +74,133 @@
     overflow: hidden;
 }
 
-/* SEARCH BOX */
+/* =================
+    SEARCH BOX
+   ================= */
+
 .search-box {
     position: relative;
     margin-bottom: 14px;
     transition: all .3s cubic-bezier(.4, 0, .2, 1);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Mode Toggle Button */
+.search-mode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, .05);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .2s ease;
+    flex-shrink: 0;
+}
+
+.search-mode-toggle:hover {
+    background: rgba(255, 255, 255, .08);
+    border-color: var(--accent-2);
+    color: var(--accent-2);
+}
+
+.search-mode-toggle svg {
+    width: 16px;
+    height: 16px;
+    transition: transform .2s ease;
+}
+
+/* Show only active mode icon */
+.search-mode-toggle .mode-fuzzy,
+.search-mode-toggle .mode-api {
+    display: none;
+}
+
+.search-mode-toggle.mode-fuzzy .mode-fuzzy {
+    display: block;
+}
+
+.search-mode-toggle.mode-api .mode-api {
+    display: block;
+}
+
+/* Rotate icon on hover */
+.search-mode-toggle:hover svg {
+    transform: rotate(180deg);
+}
+
+/* Send Button (API mode only) */
+.search-send-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--accent-2);
+    background: rgba(96, 165, 250, .1);
+    color: var(--accent-2);
+    cursor: pointer;
+    transition: all .2s ease;
+    flex-shrink: 0;
+}
+
+.search-send-btn:hover {
+    background: rgba(96, 165, 250, .2);
+    border-color: var(--accent-2);
+    transform: translateX(2px);
+}
+
+.search-send-btn:active {
+    transform: translateX(4px);
+}
+
+.search-send-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.search-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Animation for mode switch */
+@keyframes modeSwitch {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) rotate(-90deg);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+    }
+}
+
+.search-mode-toggle svg {
+    animation: modeSwitch 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Visual feedback when in API mode */
+.search-box:has(.search-mode-toggle.mode-api) .search-input {
+    border-color: rgba(96, 165, 250, .3);
+}
+
+.search-box:has(.search-mode-toggle.mode-api) .search-input:focus {
+    border-color: var(--accent-2);
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, .15);
+}
+
+.search-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .sidebar.collapsed .search-box {
