@@ -163,54 +163,75 @@
 }
 
 .modal-message-btn-cancel {
-    background: var(--bg) !important;
-    color: var(--text) !important;
-    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: var(--muted) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 .modal-message-btn-cancel:hover:not(:disabled) {
-    background: var(--panel) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
     color: var(--text) !important;
-    border-color: var(--accent);
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-1px) !important;
 }
 
-/* Varianti Bottone Conferma */
+/* Danger - Rosso */
 .modal-message-btn-confirm.btn-danger {
-    background: #ef4444 !important;
-    color: white !important;
+    background: hsla(4, 85%, 62%, 0.15) !important;
+    border: 1px solid hsla(4, 85%, 62%, 0.3) !important;
+    color: var(--color-exploit) !important;
 }
 
 .modal-message-btn-confirm.btn-danger:hover:not(:disabled) {
-    background: #dc2626 !important;
+    background: hsla(4, 85%, 62%, 0.25) !important;
+    border-color: var(--color-exploit) !important;
+    box-shadow: 0 4px 12px hsla(4, 85%, 62%, 0.2) !important;
+    transform: translateY(-1px) !important;
 }
 
+/* Warning - Arancione */
 .modal-message-btn-confirm.btn-warning {
-    background: #f59e0b !important;
-    color: white !important;
+    background: hsla(32, 98%, 55%, 0.15) !important;
+    border: 1px solid hsla(32, 98%, 55%, 0.3) !important;
+    color: var(--color-post) !important;
 }
 
 .modal-message-btn-confirm.btn-warning:hover:not(:disabled) {
-    background: #d97706 !important;
+    background: hsla(32, 98%, 55%, 0.25) !important;
+    border-color: var(--color-post) !important;
+    box-shadow: 0 4px 12px hsla(32, 98%, 55%, 0.2) !important;
+    transform: translateY(-1px) !important;
 }
 
+/* Success - Verde */
 .modal-message-btn-confirm.btn-success {
-    background: #10b981 !important;
-    color: white !important;
+    background: hsla(158, 64%, 52%, 0.15) !important;
+    border: 1px solid hsla(158, 64%, 52%, 0.3) !important;
+    color: var(--color-misc) !important;
 }
 
 .modal-message-btn-confirm.btn-success:hover:not(:disabled) {
-    background: #059669 !important;
+    background: hsla(158, 64%, 52%, 0.25) !important;
+    border-color: var(--color-misc) !important;
+    box-shadow: 0 4px 12px hsla(158, 64%, 52%, 0.2) !important;
+    transform: translateY(-1px) !important;
 }
 
+/* Info/Primary - Blu */
 .modal-message-btn-confirm.btn-info,
 .modal-message-btn-confirm.btn-primary {
-    background: #3b82f6 !important;
-    color: white !important;
+    background: hsla(210, 100%, 62%, 0.15) !important;
+    border: 1px solid hsla(210, 100%, 62%, 0.3) !important;
+    color: var(--accent-2) !important;
 }
 
 .modal-message-btn-confirm.btn-info:hover:not(:disabled),
 .modal-message-btn-confirm.btn-primary:hover:not(:disabled) {
-    background: #2563eb !important;
+    background: hsla(210, 100%, 62%, 0.25) !important;
+    border-color: var(--accent-2) !important;
+    box-shadow: 0 4px 12px hsla(210, 100%, 62%, 0.2) !important;
+    transform: translateY(-1px) !important;
 }
 
 /* Animazioni */

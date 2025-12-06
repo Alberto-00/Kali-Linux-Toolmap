@@ -36,14 +36,109 @@
     // DOM ELEMENTS
     // ========================================================================
 
-    let searchInput, searchModeToggle, searchSendBtn;
+    let searchInput, searchModeToggle, searchSendBtn, loadingOverlay;
+
+    // ========================================================================
+    // LOADING OVERLAY
+    // ========================================================================
+
+    /**
+     * Create loading overlay element
+     */
+    function createLoadingOverlay() {
+        const overlay = document.createElement('div');
+        overlay.className = 'ai-loading-overlay';
+        overlay.innerHTML = `
+            <div class="ai-loading-spinner">
+                <div class="spinner"></div>
+                <p class="loading-text">AI is searching...</p>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+
+    /**
+     * Show loading overlay
+     */
+    function showLoading() {
+        if (!loadingOverlay) {
+            loadingOverlay = createLoadingOverlay();
+        }
+        // Force reflow to trigger animation
+        loadingOverlay.offsetHeight;
+        loadingOverlay.classList.add('visible');
+    }
+
+    /**
+     * Hide loading overlay
+     */
+    function hideLoading() {
+        if (loadingOverlay) {
+            loadingOverlay.classList.remove('visible');
+        }
+    }
 
     // ========================================================================
     // SEARCH IMPLEMENTATIONS
     // ========================================================================
 
     /**
-     * Ricerca fuzzy su nome tool
+     * Build search context from tool IDs
+     * Constructs phaseHits, pathHits, countsByPhase for sidebar rendering
+     */
+    function buildSearchContext(toolIds, query) {
+        const tm = window.Toolmap || {};
+        const toolsById = tm.toolsById || {};
+
+        const phaseHits = new Map();
+        const pathHits = new Map();
+        const countsByPhase = {};
+
+        toolIds.forEach(toolId => {
+            const tool = toolsById[toolId];
+            if (!tool) return;
+
+            const categoryPath = tool.category_path || [];
+            if (categoryPath.length > 0) {
+                const phase = categoryPath[0];
+                const pathSlash = categoryPath.join('/');
+
+                if (!phaseHits.has(phase)) {
+                    phaseHits.set(phase, new Set());
+                }
+                phaseHits.get(phase).add(pathSlash);
+
+                if (!pathHits.has(pathSlash)) {
+                    pathHits.set(pathSlash, []);
+                }
+                pathHits.get(pathSlash).push(toolId);
+
+                countsByPhase[phase] = (countsByPhase[phase] || 0) + 1;
+            }
+        });
+
+        const phaseKeys = Array.from(phaseHits.keys());
+        const paths = [];
+
+        phaseHits.forEach((pathSet) => {
+            pathSet.forEach(pathSlash => {
+                paths.push(pathSlash.split('/'));
+            });
+        });
+
+        return {
+            hasQuery: true,
+            phaseKeys,
+            paths,
+            countsByPhase,
+            searchedQuery: query,
+            foundToolIds: toolIds
+        };
+    }
+
+    /**
+     * Ricerca FUZZY su nome tool
      * Case-insensitive, cerca tutti i termini nel nome
      */
     function performFuzzySearch(query) {
@@ -65,72 +160,32 @@
 
         // Cerca tool che matchano
         const results = [];
-        const phaseHits = new Map();
-        const pathHits = new Map();
-        const countsByPhase = {};
 
         for (const [toolId, tool] of Object.entries(toolsById)) {
-            const toolName = (tool.name || tool.id || '').toLowerCase();
-
             // Verifica se TUTTI i termini sono presenti nel nome
-            const nameMatch = searchTerms.every(term => toolName.includes(term));
+            const nameMatch = searchTerms.every(term => toolId.includes(term));
 
             // Calcola score (priorità match all'inizio del nome)
             let score = 0;
             if (nameMatch) {
                 score = 10;
-                if (toolName.startsWith(searchTerms[0])) {
+                if (toolId.startsWith(searchTerms[0])) {
                     score += 5;
                 }
             }
 
             if (score > 0) {
                 results.push({tool, score});
-
-                const categoryPath = tool.category_path || [];
-                if (categoryPath.length > 0) {
-                    const phase = categoryPath[0];
-                    const pathSlash = categoryPath.join('/');
-
-                    if (!phaseHits.has(phase)) {
-                        phaseHits.set(phase, new Set());
-                    }
-                    phaseHits.get(phase).add(pathSlash);
-
-                    if (!pathHits.has(pathSlash)) {
-                        pathHits.set(pathSlash, []);
-                    }
-                    pathHits.get(pathSlash).push(toolId);
-
-                    countsByPhase[phase] = (countsByPhase[phase] || 0) + 1;
-                }
             }
         }
 
         // Ordina risultati per score
         results.sort((a, b) => b.score - a.score);
 
-        // Prepara dati per sidebar
-        const phaseKeys = Array.from(phaseHits.keys());
-        const paths = [];
-
-        phaseHits.forEach((pathSet) => {
-            pathSet.forEach(pathSlash => {
-                paths.push(pathSlash.split('/'));
-            });
-        });
-
         const foundToolIds = results.map(r => r.tool.id);
 
-        // Notifica sidebar e aggiorna scope
-        const searchContext = {
-            hasQuery: true,
-            phaseKeys,
-            paths,
-            countsByPhase,
-            searchedQuery: query,
-            foundToolIds
-        };
+        // Build search context using helper
+        const searchContext = buildSearchContext(foundToolIds, query);
 
         window.dispatchEvent(new CustomEvent('tm:search:context', {
             detail: searchContext
@@ -153,9 +208,15 @@
 
         // Check if AI search is available
         if (!window.AISearch || !window.AISearch.isAvailable()) {
-            showError('AI search not configured. Please set OPENAI_API_KEY in .env file');
+            MessageModal.warning(
+                'AI Search Not Available',
+                'AI search is not configured. Please set your OPENAI_API_KEY in the secret.env file to enable AI search.'
+            );
             return;
         }
+
+        // Show a full-page loading overlay
+        showLoading();
 
         // Notifica stato (per UI feedback)
         window.dispatchEvent(new CustomEvent('tm:search:set', {
@@ -170,125 +231,49 @@
             }
         }));
 
-        try {
-            // Call AI search service
-            const toolIds = await window.AISearch.search(query);
+        // Call AI search service (errors handled internally with MessageModal)
+        const toolIds = await window.AISearch.search(query);
 
-            if (!toolIds || toolIds.length === 0) {
-                window.dispatchEvent(new CustomEvent('tm:search:api', {
-                    detail: {
-                        query,
-                        status: 'no-results'
-                    }
-                }));
+        // Hide loading overlay
+        hideLoading();
 
-                // Show empty results
-                window.dispatchEvent(new CustomEvent('tm:scope:set', {
-                    detail: {
-                        ids: [],
-                        source: 'search-ai'
-                    }
-                }));
-                return;
-            }
-
-            // Process results similar to fuzzy search
-            const tm = window.Toolmap || {};
-            const toolsById = tm.toolsById || {};
-
-            const phaseHits = new Map();
-            const pathHits = new Map();
-            const countsByPhase = {};
-
-            // Build context from AI results
-            toolIds.forEach(toolId => {
-                const tool = toolsById[toolId];
-                if (!tool) return;
-
-                const categoryPath = tool.category_path || [];
-                if (categoryPath.length > 0) {
-                    const phase = categoryPath[0];
-                    const pathSlash = categoryPath.join('/');
-
-                    if (!phaseHits.has(phase)) {
-                        phaseHits.set(phase, new Set());
-                    }
-                    phaseHits.get(phase).add(pathSlash);
-
-                    if (!pathHits.has(pathSlash)) {
-                        pathHits.set(pathSlash, []);
-                    }
-                    pathHits.get(pathSlash).push(toolId);
-
-                    countsByPhase[phase] = (countsByPhase[phase] || 0) + 1;
+        if (!toolIds || toolIds.length === 0) {
+            window.dispatchEvent(new CustomEvent('tm:search:api', {
+                detail: {
+                    query,
+                    status: 'no-results'
                 }
-            });
-
-            // Prepare data for sidebar
-            const phaseKeys = Array.from(phaseHits.keys());
-            const paths = [];
-
-            phaseHits.forEach((pathSet) => {
-                pathSet.forEach(pathSlash => {
-                    paths.push(pathSlash.split('/'));
-                });
-            });
-
-            // Notify sidebar and update scope
-            const searchContext = {
-                hasQuery: true,
-                phaseKeys,
-                paths,
-                countsByPhase,
-                searchedQuery: query,
-                foundToolIds: toolIds
-            };
-
-            window.dispatchEvent(new CustomEvent('tm:search:context', {
-                detail: searchContext
             }));
 
+            // Show empty results
             window.dispatchEvent(new CustomEvent('tm:scope:set', {
                 detail: {
-                    ids: toolIds,
+                    ids: [],
                     source: 'search-ai'
                 }
             }));
-
-            window.dispatchEvent(new CustomEvent('tm:search:api', {
-                detail: {
-                    query,
-                    status: 'success',
-                    count: toolIds.length
-                }
-            }));
-
-        } catch (error) {
-            console.error('[search] AI search error:', error);
-
-            window.dispatchEvent(new CustomEvent('tm:search:api', {
-                detail: {
-                    query,
-                    status: 'error',
-                    error: error.message
-                }
-            }));
-
-            showError(`AI search failed: ${error.message}`);
+            return;
         }
-    }
 
-    /**
-     * Show error notification to user
-     */
-    function showError(message) {
-        console.error('[search]', message);
+        // Build search context using helper
+        const searchContext = buildSearchContext(toolIds, query);
 
-        // Dispatch event for UI to show error
-        window.dispatchEvent(new CustomEvent('tm:notification', {
+        window.dispatchEvent(new CustomEvent('tm:search:context', {
+            detail: searchContext
+        }));
+
+        window.dispatchEvent(new CustomEvent('tm:scope:set', {
             detail: {
-                type: 'error',
-                message: message
+                ids: toolIds,
+                source: 'search-ai'
+            }
+        }));
+
+        window.dispatchEvent(new CustomEvent('tm:search:api', {
+            detail: {
+                query,
+                status: 'success',
+                count: toolIds.length
             }
         }));
     }
@@ -534,7 +519,6 @@
         searchSendBtn = document.querySelector('.search-send-btn');
 
         if (!searchInput) {
-            console.warn('[search] Input non trovato');
             return;
         }
 

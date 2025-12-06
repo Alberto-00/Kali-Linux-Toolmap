@@ -143,7 +143,8 @@ body:has(.breadcrumb-item.search-breadcrumb) .copy-path-btn:hover {
 .show-all-btn,
 .copy-path-btn,
 .download-registry-btn,
-.reset-btn {
+.reset-btn,
+.ai-manager-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -160,14 +161,16 @@ body:has(.breadcrumb-item.search-breadcrumb) .copy-path-btn:hover {
 }
 
 .copy-path-btn,
-.download-registry-btn {
+.download-registry-btn,
+.ai-manager-btn {
     padding: 10px;
 }
 
 .show-all-btn svg,
 .copy-path-btn svg,
 .download-registry-btn svg,
-.reset-btn svg {
+.reset-btn svg,
+.ai-manager-btn svg {
     width: 16px;
     height: 16px;
 }
@@ -178,7 +181,13 @@ body:has(.breadcrumb-item.search-breadcrumb) .copy-path-btn:hover {
     border-color: var(--accent-2);
     color: var(--accent-2);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(96, 165, 250, .2);
+}
+
+.ai-manager-btn:hover {
+    background: rgba(166, 85, 247, .15);
+    border-color: var(--color-common);
+    color: var(--color-common);
+    transform: translateY(-1px);
 }
 
 .show-all-btn:hover,

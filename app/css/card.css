@@ -221,12 +221,16 @@
 
 .card .card-footer .icon-btn[data-role="repo"]:where(:hover, :focus-visible) {
     color: hsl(var(--primary));
-    background-color: hsl(var(--primary) / .2);
+    background-color: hsl(var(--primary) / .25);
     border-color: hsl(var(--primary));
+    box-shadow: 0 4px 12px hsl(var(--primary) / .2);
+    transform: translateY(-1px);
 }
 
 .card .card-footer .icon-btn[data-role="notes"]:where(:hover, :focus-visible) {
     color: hsl(var(--secondary));
-    background-color: hsl(var(--secondary) / .2);
+    background-color: hsl(var(--secondary) / .25);
     border-color: hsl(var(--secondary));
+    box-shadow: 0 4px 12px hsl(var(--secondary) / .2);
+    transform: translateY(-1px);
 }

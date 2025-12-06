@@ -1,488 +1,334 @@
 /**
- * AI-powered search service using OpenAI Assistants API
- * Uses vector store for efficient RAG-based tool discovery
- *
- * IMPORTANT: Requires Assistant ID from OpenAI Platform
- * Create at: https://platform.openai.com/assistants
+ * AI Search con Chat Completions API + Prompt Caching
+ * Ottimizzato per ricerca locale nel registry (NO web search)
+ * Utilizza gpt-4.1-mini-2025-04-14 con caching automatico
  */
 
 (function () {
     'use strict';
 
-    // ========================================================================
-    // STATE
-    // ========================================================================
+    const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
-    let toolsRegistry = null;
+    let apiKey = null;
+    let systemPrompt = null;
     let isLoading = false;
-    let vectorStoreId = null;
-    let isVectorStoreReady = false;
+    let configReady = false;
+
+    // Settings (loaded from Config - fallback values)
+    let settings = {
+        model: 'gpt-4.1-mini-2025-04-14',
+        temperature: 0,
+        maxResults: 20,
+        maxTokens: 1000
+    };
 
     // ========================================================================
-    // REGISTRY LOADING & FILTERING
+    // INIT
     // ========================================================================
 
     /**
-     * Load and filter tools registry
-     * Only includes fields: name, id, repo, desc, best_in, category_path, notes
+     * Inizializza modulo - ATTENDE il caricamento della config
      */
-    async function loadAndFilterRegistry() {
-        if (toolsRegistry) {
-            return toolsRegistry;
-        }
-
+    async function initialize() {
         try {
-            const response = await fetch('../../app/data/registry.json');
-            if (!response.ok) {
-                throw new Error('Failed to load registry.json');
-            }
+            const config = await window.Config.waitForConfig();
 
-            const fullRegistry = await response.json();
+            apiKey = config.OPENAI_API_KEY;
+            settings = {
+                model: config.OPENAI_MODEL,
+                temperature: config.OPENAI_TEMPERATURE,
+                maxResults: config.OPENAI_MAX_RESULTS,
+                maxTokens: config.OPENAI_MAX_TOKENS
+            };
 
-            // Filter to only required fields
-            toolsRegistry = fullRegistry.map(tool => ({
-                id: tool.id || '',
-                name: tool.name || '',
-                repo: tool.repo || '',
-                desc: tool.desc || '',
-                best_in: tool.best_in || false,
-                category_path: tool.category_path || [],
-                notes: tool.notes || ''
+            configReady = true;
+
+            window.dispatchEvent(new CustomEvent('tm:ai:search:ready', {
+                detail: {apiKey: apiKey ? '***' : null}
             }));
-
-            console.log(`[ai-search] Loaded ${toolsRegistry.length} tools from registry`);
-            return toolsRegistry;
-
         } catch (error) {
-            console.error('[ai-search] Error loading registry:', error);
-            throw error;
+            if (window.MessageModal) {
+                MessageModal.warning(
+                    'AI Not Ready',
+                    'Failed to initialize AI Search.'
+                );
+            }
         }
+
+        // Listen for config updates
+        window.addEventListener('tm:ai:config:updated', (e) => {
+            if (e.detail) {
+                apiKey = e.detail.OPENAI_API_KEY;
+                settings = {
+                    model: e.detail.OPENAI_MODEL,
+                    temperature: e.detail.OPENAI_TEMPERATURE,
+                    maxResults: e.detail.OPENAI_MAX_RESULTS,
+                    maxTokens: e.detail.OPENAI_MAX_TOKENS
+                };
+                configReady = true;
+            }
+        });
     }
 
     // ========================================================================
-    // VECTOR STORE MANAGEMENT
+    // SYSTEM PROMPT LOADING
     // ========================================================================
 
     /**
-     * Create or retrieve vector store (manual mode - no auto-upload)
+     * Carica system prompt da file data/system-prompt.txt
      */
-    async function ensureVectorStore(autoUpload = false) {
-        const apiKey = window.Config.get('OPENAI_API_KEY');
-        const assistantId = window.Config.get('OPENAI_ASSISTANT_ID');
-        let storedVectorStoreId = window.Config.get('OPENAI_VECTOR_STORE_ID');
-
-        if (!apiKey || !assistantId) {
-            throw new Error('OpenAI API key or Assistant ID not configured');
+    async function loadSystemPrompt() {
+        if (systemPrompt) {
+            return systemPrompt;
         }
-
-        // Check if we already have a vector store
-        if (storedVectorStoreId && storedVectorStoreId.length > 0) {
-            vectorStoreId = storedVectorStoreId;
-            isVectorStoreReady = true;
-            console.log('[ai-search] Using existing vector store:', vectorStoreId);
-            return vectorStoreId;
-        }
-
-        // Only create if auto-upload is enabled
-        if (!autoUpload) {
-            throw new Error('Vector store not configured. Please upload the registry first.');
-        }
-
-        // Create new vector store
-        console.log('[ai-search] Creating new vector store...');
 
         try {
-            const response = await fetch('https://api.openai.com/v1/vector_stores', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`,
-                    'OpenAI-Beta': 'assistants=v2'
-                },
-                body: JSON.stringify({
-                    name: 'Kali Toolmap Registry'
-                    // No expires_after - vector store persists indefinitely
-                })
-            });
+            const response = await fetch('data/system-prompt.txt');
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`Vector store creation failed: ${errorData.error?.message || response.statusText}`);
+                throw new Error(`Failed to load system prompt: ${response.status}`);
             }
 
-            const vectorStore = await response.json();
-            vectorStoreId = vectorStore.id;
-
-            // Save to config (runtime only)
-            window.Config.set('OPENAI_VECTOR_STORE_ID', vectorStoreId);
-
-            console.log('[ai-search] Vector store created:', vectorStoreId);
-            console.log('[ai-search] ⚠️  Add this to secret.env: OPENAI_VECTOR_STORE_ID=' + vectorStoreId);
-
-            // Upload registry to vector store
-            await uploadRegistryToVectorStore();
-
-            // Dispatch event for UI update
-            window.dispatchEvent(new CustomEvent('tm:ai:vector-store-created', {
-                detail: { vectorStoreId }
-            }));
-
-            return vectorStoreId;
+            systemPrompt = await response.text();
+            return systemPrompt;
 
         } catch (error) {
-            console.error('[ai-search] Vector store creation failed:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Upload filtered registry to vector store
-     */
-    async function uploadRegistryToVectorStore() {
-        const apiKey = window.Config.get('OPENAI_API_KEY');
-        const tools = await loadAndFilterRegistry();
-
-        console.log('[ai-search] Uploading registry to vector store...');
-
-        // Create JSON file blob
-        const jsonBlob = new Blob([JSON.stringify(tools, null, 2)], { type: 'application/json' });
-        const formData = new FormData();
-        formData.append('file', jsonBlob, 'kali-tools-registry.json');
-        formData.append('purpose', 'assistants');
-
-        try {
-            // Step 1: Upload file
-            const uploadResponse = await fetch('https://api.openai.com/v1/files', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: formData
-            });
-
-            if (!uploadResponse.ok) {
-                const errorData = await uploadResponse.json();
-                throw new Error(`File upload failed: ${errorData.error?.message || uploadResponse.statusText}`);
-            }
-
-            const uploadedFile = await uploadResponse.json();
-            console.log('[ai-search] File uploaded:', uploadedFile.id);
-
-            // Step 2: Add file to vector store
-            const addFileResponse = await fetch(`https://api.openai.com/v1/vector_stores/${vectorStoreId}/files`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`,
-                    'OpenAI-Beta': 'assistants=v2'
-                },
-                body: JSON.stringify({
-                    file_id: uploadedFile.id
-                })
-            });
-
-            if (!addFileResponse.ok) {
-                const errorData = await addFileResponse.json();
-                throw new Error(`Adding file to vector store failed: ${errorData.error?.message || addFileResponse.statusText}`);
-            }
-
-            console.log('[ai-search] Registry uploaded successfully to vector store');
-            isVectorStoreReady = true;
-
-        } catch (error) {
-            console.error('[ai-search] Registry upload failed:', error);
-            throw error;
+            throw new Error('Failed to load system prompt');
         }
     }
 
     // ========================================================================
-    // ASSISTANTS API - SEARCH
+    // REGISTRY FILTERING
     // ========================================================================
 
     /**
-     * Perform search using Assistants API
+     * Carica registry e filtra solo campi necessari per AI
      */
-    async function performAssistantSearch(query) {
-        const apiKey = window.Config.get('OPENAI_API_KEY');
-        const assistantId = window.Config.get('OPENAI_ASSISTANT_ID');
+    async function loadMinimalRegistry() {
+        const tm = window.Toolmap || {};
+        const registry = tm.registry;
 
-        try {
-            // Step 1: Create a thread
-            const threadResponse = await fetch('https://api.openai.com/v1/threads', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`,
-                    'OpenAI-Beta': 'assistants=v2'
-                },
-                body: JSON.stringify({
-                    tool_resources: {
-                        file_search: {
-                            vector_store_ids: [vectorStoreId]
-                        }
-                    }
-                })
-            });
-
-            if (!threadResponse.ok) {
-                const errorData = await threadResponse.json();
-                throw new Error(`Thread creation failed: ${errorData.error?.message || threadResponse.statusText}`);
-            }
-
-            const thread = await threadResponse.json();
-            const threadId = thread.id;
-
-            // Step 2: Add message to thread
-            const messageResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`,
-                    'OpenAI-Beta': 'assistants=v2'
-                },
-                body: JSON.stringify({
-                    role: 'user',
-                    content: query
-                })
-            });
-
-            if (!messageResponse.ok) {
-                const errorData = await messageResponse.json();
-                throw new Error(`Message creation failed: ${errorData.error?.message || messageResponse.statusText}`);
-            }
-
-            // Step 3: Run the assistant
-            const runResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`,
-                    'OpenAI-Beta': 'assistants=v2'
-                },
-                body: JSON.stringify({
-                    assistant_id: assistantId
-                })
-            });
-
-            if (!runResponse.ok) {
-                const errorData = await runResponse.json();
-                throw new Error(`Run creation failed: ${errorData.error?.message || runResponse.statusText}`);
-            }
-
-            const run = await runResponse.json();
-            const runId = run.id;
-
-            // Step 4: Poll for completion
-            const result = await pollRunCompletion(threadId, runId, apiKey);
-
-            // Step 5: Get messages
-            const messagesResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'OpenAI-Beta': 'assistants=v2'
-                }
-            });
-
-            if (!messagesResponse.ok) {
-                throw new Error('Failed to retrieve messages');
-            }
-
-            const messages = await messagesResponse.json();
-            const assistantMessage = messages.data.find(msg => msg.role === 'assistant');
-
-            if (!assistantMessage || !assistantMessage.content || assistantMessage.content.length === 0) {
-                throw new Error('No response from assistant');
-            }
-
-            const content = assistantMessage.content[0].text.value;
-
-            // Parse JSON response
-            return parseAssistantResponse(content);
-
-        } catch (error) {
-            console.error('[ai-search] Assistant search failed:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Poll run until completion
-     */
-    async function pollRunCompletion(threadId, runId, apiKey, maxAttempts = 30) {
-        for (let i = 0; i < maxAttempts; i++) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'OpenAI-Beta': 'assistants=v2'
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to poll run status');
-            }
-
-            const run = await response.json();
-
-            if (run.status === 'completed') {
-                return run;
-            }
-
-            if (run.status === 'failed' || run.status === 'cancelled' || run.status === 'expired') {
-                throw new Error(`Run ${run.status}: ${run.last_error?.message || 'Unknown error'}`);
-            }
+        if (!registry || !Array.isArray(registry)) {
+            throw new Error('Registry not available');
         }
 
-        throw new Error('Run timeout - exceeded maximum polling attempts');
-    }
-
-    /**
-     * Parse assistant response
-     * With structured output (strict: true), the response is guaranteed to be valid
-     */
-    function parseAssistantResponse(content) {
-        try {
-            // With structured output, content should already be valid JSON
-            // But we still handle potential edge cases
-            let jsonStr = content.trim();
-
-            // Remove markdown code blocks if present (shouldn't happen with structured output)
-            if (jsonStr.startsWith('```json')) {
-                jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-            } else if (jsonStr.startsWith('```')) {
-                jsonStr = jsonStr.replace(/```\n?/g, '');
-            }
-
-            const parsed = JSON.parse(jsonStr);
-            const toolIds = parsed.tool_ids || [];
-
-            console.log('[ai-search] Found', toolIds.length, 'tools:', toolIds);
-            return toolIds;
-
-        } catch (error) {
-            console.error('[ai-search] Failed to parse response:', content);
-            console.error('[ai-search] Parse error:', error);
-            throw new Error('Failed to parse AI response');
-        }
+        return registry.map(tool => ({
+            id: tool.id,
+            name: tool.name || '',
+            desc: tool.desc || '',
+            category_path: tool.category_path || [],
+            best_in: !!tool.best_in,
+            notes: tool.notes || null
+        }));
     }
 
     // ========================================================================
-    // PUBLIC API
+    // SEARCH
     // ========================================================================
 
     /**
-     * Perform AI-powered search
+     * Esegue ricerca AI con prompt caching automatico
+     * Ottimizzato per Chat Completions API
      */
     async function search(query) {
-        if (isLoading) {
-            throw new Error('Search already in progress');
+        // Verifica che config sia pronta
+        if (!configReady) {
+            if (window.MessageModal) {
+                MessageModal.warning(
+                    'AI Not Ready',
+                    'AI Search is still initializing. Please wait a moment and try again.'
+                );
+            }
+            return [];
         }
 
-        if (!query || !query.trim()) {
+        // Validazione API Key
+        if (!apiKey || apiKey === 'your_api_key_here') {
+            if (window.MessageModal) {
+                MessageModal.danger(
+                    'API Key Missing',
+                    `<div style="text-align: left; line-height: 1.6;">
+                        <p style="margin-bottom: 12px;"><strong>OpenAI API key is not configured.</strong></p>
+                        <p style="margin-bottom: 12px;">To enable AI Search, you need to:</p>
+                        <ol style="margin-left: 20px; margin-bottom: 12px;">
+                            <li>Get an API key from <a href="https://platform.openai.com/api-keys" target="_blank" style="color: var(--accent);">OpenAI Platform</a></li>
+                            <li>Open the AI Manager (⚙️ button in breadcrumb)</li>
+                            <li>Enter your API key in the configuration</li>
+                            <li>Save and download the <code>secret.env</code> file</li>
+                            <li>Replace the file in <code>app/data/</code> folder</li>
+                            <li>Reload the page (F5)</li>
+                        </ol>
+                        <p style="font-size: 0.9em; color: var(--muted); margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
+                            💡 <strong>Tip:</strong> You can still use fuzzy search by clicking the search mode toggle button.
+                        </p>
+                    </div>`
+                );
+            }
+            return [];
+        }
+
+        const words = query.trim().split(/\s+/).filter(w => w.length > 0);
+        if (!query || words.length < 3) {
+            if (window.MessageModal) {
+                MessageModal.warning(
+                    'Query Too Short',
+                    'Please enter at least 3 words for the search query.'
+                );
+            }
+            return [];
+        }
+
+        if (isLoading) {
+            if (window.MessageModal) {
+                MessageModal.warning(
+                    'Search In Progress',
+                    'A search is already in progress. Please wait for it to complete.'
+                );
+            }
             return [];
         }
 
         isLoading = true;
 
         try {
-            // Check if vector store exists (no auto-creation)
-            if (!isVectorStoreReady) {
-                await ensureVectorStore(false); // Will throw if not configured
-            }
+            const prompt = await loadSystemPrompt();
+            const registry = await loadMinimalRegistry();
 
-            // Perform search
-            const toolIds = await performAssistantSearch(query);
+            // Costruisci system prompt con registry embeddata
+            const fullSystemPrompt = `${prompt}
 
-            return toolIds;
+            ## CRITICAL INSTRUCTIONS
+            - You MUST ONLY search in the provided REGISTRY DATABASE below
+            - NEVER suggest or invent tools not present in the registry
+            - If no relevant tools are found, return an empty array: {"tool_ids": []}
+            - Focus on semantic matching between user query and tool descriptions
+            - Prioritize tools marked as "best_in" when applicable
+            - Return results sorted by relevance (most relevant first)
+            
+            ## REGISTRY DATABASE
+            ${JSON.stringify(registry, null, 2)}
+            
+            ## OUTPUT FORMAT
+            You MUST respond ONLY with valid JSON in this exact format:
+            {
+              "tool_ids": ["id1", "id2", "id3"],
+              "reasoning": "Brief explanation of why these tools match the query"
+            }`;
 
-        } catch (error) {
-            console.error('[ai-search] Search failed:', error);
-            throw error;
-
-        } finally {
-            isLoading = false;
-        }
-    }
-
-    /**
-     * Check if AI search is available
-     */
-    function isAvailable() {
-        return window.Config && window.Config.isConfigured();
-    }
-
-    /**
-     * Check if vector store is ready
-     */
-    function isReady() {
-        const storedVectorStoreId = window.Config.get('OPENAI_VECTOR_STORE_ID');
-        return storedVectorStoreId && storedVectorStoreId.length > 0;
-    }
-
-    /**
-     * Get current vector store ID
-     */
-    function getVectorStoreId() {
-        return window.Config.get('OPENAI_VECTOR_STORE_ID') || null;
-    }
-
-    /**
-     * Manual registry upload/update
-     * Call this when you want to update the vector store with new registry data
-     */
-    async function uploadRegistry() {
-        if (isLoading) {
-            throw new Error('Operation already in progress');
-        }
-
-        isLoading = true;
-
-        try {
-            // Create vector store and upload registry
-            const vsId = await ensureVectorStore(true);
-
-            return {
-                success: true,
-                vectorStoreId: vsId,
-                message: 'Registry uploaded successfully. Add this to secret.env: OPENAI_VECTOR_STORE_ID=' + vsId
+            const requestBody = {
+                model: settings.model,
+                messages: [
+                    {
+                        role: 'system',
+                        content: fullSystemPrompt
+                    },
+                    {
+                        role: 'user',
+                        content: query
+                    }
+                ],
+                temperature: settings.temperature,
+                max_tokens: settings.maxTokens,
+                response_format: {type: 'json_object'}
             };
 
+            const response = await fetch(OPENAI_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.error?.message || `API request failed: ${response.status}`;
+                throw new Error(errorMessage);
+            }
+
+            const data = await response.json();
+
+            // Update cache status (tracking per performance monitoring)
+            if (window.Config && window.Config.updateCacheStatus) {
+                window.Config.updateCacheStatus(query, data);
+            }
+
+            const message = data.choices[0].message;
+            const content = message.content;
+
+            if (!content) {
+                throw new Error('Empty response from API');
+            }
+
+            const result = JSON.parse(content);
+
+            if (!result.tool_ids || !Array.isArray(result.tool_ids)) {
+                throw new Error('Invalid response format: missing tool_ids array');
+            }
+
+            // Limita risultati al maxResults configurato
+            const limitedResults = result.tool_ids.slice(0, settings.maxResults);
+
+            // Feedback utente se nessun risultato
+            if (limitedResults.length === 0) {
+                if (window.MessageModal) {
+                    MessageModal.info(
+                        'No Results Found',
+                        `<div style="text-align: left; line-height: 1.6;">
+                            <p style="margin-bottom: 12px;">No tools match your search query in the local registry.</p>
+                            <p style="margin-bottom: 12px;"><strong>Suggestions:</strong></p>
+                            <ul style="margin-left: 20px; margin-bottom: 12px;">
+                                <li>Try rephrasing your search with different keywords</li>
+                                <li>Use broader terms (e.g., "analytics" instead of "predictive analytics")</li>
+                                <li>Switch to fuzzy search mode for text-based matching</li>
+                                <li>Browse categories to explore available tools</li>
+                            </ul>
+                            ${result.reasoning ? `<p style="font-size: 0.9em; color: var(--muted); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);"><strong>AI Note:</strong> ${result.reasoning}</p>` : ''}
+                        </div>`
+                    );
+                }
+            }
+
+            return limitedResults;
+
         } catch (error) {
-            console.error('[ai-search] Registry upload failed:', error);
-            throw error;
+            if (window.MessageModal) {
+                MessageModal.danger(
+                    'Search Failed',
+                    error.message || 'An error occurred during AI search. Please try again.'
+                );
+            }
+
+            return [];
 
         } finally {
             isLoading = false;
         }
     }
 
-    /**
-     * Force re-upload of registry (creates new vector store)
-     */
-    async function forceUpdateRegistry() {
-        // Clear current vector store ID to force re-creation
-        window.Config.set('OPENAI_VECTOR_STORE_ID', '');
-        vectorStoreId = null;
-        isVectorStoreReady = false;
+    // ========================================================================
+    // UTILITY FUNCTIONS
+    // ========================================================================
 
-        return await uploadRegistry();
+    function isAvailable() {
+        return configReady && !!apiKey && apiKey !== 'your_api_key_here';
+    }
+
+    function getIsLoading() {
+        return isLoading;
     }
 
     // ========================================================================
     // EXPORT
     // ========================================================================
 
+    initialize();
+
     window.AISearch = {
-        search: search,
-        isAvailable: isAvailable,
-        isReady: isReady,
-        isLoading: () => isLoading,
-        getVectorStoreId: getVectorStoreId,
-        uploadRegistry: uploadRegistry,
-        forceUpdateRegistry: forceUpdateRegistry
+        search,
+        isAvailable,
+        isLoading: getIsLoading
     };
 
 })();

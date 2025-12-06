@@ -1,5 +1,5 @@
 /* ============================================================================
-   BASE.CSS - Unified Foundation
+   BASE.CSS
    Variabili globali, reset, utilità comuni e classi condivise
    ============================================================================ */
 
@@ -392,17 +392,6 @@ nav::-webkit-scrollbar-thumb:hover,
     clip: rect(0, 0, 1px, 1px);
     white-space: nowrap;
     border: 0;
-}
-
-.highlight {
-    display: inline-block;
-    background: rgba(52, 211, 153, .1);
-    color: var(--accent);
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    margin-top: 20px;
 }
 
 /* ============================================================================

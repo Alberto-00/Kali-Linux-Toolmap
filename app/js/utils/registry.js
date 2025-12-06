@@ -14,7 +14,7 @@
 
     const CONFIG = {
         rootName: CONSTANTS.ROOT_NAME,
-        registryPath: 'data/registry.json'
+        registryPath: '../app/data/registry.json'
     };
 
     const Toolmap = window.Toolmap || {};

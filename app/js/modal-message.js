@@ -138,6 +138,7 @@ let MessageModal = {
             onConfirm: config.onConfirm || null,
             onCancel: config.onCancel || null,
             showCancel: config.showCancel !== false,
+            showConfirm: config.showConfirm !== false,
             closeOnOverlayClick: config.closeOnOverlayClick !== false
         };
 
@@ -157,6 +158,13 @@ let MessageModal = {
             this.cancelBtn.style.display = 'block';
         } else {
             this.cancelBtn.style.display = 'none';
+        }
+
+        // Mostra/nascondi bottone conferma
+        if (this.currentConfig.showConfirm) {
+            this.confirmBtn.style.display = 'block';
+        } else {
+            this.confirmBtn.style.display = 'none';
         }
 
         // Mostra modal

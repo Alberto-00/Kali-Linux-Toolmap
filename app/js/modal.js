@@ -644,7 +644,9 @@
                 navigator.clipboard.writeText(text).then(() => {
                     this._showCopySuccess(copyBtn);
                 }).catch(error => {
-                    console.error('[modal] Errore copia:', error);
+                    if (window.MessageModal) {
+                        MessageModal.danger('Errore Copia', 'Impossibile copiare il percorso negli appunti.');
+                    }
                 });
             });
         }

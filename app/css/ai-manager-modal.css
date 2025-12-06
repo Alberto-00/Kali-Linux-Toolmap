@@ -1,332 +1,944 @@
 /* ============================================================================
-   AI MANAGER MODAL
+   AI MANAGER MODAL - COLLAPSIBLE SECTIONS
+   Usa i colori e le variabili definite in base.css
+   Improved UI/UX with better spacing, typography, and visual hierarchy
    ============================================================================ */
 
-#aiManagerModal .section-title-ai {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 16px;
+#aiManagerModal .modal-content {
+    max-width: 900px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
-/* Upload Progress Indicator */
-.ai-upload-progress {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 20px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    margin-top: 24px;
-}
-
-.progress-spinner {
-    width: 24px;
-    height: 24px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.progress-text {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text);
+#aiManagerModal .modal-body {
+    padding: 1.75rem;
+    max-height: 75vh;
+    overflow-y: auto;
 }
 
 /* ============================================================================
-   STATUS SECTION
+   SECTION STYLING (Collapsible)
    ============================================================================ */
 
-.ai-status-section {
-    margin-bottom: 32px;
+.ai-modal-section {
+    margin-bottom: 1.75rem;
+    padding: 1.5rem;
+    background-color: var(--panel-2);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
 }
 
-.status-grid {
-    display: grid;
-    gap: 12px;
+.ai-modal-section:hover {
+    border-color: var(--accent-2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--accent-2);
+    transform: translateY(-2px);
 }
 
-.status-item {
+.ai-modal-section:hover::before {
+    opacity: 1;
+}
+
+.ai-modal-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Section Header with Toggle */
+.ai-section-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 16px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    cursor: pointer;
+    user-select: none;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.ai-section-header:hover .ai-section-title {
+    color: var(--color-common);
+}
+
+.ai-section-title {
+    font-size: 0.9375rem; /* 15px - increased from 14px */
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.ai-section-icon {
+    width: 22px; /* increased from 20px */
+    height: 22px;
+    color: var(--color-info);
+    flex-shrink: 0;
+}
+
+.ai-section-toggle {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    color: var(--muted);
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
 }
 
-.status-item:hover {
+.ai-section-toggle:hover {
+    background-color: var(--panel);
+    color: var(--text);
+}
+
+.ai-section-toggle svg {
+    width: 22px; /* increased from 20px */
+    height: 22px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ai-modal-section.collapsed .ai-section-toggle svg {
+    transform: rotate(-90deg);
+}
+
+.ai-section-content {
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    opacity: 1;
+}
+
+.ai-modal-section.collapsed .ai-section-content {
+    max-height: 0;
+    opacity: 0;
+}
+
+/* Override overflow for sections with hover effects to prevent clipping */
+.ai-modal-section:has(.ai-cache-grid) .ai-section-content,
+.ai-modal-section:has(#refresh-status-btn) .ai-section-content,
+.ai-modal-section:has(#fetch-models-btn) .ai-section-content,
+.ai-modal-section:has(#view-prompt-btn) .ai-section-content {
+    overflow: visible;
+}
+
+/* ============================================================================
+   STATUS GRID
+   ============================================================================ */
+
+.ai-status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem; /* increased from 0.75rem */
+}
+
+/* Centered refresh button for API Status */
+#refresh-status-btn {
+    width: 100%;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    justify-content: center;
+}
+
+.ai-status-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem; /* increased from 0.875rem */
     background: var(--panel);
-    border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
 }
 
-.status-label {
-    font-size: 14px;
+.ai-status-item::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent, rgba(96, 165, 250, 0.05));
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.ai-status-item:hover {
+    background: var(--panel-2);
+    border-color: var(--accent-2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ai-status-item:hover::after {
+    opacity: 1;
+}
+
+.ai-status-label {
+    font-size: 14px; /* increased from 13px */
     font-weight: 600;
     color: var(--text);
 }
 
-.status-value {
+.ai-status-value {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: 13px; /* increased from 12px */
     font-family: 'JetBrains Mono', Consolas, monospace;
     color: var(--muted);
 }
 
-.status-icon {
-    font-size: 16px;
-    line-height: 1;
+.ai-status-text {
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.ai-status-text.status-configured {
+    color: var(--accent);
+}
+
+.ai-status-text.status-error {
+    color: var(--color-exploit);
+}
+
+.ai-status-text.status-warning {
+    color: var(--color-post);
+}
+
+/* ============================================================================
+   SETTINGS FORM
+   ============================================================================ */
+
+.ai-setting-item {
+    margin-bottom: 1.5rem; /* increased from 1.25rem */
+}
+
+.ai-setting-item:last-child {
+    margin-bottom: 0;
+}
+
+.ai-setting-label {
+    display: block;
+    font-size: 14px; /* increased from 13px */
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.625rem; /* increased from 0.5rem */
+}
+
+.ai-setting-desc {
+    display: block;
+    font-size: 12px; /* increased from 11px */
+    font-weight: 400;
+    color: var(--muted);
+    margin-top: 0.375rem; /* increased from 0.25rem */
+    line-height: 1.5;
+}
+
+.ai-setting-select,
+.ai-setting-input {
+    width: 100%;
+    padding: 0.75rem 1rem; /* increased from 0.625rem 0.875rem */
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px; /* increased from 13px */
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    transition: all 0.2s ease;
+}
+
+.ai-setting-select:hover,
+.ai-setting-input:hover {
+    border-color: var(--accent-2);
+}
+
+.ai-setting-select:focus,
+.ai-setting-input:focus {
+    outline: none;
+    border-color: var(--accent-2);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 15%, transparent);
+}
+
+.ai-setting-slider {
+    width: 100%;
+    height: 8px; /* increased from 6px */
+    border-radius: 4px;
+    background: var(--border);
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.ai-setting-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px; /* increased from 18px */
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-2);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ai-setting-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-2) 20%, transparent);
+}
+
+.ai-setting-slider::-moz-range-thumb {
+    width: 20px; /* increased from 18px */
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-2);
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.ai-setting-slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-2) 20%, transparent);
+}
+
+.ai-setting-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem; /* increased from 0.625rem */
+    cursor: pointer;
+}
+
+.ai-setting-checkbox-label input[type="checkbox"] {
+    width: 20px; /* increased from 18px */
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--accent-2);
+}
+
+/* ============================================================================
+   MODEL ROW (Select + Button)
+   ============================================================================ */
+
+.ai-model-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: stretch;
+}
+
+.ai-model-row .ai-setting-select {
+    flex: 1;
+}
+
+.ai-model-row .ai-action-btn-small {
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-width: fit-content;
+}
+
+/* ============================================================================
+   PARAMS ROW (Max Results + Max Tokens)
+   ============================================================================ */
+
+.ai-params-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.ai-setting-item-inline {
+    display: flex;
+    flex-direction: column;
+}
+
+.ai-setting-item-inline .ai-setting-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.625rem;
+}
+
+.ai-setting-item-inline .ai-setting-desc {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--muted);
+    margin-top: 0.375rem;
+    line-height: 1.5;
+}
+
+.ai-setting-item-inline .ai-setting-input {
+    width: 100%;
 }
 
 /* ============================================================================
    ACTION BUTTONS
    ============================================================================ */
 
-.ai-actions-section {
-    margin-bottom: 32px;
-}
-
-.action-buttons {
-    display: grid;
-    gap: 12px;
-}
-
-.action-btn {
-    display: flex;
+.ai-action-btn-small {
+    display: inline-flex;
     align-items: center;
-    gap: 14px;
-    padding: 16px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    color: var(--text);
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: left;
-}
-
-.action-btn:not(:disabled):hover {
+    gap: 8px;
+    padding: 0.625rem 1rem; /* increased from 0.5rem 0.875rem */
     background: var(--panel);
-    border-color: var(--accent);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13px; /* increased from 12px */
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
 }
 
-.action-btn:disabled {
+.ai-action-btn-small::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent, rgba(96, 165, 250, 0.1));
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.ai-action-btn-small:hover:not(:disabled) {
+    background: var(--panel-2);
+    border-color: var(--accent-2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transform: scale(1.02);
+    z-index: 10;
+}
+
+.ai-action-btn-small:hover:not(:disabled)::before {
+    opacity: 1;
+}
+
+.ai-action-btn-small:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.ai-action-btn-small:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-.action-btn svg {
+.ai-action-btn-small svg {
+    color: var(--accent-2);
     flex-shrink: 0;
-    color: var(--accent);
+    width: 18px; /* increased from 16px */
+    height: 18px;
+    transition: transform 0.25s ease;
 }
 
-.btn-content {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+.ai-action-btn-small:hover:not(:disabled) svg {
+    transform: scale(1.1);
 }
 
-.btn-title {
-    font-weight: 600;
-    color: var(--text);
-    font-size: 14px;
-}
-
-.btn-desc {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.4;
-}
-
-/* ============================================================================
-   INFO SECTION
-   ============================================================================ */
-
-.ai-info-section {
-    margin-bottom: 24px;
-}
-
-.info-card {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-}
-
-.info-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-}
-
-.info-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-}
-
-.info-value {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-family: 'JetBrains Mono', Consolas, monospace;
-    font-size: 11px;
-    color: var(--accent);
-    word-break: break-all;
-}
-
-.info-notice {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    background: color-mix(in srgb, var(--accent) 8%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
-    border-radius: 8px;
-    font-size: 12px;
-    color: var(--muted);
-}
-
-.info-notice svg {
-    flex-shrink: 0;
-    color: var(--accent);
-}
-
-/* ============================================================================
-   LOG SECTION
-   ============================================================================ */
-
-.ai-log-section {
-    margin-bottom: 16px;
-}
-
-.log-output {
-    background: #0a0a0a;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px;
-    max-height: 250px;
-    overflow-y: auto;
-    font-family: 'JetBrains Mono', Consolas, monospace;
-    font-size: 12px;
-    line-height: 1.6;
-}
-
-.log-entry {
-    margin-bottom: 6px;
-    color: #a0a0a0;
-}
-
-.log-entry:last-child {
-    margin-bottom: 0;
-}
-
-.log-entry.log-info {
-    color: #a0a0a0;
-}
-
-.log-entry.log-error {
-    color: #ef4444;
-}
-
-.log-entry.log-code {
-    color: #10b981;
-    background: rgba(16, 185, 129, 0.1);
-    padding: 4px 8px;
-    border-radius: 4px;
-    display: inline-block;
-}
-
-/* Custom scrollbar for log */
-.log-output::-webkit-scrollbar {
-    width: 8px;
-}
-
-.log-output::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.log-output::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 4px;
-}
-
-.log-output::-webkit-scrollbar-thumb:hover {
-    background: var(--muted);
-}
-
-/* ============================================================================
-   AI MANAGER BUTTON (in breadcrumb)
-   ============================================================================ */
-
-.ai-manager-btn {
+.ai-action-btn-primary {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    font-size: 13px;
+    gap: 10px;
+    padding: 0.875rem 1.5rem;
+    background: hsla(210, 100%, 62%, 0.15);
+    border: 1px solid hsla(210, 100%, 62%, 0.3);
+    border-radius: 10px;
+    color: var(--accent-2);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ai-action-btn-primary:hover:not(:disabled) {
+    background: hsla(210, 100%, 62%, 0.25);
+    border-color: var(--accent-2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px hsla(210, 100%, 62%, 0.2);
+}
+
+.ai-action-btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.ai-action-btn-primary svg {
+    transition: transform 0.25s ease;
+    width: 22px;
+    height: 22px;
+}
+
+.ai-action-btn-primary:hover:not(:disabled) svg {
+    transform: scale(1.05);
+}
+
+.ai-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.875rem 1.5rem;
+    background: hsla(32, 98%, 55%, 0.15);
+    border: 1px solid hsla(32, 98%, 55%, 0.3);
+    border-radius: 10px;
+    color: var(--color-post);
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.ai-manager-btn:hover {
-     background: rgba(139, 92, 246, 0.1);
-    border: 1px solid color-mix(in srgb, #8b5cf6 30%, var(--border));
-    border-radius: 8px;
-    color: #8b5cf6;
+.ai-action-btn:hover:not(:disabled) {
+    background: hsla(32, 98%, 55%, 0.25);
+    border-color: var(--color-post);
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px hsla(32, 98%, 55%, 0.2);
 }
 
-.ai-manager-btn svg {
-    width: 16px;
-    height: 16px;
+.ai-action-btn svg {
+    flex-shrink: 0;
+    color: var(--color-post);
+    width: 22px;
+    height: 22px;
+}
+
+/* ============================================================================
+   INFO CARDS
+   ============================================================================ */
+
+.ai-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem; /* increased from 0.75rem */
+}
+
+.ai-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem; /* increased from 0.75rem */
+    margin-bottom: 1rem; /* increased from 0.75rem */
+}
+
+.ai-info-row:last-child {
+    margin-bottom: 0;
+}
+
+.ai-info-label {
+    font-size: 13px; /* increased from 12px */
+    font-weight: 600;
+    color: var(--muted);
     flex-shrink: 0;
 }
 
-.ai-manager-btn .btn-text {
-    font-size: 13px;
+.ai-info-value {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.875rem; /* increased from 0.375rem 0.75rem */
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 13px; /* increased from 12px */
+    color: var(--accent-2);
+    word-break: break-all;
+    text-align: right;
+    flex: 1;
 }
 
-/* Responsive */
+.ai-info-notice {
+    display: flex;
+    align-items: flex-start; /* changed from center for multi-line */
+    gap: 10px; /* increased from 8px */
+    padding: 1rem; /* increased from 0.75rem */
+    background: color-mix(in srgb, var(--accent-2) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-2) 20%, var(--border));
+    border-radius: 8px;
+    font-size: 13px; /* increased from 12px */
+    color: var(--muted);
+    margin-top: 1.25rem; /* increased from 1rem */
+    line-height: 1.5;
+}
+
+.ai-info-notice svg {
+    flex-shrink: 0;
+    width: 18px; /* increased from 16px */
+    height: 18px;
+    color: var(--accent-2);
+    margin-top: 2px; /* align with text */
+}
+
+/* ============================================================================
+   CACHE STATUS CARDS GRID
+   ============================================================================ */
+
+.ai-cache-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.ai-cache-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem 1rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.ai-cache-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent, rgba(96, 165, 250, 0.05));
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.ai-cache-card:hover {
+    background: var(--panel-2);
+    border-color: var(--accent-2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transform: scale(1.02);
+    z-index: 10;
+}
+
+.ai-cache-card:hover::before {
+    opacity: 1;
+}
+
+.ai-cache-icon {
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+.ai-cache-icon svg {
+    width: 32px;
+    height: 32px;
+    color: var(--accent-2);
+    stroke-width: 2;
+}
+
+.ai-cache-card:hover .ai-cache-icon {
+    transform: scale(1.15);
+}
+
+.ai-cache-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.ai-cache-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent-2);
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    text-align: center;
+}
+
+/* Responsive cache cards */
 @media (max-width: 768px) {
-    .status-grid {
-        gap: 10px;
+    .ai-cache-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+}
+
+/* ============================================================================
+   CENTERED BUTTONS (Refresh Status & System Prompt)
+   ============================================================================ */
+
+#view-prompt-btn {
+    width: 100%;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    justify-content: center;
+}
+
+/* ============================================================================
+   HOW IT WORKS SECTION
+   ============================================================================ */
+
+.ai-info-item {
+    margin-bottom: 1.25rem; /* increased from 1rem */
+}
+
+.ai-info-item:last-child {
+    margin-bottom: 0;
+}
+
+.ai-info-item strong {
+    display: block;
+    font-size: 14px; /* increased from 13px */
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.625rem; /* increased from 0.5rem */
+}
+
+.ai-info-item p {
+    font-size: 13px; /* increased from 12px */
+    color: var(--muted);
+    line-height: 1.6; /* increased from 1.5 */
+    margin: 0;
+}
+
+/* ============================================================================
+   MODAL FOOTER
+   ============================================================================ */
+
+#aiManagerModal .modal-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--panel-2);
+    border-radius: 0 0 12px 12px;
+}
+
+/* Primary action buttons (Save & Reset) */
+#aiManagerModal .modal-footer .ai-action-btn-primary,
+#aiManagerModal .modal-footer .ai-action-btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 14px;
+    min-width: 140px;
+}
+
+#aiManagerModal .modal-footer .ai-action-btn-primary svg,
+#aiManagerModal .modal-footer .ai-action-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Close button */
+#aiManagerModal .modal-footer .back-btn {
+    margin-left: auto;
+    padding: 0.75rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 100px;
+}
+
+#aiManagerModal .modal-footer .back-btn:hover {
+    background: rgba(96, 165, 250, .15);
+    border-color: var(--accent-2);
+    color: var(--accent-2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+#aiManagerModal .modal-footer .back-btn svg {
+    width: 16px;
+    height: 16px;
+    color: currentColor;
+}
+
+/* ============================================================================
+   LOADING STATES
+   ============================================================================ */
+
+.ai-status-value.loading {
+    opacity: 0.5;
+}
+
+.ai-status-value.loading::after {
+    content: '';
+    display: inline-block;
+    width: 14px; /* increased from 12px */
+    height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent-2);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-left: 8px;
+}
+
+/* Button loading states */
+.ai-action-btn-small.loading,
+.ai-action-btn-primary.loading,
+.ai-action-btn.loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.ai-action-btn-small.loading svg.spinning,
+.ai-action-btn-primary.loading svg.spinning,
+.ai-action-btn.loading svg.spinning {
+    animation: spin 0.8s linear infinite;
+}
+
+/* Spinning animation for refresh icon */
+.refresh-icon.spinning {
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    #aiManagerModal .modal-body {
+        padding: 1.25rem;
     }
 
-    .status-item {
+    .ai-modal-section {
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .ai-status-grid,
+    .ai-info-grid {
+        grid-template-columns: 1fr;
+        gap: 0.875rem;
+    }
+
+    .ai-status-item {
         flex-direction: column;
         align-items: flex-start;
-        gap: 8px;
+        gap: 0.625rem;
     }
 
-    .action-btn {
-        padding: 14px;
+    .ai-info-row {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
-    .log-output {
-        max-height: 180px;
-        font-size: 11px;
+    .ai-info-value {
+        width: 100%;
+        text-align: left;
     }
+
+    #aiManagerModal .modal-footer {
+        flex-direction: column;
+        padding: 1.25rem;
+    }
+
+    #aiManagerModal .modal-footer button {
+        width: 100%;
+    }
+
+    #aiManagerModal .back-btn {
+        margin-left: 0;
+    }
+
+    .ai-section-title {
+        font-size: 0.875rem;
+    }
+
+    .ai-action-btn-primary,
+    .ai-action-btn {
+        padding: 0.75rem 1.25rem;
+        font-size: 14px;
+    }
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ai-modal-section {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Stagger animation */
+.ai-modal-section:nth-child(1) { animation-delay: 0.05s; }
+.ai-modal-section:nth-child(2) { animation-delay: 0.1s; }
+.ai-modal-section:nth-child(3) { animation-delay: 0.15s; }
+.ai-modal-section:nth-child(4) { animation-delay: 0.2s; }
+.ai-modal-section:nth-child(5) { animation-delay: 0.25s; }
+
+/* ============================================================================
+   REFRESH BUTTON IN HEADER
+   ============================================================================ */
+
+.ai-section-header .ai-action-btn-small {
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    font-size: 12px;
+}
+
+.ai-section-header .ai-action-btn-small svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* ============================================================================
+   ENHANCED VISUAL FEEDBACK
+   ============================================================================ */
+
+/* Add subtle pulse to loading states */
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(96, 165, 250, 0);
+    }
+    50% {
+        box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.1);
+    }
+}
+
+.ai-status-value.loading {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Improve focus states for better accessibility */
+.ai-setting-select:focus,
+.ai-setting-input:focus,
+.ai-setting-slider:focus {
+    outline: 2px solid var(--accent-2);
+    outline-offset: 2px;
+}
+
+/* Better visual hierarchy for nested content */
+.ai-section-content > *:not(:last-child) {
+    margin-bottom: 1.5rem;
+}
+
+/* Smooth transition for collapsible content */
+.ai-section-content > * {
+    transition: opacity 0.3s ease;
+}
+
+.ai-modal-section.collapsed .ai-section-content > * {
+    opacity: 0;
 }

@@ -345,6 +345,7 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
+    letter-spacing: 1px;
 }
 
 .edit-btn svg,
