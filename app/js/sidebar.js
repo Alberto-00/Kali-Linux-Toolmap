@@ -2564,6 +2564,15 @@ const QueryHelpers = {
 
         const __sb = document.getElementById('sidebar');
         if (__sb && __sb.classList.contains(CLASSES.searchMode)) {
+            // Se siamo in search mode e non ci sono risultati, chiudi tutte le fasi
+            const ids = detail.ids;
+            if (ids && Array.isArray(ids) && ids.length === 0) {
+                document.querySelectorAll('.nav-item.open').forEach(item => {
+                    item.classList.remove(CLASSES.open);
+                    const btn = item.querySelector('.btn');
+                    if (btn) btn.classList.remove(CLASSES.active);
+                });
+            }
             return;
         }
 

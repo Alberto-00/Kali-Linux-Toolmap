@@ -245,6 +245,17 @@
                 }
             }));
 
+            window.dispatchEvent(new CustomEvent('tm:search:context', {
+                detail: {
+                    hasQuery: true,
+                    phaseKeys: [],
+                    paths: [],
+                    countsByPhase: {},
+                    searchedQuery: query,
+                    foundToolIds: []
+                }
+            }));
+
             // Show empty results
             window.dispatchEvent(new CustomEvent('tm:scope:set', {
                 detail: {
