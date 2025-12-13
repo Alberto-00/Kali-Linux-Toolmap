@@ -1,4 +1,5 @@
 # Cybersecurity Toolmap
+Kali Toolmap è un'applicazione web che funziona come una mappa interattiva di tutti i tool di sicurezza informatica disponibili in Kali Linux (e non solo). Contiene 500+ tool di sicurezza. Trovarli, capire a cosa servono e ricordarsi quali usare in ogni fase di un pentest è difficile. Kali Toolmap organizza tutto questo in una struttura logica e navigabile.
 
 ## Indice
 
@@ -12,20 +13,18 @@
 - [Configurazione UI](#configurazione-ui)
 - [Sviluppo](#sviluppo)
 
----
 
 ## Panoramica
 
 ### Caratteristiche principali
 
-- **Tassonomia a 7 fasi** - dalla ricognizione al red teaming, ogni tool nel posto giusto
-- **Ricerca duale** - fuzzy search locale + ricerca semantica AI (OpenAI)
+- **Tassonomia a 7 fasi** - dalla ricognizione al red teaming
+- **Ricerca duale** - fuzzy search + ricerca semantica con AI (OpenAI)
 - **Note personali** - annota ogni tool in Markdown
 - **Preferiti** - sistema di "star" per i tool più usati
 - **Export** - scarica il JSON aggiornato
 - **Zero backend** - tutto gira nel browser, nessun server richiesto (solo un server HTTP statico)
 
----
 
 ## Quick Start
 
@@ -63,7 +62,7 @@ Il browser si aprirà automaticamente su `http://localhost:8000/`
 
 > **Nota**: Lo script mostra anche l'IP locale per accedere da altri dispositivi sulla stessa rete.
 
----
+
 
 ## Struttura del Progetto
 
@@ -71,13 +70,13 @@ Il browser si aprirà automaticamente su `http://localhost:8000/`
 Kali-Linux-Toolmap/
 │
 ├── app/                              # Applicazione principale
-│   ├── index.html                    # Entry point
+│   ├── index.html                    # home html
 │   │
 │   ├── data/                         # Dati e configurazione
 │   │   ├── registry.json             # Database dei tool (principale)
 │   │   ├── taxonomy.js               # Albero delle categorie
 │   │   ├── kali_tools.json           # Metadata originali Kali
-│   │   ├── system-prompt.md          # Prompt AI per ricerca semantica
+│   │   ├── system-prompt.md          # System Prompt per la ricerca semantica
 │   │   ├── secret.env                # Configurazione API OpenAI
 │   │   └── secret_backup.env         # Template di backup
 │   │
@@ -118,14 +117,14 @@ Kali-Linux-Toolmap/
     └── kali_svg_scraping.py
 ```
 
----
+
 
 ## Fasi
 
 I tool sono organizzati in **7 fasi** che rispecchiano il workflow di un penetration test:
 
 | Fase                       | Descrizione                                         |
-|----------------------------|-----------------------------------------------------|
+|-|--|
 | `00_Common`                | Tool generici, plugin Metasploit, wordlist, script  |
 | `01_Information_Gathering` | OSINT, reconnaissance, scanning                     |
 | `02_Exploitation`          | Exploit web, infrastruttura, wireless               |
@@ -242,7 +241,7 @@ Modifica `category_path` nei tool in `registry.json`:
 
 > **Convenzione**: I prefissi numerici (`00_`, `01_`, ...) controllano l'ordine nella sidebar.
 
----
+
 
 ### Aggiungere un Tool
 
@@ -265,12 +264,11 @@ Ogni tool in `registry.json` ha questa struttura:
 ```
 
 #### Campi
-
 | Campo           | Tipo         | Descrizione                                          |
 |-----------------|--------------|------------------------------------------------------|
-| `id`            | string       | Identificatore univoco (lowercase, hyphen-separated) |
-| `name`          | string       | Nome visualizzato                                    |
-| `version`       | string       | Versione (opzionale)                                 |
+| `id`            | string       | Identificatore univoco                               |
+| `name`          | string       | Nome visualizzato nel frontend                       |
+| `version`       | string       | Versione                                             |
 | `icon`          | string       | Path all'icona SVG                                   |
 | `installation`  | string       | "Kali", "GitHub", "pip", etc.                        |
 | `repo`          | string       | URL repository o pagina ufficiale                    |
@@ -279,8 +277,6 @@ Ogni tool in `registry.json` ha questa struttura:
 | `best_in`       | boolean      | `true` per tool consigliati                          |
 | `category_path` | array        | Percorso nella tassonomia                            |
 | `notes`         | string\|null | Note utente (gestite automaticamente)                |
-
----
 
 ## Ricerca AI (OpenAI)
 
@@ -313,6 +309,7 @@ L'app supporta ricerca semantica tramite OpenAI Chat Completions API.
 | `OPENAI_MAX_RESULTS` | `20`                      | Max tool restituiti              |
 | `OPENAI_MAX_TOKENS`  | `1000`                    | Limite token risposta            |
 
+
 ### Come funziona
 
 1. Il system prompt (`system-prompt.md`) definisce il comportamento del chatbot
@@ -322,33 +319,31 @@ L'app supporta ricerca semantica tramite OpenAI Chat Completions API.
 
 > **Nota**: Con `TEMPERATURE=0` le risposte sono deterministiche. Aumenta per risultati più vari.
 
----
+
 
 ## Configurazione UI
 
-### Modalità ricerca
+#### Modalità ricerca
 
 Click sull'icona nella barra di ricerca per switchare tra:
 - **Fuzzy** - Ricerca locale istantanea per nome
 - **AI** - Ricerca semantica (richiede API key)
 
-### Preferiti (Star)
+#### Preferiti
 
 - Click sulla stella nella card per aggiungere ai preferiti
 - I preferiti sono salvati in `localStorage`
 - Esportabili con il pulsante "Download JSON"
 
-### Note
+#### Note
 
 - Click su una card per aprire i dettagli
 - Tab "Notes" per scrivere note in Markdown
 - Salvate automaticamente in `localStorage`
 
----
-
 ## Sviluppo
 
-### Rigenerare la tassonomia
+#### Rigenerare la tassonomia
 
 Se modifichi `registry.json`, rigenera `taxonomy.js`:
 
@@ -356,7 +351,7 @@ Se modifichi `registry.json`, rigenera `taxonomy.js`:
 python utils/build_taxonomy_from_registry.py
 ```
 
-### Scraping icone
+#### Scraping icone
 
 Per scaricare icone da Kali tools:
 
