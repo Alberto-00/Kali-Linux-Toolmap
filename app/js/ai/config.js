@@ -257,8 +257,10 @@
         }
 
         if (!backupConfig || Object.keys(backupConfig).length === 0) {
-            showError('Reset Failed', 'Backup configuration not available.');
-            return;
+            setTimeout(() =>
+                showError('Reset Failed', 'Backup configuration not available.'),
+                300);
+            return false;
         }
 
         Object.assign(config, backupConfig);
@@ -267,7 +269,8 @@
             detail: config
         }));
 
-        return saveConfig(config);
+        const success = await saveConfig(config);
+        return success !== false;
     }
 
     // ========================================================================

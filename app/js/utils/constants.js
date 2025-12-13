@@ -10,11 +10,13 @@
 
         // Colori delle fasi (HSL)
         PHASE_COLORS: Object.freeze({
-            '00_Common': 'hsl(270 91% 65%)',              // Viola
-            '01_Information_Gathering': 'hsl(210 100% 62%)', // Blu
-            '02_Exploitation': 'hsl(4 85% 62%)',          // Rosso
-            '03_Post_Exploitation': 'hsl(32 98% 55%)',    // Arancione
-            '04_Miscellaneous': 'hsl(158 64% 52%)'        // Verde
+            '00_Common': 'hsl(270 91% 65%)',
+            '01_Information_Gathering': 'hsl(210 100% 62%)',
+            '02_Exploitation': 'hsl(4 85% 62%)',
+            '03_Post_Exploitation': 'hsl(32 98% 55%)',
+            '04_Red_Team': 'hsl(4 85% 62%)',
+            '05_Forensics': 'hsl(220 85% 55%)',
+            '06_Miscellaneous': 'hsl(158 64% 52%)'
         }),
 
         // Chiavi per localStorage/sessionStorage

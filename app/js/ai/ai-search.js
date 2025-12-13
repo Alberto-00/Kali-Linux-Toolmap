@@ -75,7 +75,7 @@
     // ========================================================================
 
     /**
-     * Carica system prompt da file data/system-prompt.txt
+     * Carica system prompt da file data/system-prompt.md
      */
     async function loadSystemPrompt() {
         if (systemPrompt) {
@@ -83,7 +83,7 @@
         }
 
         try {
-            const response = await fetch('data/system-prompt.txt');
+            const response = await fetch('data/system-prompt.md');
 
             if (!response.ok) {
                 throw new Error(`Failed to load system prompt: ${response.status}`);
@@ -112,14 +112,20 @@
             throw new Error('Registry not available');
         }
 
-        return registry.map(tool => ({
-            id: tool.id,
-            name: tool.name || '',
-            desc: tool.desc || '',
-            category_path: tool.category_path || [],
-            best_in: !!tool.best_in,
-            notes: tool.notes || null
-        }));
+        return registry.map(tool => {
+            const entry = {
+                id: tool.id,
+                name: tool.name || '',
+                desc: tool.desc || '',
+                category_path: tool.category_path || [],
+                best_in: !!tool.best_in
+            };
+            // Include notes only if present (saves tokens)
+            if (tool.notes) {
+                entry.notes = tool.notes;
+            }
+            return entry;
+        });
     }
 
     // ========================================================================
@@ -196,24 +202,10 @@
 
             // Costruisci system prompt con registry embeddata
             const fullSystemPrompt = `${prompt}
-
-            ## CRITICAL INSTRUCTIONS
-            - You MUST ONLY search in the provided REGISTRY DATABASE below
-            - NEVER suggest or invent tools not present in the registry
-            - If no relevant tools are found, return an empty array: {"tool_ids": []}
-            - Focus on semantic matching between user query and tool descriptions
-            - Prioritize tools marked as "best_in" when applicable
-            - Return results sorted by relevance (most relevant first)
             
             ## REGISTRY DATABASE
-            ${JSON.stringify(registry, null, 2)}
-            
-            ## OUTPUT FORMAT
-            You MUST respond ONLY with valid JSON in this exact format:
-            {
-              "tool_ids": ["id1", "id2", "id3"],
-              "reasoning": "Brief explanation of why these tools match the query"
-            }`;
+            ${JSON.stringify(registry)}
+            `;
 
             const requestBody = {
                 model: settings.model,

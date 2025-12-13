@@ -6,10 +6,16 @@ const taxonomy = {
         "Wordlists": {}
     },
     "01_Information_Gathering": {
-        "01_Recon": {
-            "Infrastructure": {
-                "DNS_Subdomains": {}
-            },
+        "OSINT": {
+            "People_Search": {},
+            "Social_Media": {},
+            "Email_Harvesting": {},
+            "Domain_Intelligence": {}
+        },
+        "Recon": {
+            "DNS_Subdomains": {},
+            "Port_Scanning": {},
+            "Service_Fingerprinting": {},
             "Web": {
                 "Content_Discovery": {},
                 "Fingerprinting": {
@@ -19,10 +25,11 @@ const taxonomy = {
                 "Params_Discovery": {}
             }
         },
-        "02_Enumeration": {
-            "Infrastructure": {
-                "SMB": {}
-            },
+        "Enumeration": {
+            "SMB": {},
+            "SNMP": {},
+            "LDAP_AD": {},
+            "Database": {},
             "Web": {
                 "API": {},
                 "CMS": {
@@ -32,12 +39,16 @@ const taxonomy = {
                     "Active": {}
                 }
             }
-        }
+        },
+        "Vulnerability_Scanning": {},
+        "Network_Sniffing": {},
+        "Social_Engineering": {}
     },
     "02_Exploitation": {
         "General": {},
         "Infrastructure": {
-            "RTSP": {}
+            "RTSP": {},
+            "Database": {}
         },
         "Web": {
             "CMS_Exploits": {
@@ -48,28 +59,52 @@ const taxonomy = {
             "File_Upload": {},
             "Injection": {
                 "LFI": {},
+                "SQLi": {},
                 "XSS": {},
                 "XXE": {}
             },
+            "Deserialization": {},
             "Next_js": {},
             "Tomcat": {}
+        },
+        "Wireless": {
+            "WiFi": {},
+            "Bluetooth": {},
+            "RFID_NFC": {}
         }
     },
     "03_Post_Exploitation": {
         "AD_Windows": {
+            "Credential_Dump": {},
             "Kerberos_ADCS_Relay": {},
+            "Lateral_Movement": {},
             "Recon_Health": {}
         },
         "Credentials": {
-            "Credentials_Hunting": {},
-            "Passwords_Cracking": {}
+            "Dumping": {},
+            "Cracking": {},
+            "Brute_Force": {},
+            "Spraying": {}
         },
-        "Evasion": {},
+        "Persistence": {},
         "Pivoting": {},
         "Privilege_Escalation": {
-            "Linux": {}
+            "Linux": {},
+            "Windows": {}
         },
         "Reverse_Engineering": {}
     },
-    "04_Miscellaneous": {}
+    "04_Red_Team": {
+        "C2_Frameworks": {},
+        "Evasion": {},
+        "Payload_Generation": {},
+    },
+    "05_Forensics": {
+        "Disk_Analysis": {},
+        "Memory_Analysis": {},
+        "Network_Forensics": {},
+        "File_Carving": {},
+        "Malware_Analysis": {}
+    },
+    "06_Miscellaneous": {}
 };

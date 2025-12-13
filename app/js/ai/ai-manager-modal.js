@@ -222,7 +222,7 @@
                         <div class="ai-section-content">
                             <div class="ai-info-row">
                                 <span class="ai-info-label">Source:</span>
-                                <span class="ai-info-value">data/system-prompt.txt</span>
+                                <span class="ai-info-value">data/system-prompt.md</span>
                             </div>
                             <div class="ai-info-row">
                                 <span class="ai-info-label">Size:</span>
@@ -546,9 +546,13 @@
                 confirmText: 'Reset',
                 cancelText: 'Annulla',
                 onConfirm: async () => {
-                    await window.Config?.reset();
-                    loadSettings();
-                    MessageModal.success('Reset Completato', 'Le impostazioni sono state ripristinate ai valori predefiniti.');
+                    const success = await window.Config?.reset();
+                    if (success) {
+                        loadSettings();
+                        setTimeout(() => {
+                            MessageModal.success('Reset Completato', 'Le impostazioni sono state ripristinate ai valori predefiniti.');
+                        }, 300);
+                    }
                 }
             });
         }
@@ -611,7 +615,7 @@
 
     async function loadSystemPromptInfo() {
         try {
-            const response = await fetch('data/system-prompt.txt');
+            const response = await fetch('data/system-prompt.md');
             if (response.ok) {
                 const text = await response.text();
                 const sizeEl = document.getElementById('prompt-size');
@@ -627,7 +631,7 @@
     }
 
     function viewSystemPrompt() {
-        fetch('data/system-prompt.txt')
+        fetch('data/system-prompt.md')
             .then(res => res.text())
             .then(text => {
                 if (window.MessageModal) {

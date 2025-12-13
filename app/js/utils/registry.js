@@ -27,11 +27,7 @@
     async function fetchRegistry() {
         try {
             const response = await fetch(CONFIG.registryPath, {
-                cache: 'no-cache',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
+                cache: 'default',
             });
 
             if (response.ok) {

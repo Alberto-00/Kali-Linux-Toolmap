@@ -59,10 +59,16 @@ const QueryHelpers = {
             "Wordlists": {}
         },
         "01_Information_Gathering": {
-            "01_Recon": {
-                "Infrastructure": {
-                    "DNS_Subdomains": {}
-                },
+            "OSINT": {
+                "People_Search": {},
+                "Social_Media": {},
+                "Email_Harvesting": {},
+                "Domain_Intelligence": {}
+            },
+            "Recon": {
+                "DNS_Subdomains": {},
+                "Port_Scanning": {},
+                "Service_Fingerprinting": {},
                 "Web": {
                     "Content_Discovery": {},
                     "Fingerprinting": {
@@ -72,10 +78,11 @@ const QueryHelpers = {
                     "Params_Discovery": {}
                 }
             },
-            "02_Enumeration": {
-                "Infrastructure": {
-                    "SMB": {}
-                },
+            "Enumeration": {
+                "SMB": {},
+                "SNMP": {},
+                "LDAP_AD": {},
+                "Database": {},
                 "Web": {
                     "API": {},
                     "CMS": {
@@ -85,12 +92,16 @@ const QueryHelpers = {
                         "Active": {}
                     }
                 }
-            }
+            },
+            "Vulnerability_Scanning": {},
+            "Network_Sniffing": {},
+            "Social_Engineering": {}
         },
         "02_Exploitation": {
             "General": {},
             "Infrastructure": {
-                "RTSP": {}
+                "RTSP": {},
+                "Database": {}
             },
             "Web": {
                 "CMS_Exploits": {
@@ -101,30 +112,54 @@ const QueryHelpers = {
                 "File_Upload": {},
                 "Injection": {
                     "LFI": {},
+                    "SQLi": {},
                     "XSS": {},
                     "XXE": {}
                 },
+                "Deserialization": {},
                 "Next_js": {},
                 "Tomcat": {}
+            },
+            "Wireless": {
+                "WiFi": {},
+                "Bluetooth": {},
+                "RFID_NFC": {}
             }
         },
         "03_Post_Exploitation": {
             "AD_Windows": {
+                "Credential_Dump": {},
                 "Kerberos_ADCS_Relay": {},
+                "Lateral_Movement": {},
                 "Recon_Health": {}
             },
             "Credentials": {
-                "Credentials_Hunting": {},
-                "Passwords_Cracking": {}
+                "Dumping": {},
+                "Cracking": {},
+                "Brute_Force": {},
+                "Spraying": {}
             },
-            "Evasion": {},
+            "Persistence": {},
             "Pivoting": {},
             "Privilege_Escalation": {
-                "Linux": {}
+                "Linux": {},
+                "Windows": {}
             },
             "Reverse_Engineering": {}
         },
-        "04_Miscellaneous": {}
+        "04_Red_Team": {
+            "C2_Frameworks": {},
+            "Evasion": {},
+            "Payload_Generation": {},
+        },
+        "05_Forensics": {
+            "Disk_Analysis": {},
+            "Memory_Analysis": {},
+            "Network_Forensics": {},
+            "File_Carving": {},
+            "Malware_Analysis": {}
+        },
+        "06_Miscellaneous": {}
     };
 
     const formatLabel = (text) => String(text).replace(/_/g, " ").replace(/^\d+_/, "");
@@ -173,6 +208,22 @@ const QueryHelpers = {
         '<path d="M457.605,244.252C451.739,142.065,369.934,60.26,267.748,54.395V0h-23.489v54.395 C142.066,60.26,60.261,142.058,54.395,244.252H0v23.497h54.395c5.866,102.178,87.671,183.991,189.864,189.857V512h23.489v-54.395 c102.185-5.866,183.991-87.679,189.857-189.857H512v-23.497H457.605z M434.058,267.748c-2.9,44.616-22.115,84.705-51.856,114.454 c-29.749,29.724-69.838,48.956-114.454,51.856v-23.053h-23.489v23.053c-44.624-2.9-84.721-22.132-114.462-51.856 c-29.741-29.749-48.948-69.838-51.856-114.454h23.053v-23.497H77.942c2.908-44.623,22.114-84.705,51.856-114.462 c29.74-29.733,69.822-48.948,114.462-51.847v23.053h23.489V77.942c44.616,2.899,84.713,22.123,114.462,51.847 c29.732,29.758,48.947,69.839,51.847,114.462h-23.054v23.497H434.058z"/>' +
         '</svg>';
 
+    const svg_redteam =
+        '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"></polyline>' +
+        '<line x1="13" y1="19" x2="19" y2="13"></line>' +
+        '<line x1="16" y1="16" x2="20" y2="20"></line>' +
+        '<line x1="19" y1="21" x2="21" y2="19"></line>' +
+        '</svg>';
+
+    const svg_forensics =
+        '<svg class="icon" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" fill="none">' +
+        '<circle cx="11" cy="11" r="8"/>' +
+        '<line x1="16.5" y1="16.5" x2="21" y2="21"/>' +
+        '<line x1="8" y1="11" x2="14" y2="11" stroke-width="3"/>' +
+        '<line x1="11" y1="8" x2="11" y2="14" stroke-width="3"/>' +
+        '</svg>';
+
     ICONS.byPrefix['00_Common'] = {open: svg_common, closed: svg_common, terminal: svg_common};
     ICONS.byPrefix['01_Information_Gathering'] = {
         open: svg_inf_gather,
@@ -185,12 +236,16 @@ const QueryHelpers = {
         closed: svg_post_exploit,
         terminal: svg_post_exploit
     };
+    ICONS.byPrefix['04_Red_Team'] = {open: svg_redteam, closed: svg_redteam, terminal: svg_redteam};
+    ICONS.byPrefix['05_Forensics'] = {open: svg_forensics, closed: svg_forensics, terminal: svg_forensics};
 
     window.SIDEBAR_ICONS = {
         common: svg_common,
         information_gathering: svg_inf_gather,
         exploitation: svg_exploit,
         post_exploitation: svg_post_exploit,
+        red_team: svg_redteam,
+        forensics: svg_forensics,
         miscellaneous: folderSVG
     };
 
@@ -311,14 +366,7 @@ const QueryHelpers = {
     }
 
     function phaseToColor(phase) {
-        const PHASE_COLORS = {
-            '00_Common': 'hsl(270 91% 65%)',
-            '01_Information_Gathering': 'hsl(210 100% 62%)',
-            '02_Exploitation': 'hsl(4 85% 62%)',
-            '03_Post_Exploitation': 'hsl(32 98% 55%)',
-            '04_Miscellaneous': 'hsl(158 64% 52%)'
-        };
-        return PHASE_COLORS[phase] || 'hsl(var(--accent))';
+        return window.TOOLMAP_CONSTANTS.PHASE_COLORS[phase] || 'hsl(var(--accent))';
     }
 
     function isSearchMode() {
@@ -2183,12 +2231,14 @@ const QueryHelpers = {
                 try {
                     localStorage.setItem(MEM.pathSlash, lastSlash);
                     dispatchScopeAndPhase(lastSlash, {source: 'search-clear'});
-                } catch (e) { }
+                } catch (e) {
+                }
             }
             try {
                 localStorage.removeItem(MEM.preSearchSlash);
                 localStorage.removeItem(MEM.searchTempSlash);
-            } catch (e) { }
+            } catch (e) {
+            }
 
             // Aggiungi badge per il path ripristinato
             if (lastSlash && phaseItem) {

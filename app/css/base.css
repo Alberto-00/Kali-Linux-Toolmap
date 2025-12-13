@@ -20,6 +20,7 @@
     --color-info: #3D9EFF;
     --color-exploit: #F0574C;
     --color-post: #FD941C;
+    --color-forensics: #1E6DE3;
     --color-misc: #36D399;
 
     /* HSL Variants (necessari per card.css e compatibilità shadcn) */
@@ -317,7 +318,15 @@ nav::-webkit-scrollbar-thumb:hover,
     --phase: var(--color-post);
 }
 
-[data-phase="04_Miscellaneous"] {
+[data-phase="04_Red_Team"] {
+    --phase: var(--color-exploit);
+}
+
+[data-phase="05_Forensics"] {
+    --phase: var(--color-forensics);
+}
+
+[data-phase="06_Miscellaneous"] {
     --phase: var(--color-misc);
 }
 

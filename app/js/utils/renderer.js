@@ -48,6 +48,8 @@
                 information_gathering: 'information_gathering',
                 exploitation: 'exploitation',
                 post_exploitation: 'post_exploitation',
+                red_team: 'red_team',
+                forensics: 'forensics',
                 miscellaneous: 'miscellaneous'
             };
 
@@ -62,7 +64,9 @@
                 information_gathering: this.search(),
                 exploitation: this.bolt(),
                 post_exploitation: this.gear(),
-                common: this.grid()
+                common: this.grid(),
+                forensics: this.grid(),
+                red_team: this.bolt(),
             };
             return iconMap[key] || this.dots();
         },
