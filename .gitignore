@@ -201,4 +201,4 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-app/js/search_tools/models/
+*.ini
