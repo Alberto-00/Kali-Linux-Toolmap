@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Toolmap
+GenericName=Security Tools Registry
+Comment=Avvia Toolmap Registry Server
+Exec=PLACEHOLDER_PATH
+Icon=PLACEHOLDER_ICON
+Terminal=true
+Categories=Development;Security;Network;
+Keywords=security;tools;kali;pentest;
+StartupNotify=true

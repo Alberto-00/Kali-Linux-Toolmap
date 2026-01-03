@@ -472,11 +472,23 @@
          * @private
          */
         _openModal() {
+            // Reset scroll PRIMA di mostrare
+            const body = this.modal.querySelector('.modal-body');
+            const content = this.modal.querySelector('.modal-content');
+            if (body) body.scrollTop = 0;
+            if (content) content.scrollTop = 0;
+
             this.modal.style.display = 'flex';
             this.modal.classList.remove('closing');
             void this.modal.offsetWidth; // Force reflow
             this.modal.classList.add('open');
             document.body.style.overflow = 'hidden';
+
+            // Reset scroll anche dopo il rendering (doppia sicurezza)
+            requestAnimationFrame(() => {
+                if (body) body.scrollTop = 0;
+                if (content) content.scrollTop = 0;
+            });
         }
 
         /**
@@ -588,7 +600,7 @@
             return `
                 <div class="detail-section">
                     <h3>Repository</h3>
-                    <a href="${DOMUtils.escapeAttr(repo)}" target="_blank" rel="noopener noreferrer" 
+                    <a href="${DOMUtils.escapeAttr(repo)}" target="_blank" rel="noopener noreferrer"
                        class="repo-link" style="color:var(--accent-2);text-decoration:none;word-break:break-all;">
                         ${DOMUtils.escapeHtml(repo)}
                     </a>

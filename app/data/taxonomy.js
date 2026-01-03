@@ -13,12 +13,15 @@ const taxonomy = {
             "Domain_Intelligence": {}
         },
         "Recon": {
-            "DNS_Subdomains": {},
-            "Port_Scanning": {},
-            "Service_Fingerprinting": {},
+            "Infrastructure": {
+                "DNS_Subdomains": {},
+                "Port_Scanning": {},
+                "Service_Fingerprinting": {}
+            },
             "Web": {
                 "Content_Discovery": {},
                 "Fingerprinting": {
+                    "HTTP_Analysis": {},
                     "Visual_Recon": {},
                     "WAF": {}
                 },
@@ -26,13 +29,19 @@ const taxonomy = {
             }
         },
         "Enumeration": {
-            "SMB": {},
-            "SNMP": {},
-            "LDAP_AD": {},
-            "Database": {},
+            "Infrastructure": {
+                "SMTP": {},
+                "VoIP": {},
+                "Porta_113": {},
+                "SMB": {},
+                "SNMP": {},
+                "LDAP_AD": {},
+                "Database": {}
+            },
             "Web": {
                 "API": {},
                 "CMS": {
+                    "General": {},
                     "Joomla": {}
                 },
                 "Crawling": {
@@ -46,9 +55,12 @@ const taxonomy = {
     },
     "02_Exploitation": {
         "General": {},
+        "Crypto": {},
         "Infrastructure": {
             "RTSP": {},
-            "Database": {}
+            "Database": {},
+            "Network": {},
+            "SSL_TLS": {}
         },
         "Web": {
             "CMS_Exploits": {
@@ -61,9 +73,15 @@ const taxonomy = {
                 "LFI": {},
                 "SQLi": {},
                 "XSS": {},
-                "XXE": {}
+                "XXE": {},
+                "Command_Injection": {},
+                "CSRF": {},
+                "SSTI": {}
             },
             "Deserialization": {},
+            "JBoss_&_WildFly": {},
+            "Proxy_MITM": {},
+            "SSRF": {},
             "Next_js": {},
             "Tomcat": {}
         },
@@ -78,7 +96,8 @@ const taxonomy = {
             "Credential_Dump": {},
             "Kerberos_ADCS_Relay": {},
             "Lateral_Movement": {},
-            "Recon_Health": {}
+            "Recon_Health": {},
+            "Toolkits": {}
         },
         "Credentials": {
             "Dumping": {},
@@ -90,7 +109,8 @@ const taxonomy = {
         "Pivoting": {},
         "Privilege_Escalation": {
             "Linux": {},
-            "Windows": {}
+            "Windows": {},
+            "Multi_Platform": {}
         },
         "Reverse_Engineering": {}
     },

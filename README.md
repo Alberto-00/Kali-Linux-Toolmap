@@ -6,12 +6,12 @@ Kali Toolmap è un'applicazione web che funziona come una mappa interattiva di t
 - [Panoramica](#panoramica)
 - [Quick Start](#quick-start)
 - [Struttura del Progetto](#struttura-del-progetto)
-- [Fasi](#fasi)
+- [Gestione Fasi](#gestione-fasi)
   - [Aggiungere una nuova Fase](#aggiungere-una-nuova-fase)
   - [Aggiungere un Tool](#aggiungere-un-tool)
 - [Ricerca AI (OpenAI)](#ricerca-ai-openai)
-- [Configurazione UI](#configurazione-ui)
-- [Sviluppo](#sviluppo)
+- [Funzionamento UI](#funzionamento-ui)
+- [Altri Scripts](#altri-scripts)
 
 
 ## Panoramica
@@ -38,29 +38,54 @@ Kali Toolmap è un'applicazione web che funziona come una mappa interattiva di t
 **Windows:**
 ```bash
 # Doppio click su:
-utils\start-server.bat
+utils\windows\start-server.bat
 
 # Oppure da terminale:
 cd Kali-Linux-Toolmap
 python -m http.server 8000
-# Apri http://localhost:8000/
+# Apri http://localhost:8000/app/
 ```
 
 **Linux / macOS:**
 ```bash
 # Rendi eseguibile e lancia:
-chmod +x utils/start-server.sh
-./utils/start-server.sh
+chmod +x utils/linux/start-server.sh
+./utils/linux/start-server.sh
 
 # Oppure manualmente:
 cd Kali-Linux-Toolmap
 python3 -m http.server 8000
-# Apri http://localhost:8000/
+# Apri http://localhost:8000/app/
 ```
 
-Il browser si aprirà automaticamente su `http://localhost:8000/`
+Il browser si aprirà automaticamente su `http://localhost:8000/app/`
 
 > **Nota**: Lo script mostra anche l'IP locale per accedere da altri dispositivi sulla stessa rete.
+
+### Installare icona Desktop
+
+Puoi creare un'icona desktop per avviare Toolmap come un'app:
+
+**Windows:**
+```bash
+# Esegui una volta:
+utils\windows\install-desktop-shortcut.bat
+
+# Apparirà "Toolmap" sul desktop
+# Click destro > "Aggiungi alla barra delle applicazioni"
+```
+
+**Linux:**
+```bash
+# Esegui una volta:
+chmod +x utils/linux/install-desktop-shortcut.sh
+./utils/linux/install-desktop-shortcut.sh
+
+# Apparirà "Toolmap" sul desktop e nel menu applicazioni
+# Click destro > "Aggiungi ai preferiti" per la dock
+```
+
+> **Rimuovere l'icona**: elimina semplicemente il collegamento dal desktop. Il progetto rimane intatto.
 
 
 
@@ -111,15 +136,22 @@ Kali-Linux-Toolmap/
 │   └── favicon/                      # Icone app
 │
 └── utils/                            # Script di utilità
-    ├── start-server.sh               # Launcher Linux/Mac
-    ├── start-server.bat              # Launcher Windows
-    ├── build_taxonomy_from_registry.py
-    └── kali_svg_scraping.py
+    ├── windows/                      # Script Windows
+    │   ├── start-server.bat          # Avvia server
+    │   └── install-desktop-shortcut.bat  # Installa icona desktop
+    │
+    ├── linux/                        # Script Linux/Mac
+    │   ├── start-server.sh           # Avvia server
+    │   ├── install-desktop-shortcut.sh   # Installa icona desktop
+    │   └── toolmap.desktop           # Template .desktop
+    │
+    ├── build_taxonomy_from_registry.py   # Genera taxonomy.js
+    └── kali_svg_scraping.py          # Scraping icone da Kali
 ```
 
 
 
-## Fasi
+## Gestione Fasi
 
 I tool sono organizzati in **7 fasi** che rispecchiano il workflow di un penetration test:
 
@@ -321,7 +353,7 @@ L'app supporta ricerca semantica tramite OpenAI Chat Completions API.
 
 
 
-## Configurazione UI
+## Funzionamento UI
 
 #### Modalità ricerca
 
@@ -341,7 +373,7 @@ Click sull'icona nella barra di ricerca per switchare tra:
 - Tab "Notes" per scrivere note in Markdown
 - Salvate automaticamente in `localStorage`
 
-## Sviluppo
+## Altri Scripts
 
 #### Rigenerare la tassonomia
 
