@@ -115,8 +115,9 @@
         isStarred(tool) {
             if (!tool) return false;
 
-            // Priorità: flag locale _starred > flag registry best_in
+            // Priorità: flag locale _starred (se definito) > flag registry best_in
             if (tool._starred === true || tool._starred === 'true') return true;
+            if (tool._starred === false || tool._starred === 'false') return false;
 
             return !!ToolUtils.readBestInFlag(tool);
         }
