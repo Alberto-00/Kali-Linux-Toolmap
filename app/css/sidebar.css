@@ -893,3 +893,46 @@ nav {
     pointer-events: none;
     cursor: default;
 }
+
+/* ============================================================================
+   HOVER PANE HEADER
+   ============================================================================ */
+
+.hover-pane-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    transition: opacity .2s ease;
+}
+
+.hover-pane-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.hover-pane-icon .icon {
+    width: 20px;
+    height: 20px;
+}
+
+.hover-pane-title {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Colorato SOLO quando c'e' un path attivo */
+.hover-pane-header.has-active-path {
+    color: var(--phase);
+    border-bottom-color: color-mix(in srgb, var(--phase) 30%, var(--border));
+}
+
+.hover-pane-header.has-active-path .hover-pane-icon .icon {
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--phase) 40%, transparent));
+}

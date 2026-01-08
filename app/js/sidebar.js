@@ -1831,17 +1831,34 @@ const QueryHelpers = {
         const pane = createHoverPane();
 
         const phaseKey = path.includes('/') ? path.split('/')[0] : path;
+        const isChangingPhase = pane.dataset.phase && pane.dataset.phase !== phaseKey;
+
+        // Se cambia fase, resetta per animazione pulita
+        if (isChangingPhase && pane.classList.contains(CLASSES.active)) {
+            pane.classList.remove(CLASSES.active);
+            pane.style.opacity = '0';
+        }
 
         const lastCtx = window.__lastSearchContext;
         const inSearch = isSearchMode();
 
         const childrenHTML = buildChildren(node, phaseKey);
+        const navItem = getNavItem(phaseKey);
+        const hasActivePath = navItem && navItem.classList.contains(CLASSES.hasActivePath);
+        const phaseIcon = ICON_MAP.get(phaseKey) || ICONS.defaults.folderClosed;
+        const phaseColor = navItem ? getComputedStyle(navItem).getPropertyValue('--phase').trim() : '';
+
         pane.innerHTML = `
+          <div class="hover-pane-header${hasActivePath ? ' has-active-path' : ''}"${hasActivePath && phaseColor ? ` style="color: ${phaseColor}"` : ''}>
+            <span class="hover-pane-icon">${phaseIcon}</span>
+            <span class="hover-pane-title">${formatLabel(phaseKey)}</span>
+          </div>
           <div class="children children-nested hover-root" data-parent="${phaseKey}" style="--level: 1">
             ${childrenHTML}
           </div>
         `;
         pane.dataset.phase = phaseKey;
+        pane.style.removeProperty('opacity')
 
         const rootChildren = pane.querySelector('.hover-root');
         markLastVisible(rootChildren);
