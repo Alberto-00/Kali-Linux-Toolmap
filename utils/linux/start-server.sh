@@ -44,9 +44,9 @@ trap cleanup SIGINT SIGTERM SIGHUP EXIT
 clear
 
 echo ""
-echo -e "${CYAN}=========================================${NC}"
-echo -e "${CYAN}${BOLD}      TOOLMAP REGISTRY SERVER${NC}"
-echo -e "${CYAN}=========================================${NC}"
+echo -e "${CYAN}===========================================================${NC}"
+echo -e "${CYAN}${BOLD}                  TOOLMAP REGISTRY SERVER${NC}"
+echo -e "${CYAN}===========================================================${NC}"
 echo ""
 
 # Attiva conda base se disponibile (safe anche se già attivo)
@@ -82,7 +82,7 @@ echo ""
 echo -e "  ${GRAY}Accessibile da qualsiasi dispositivo sulla stessa rete${NC}"
 echo -e "  ${YELLOW}Chiudi questa finestra per fermare il server${NC}"
 echo ""
-echo -e "${CYAN}=========================================${NC}"
+echo -e "${CYAN}===========================================================${NC}"
 echo ""
 echo -e "  ${GREEN}[OK]${NC} ${WHITE}Server in avvio...${NC}"
 echo ""

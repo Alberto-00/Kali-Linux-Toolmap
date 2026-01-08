@@ -26,9 +26,9 @@ set "PROJECT_DIR=%SCRIPT_DIR%..\.."
 cd /d "%PROJECT_DIR%"
 
 echo.
-echo %CYAN%=========================================%RESET%
-echo %CYAN%%BOLD%      TOOLMAP REGISTRY SERVER%RESET%
-echo %CYAN%=========================================%RESET%
+echo %CYAN%===========================================================%RESET%
+echo %CYAN%%BOLD%                  TOOLMAP REGISTRY SERVER%RESET%
+echo %CYAN%===========================================================%RESET%
 echo.
 
 REM Attiva conda base se disponibile (safe anche se già attivo)
@@ -51,7 +51,7 @@ echo.
 echo   %GRAY%Accessibile da qualsiasi dispositivo sulla stessa rete%RESET%
 echo   %YELLOW%Chiudi questa finestra per fermare il server%RESET%
 echo.
-echo %CYAN%=========================================%RESET%
+echo %CYAN%===========================================================%RESET%
 echo.
 echo   %GREEN%[OK]%RESET% %WHITE%Server in avvio...%RESET%
 echo.
