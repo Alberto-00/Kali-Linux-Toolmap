@@ -2204,6 +2204,12 @@ const QueryHelpers = {
                 document.querySelectorAll('.children-nested').forEach(n => n.remove());
                 clearPathHighlight();
 
+                // Dispatch per mostrare tutti i tool quando non c'è path precedente
+                localStorage.setItem('tm:scope:showAll', '1');
+                window.dispatchEvent(new CustomEvent('tm:scope:set', {
+                    detail: {all: true, source: 'search-clear-no-path'}
+                }));
+
                 if (typeof refreshAllVLinesDebounced === 'function') refreshAllVLinesDebounced();
                 window.SidebarAutoGrow?.schedule();
                 return;
