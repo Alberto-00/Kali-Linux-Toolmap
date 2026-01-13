@@ -179,7 +179,10 @@ const QueryHelpers = {
             "File_Carving": {},
             "Malware_Analysis": {}
         },
-        "06_Miscellaneous": {}
+        "06_Miscellaneous": {
+            "AI_MCP": {},
+            "Utilities": {}
+        }
     };
 
     const formatLabel = (text) => String(text).replace(/_/g, " ").replace(/^\d+_/, "");

@@ -126,5 +126,8 @@ const taxonomy = {
         "File_Carving": {},
         "Malware_Analysis": {}
     },
-    "06_Miscellaneous": {}
+    "06_Miscellaneous": {
+        "AI_MCP": {},
+        "Utilities": {}
+    }
 };
