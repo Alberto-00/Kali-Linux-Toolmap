@@ -1,6 +1,7 @@
 const taxonomy = {
     "00_Common": {
         "Metasploit_Plugins": {},
+        "Network": {},
         "Scripts": {},
         "Tools_Windows": {},
         "Wordlists": {}

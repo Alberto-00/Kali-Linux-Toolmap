@@ -54,6 +54,7 @@ const QueryHelpers = {
     const taxonomy = {
         "00_Common": {
             "Metasploit_Plugins": {},
+            "Network": {},
             "Scripts": {},
             "Tools_Windows": {},
             "Wordlists": {}
@@ -483,6 +484,44 @@ const QueryHelpers = {
                 nest.remove();
                 onComplete?.();
             }, {once: true});
+        }
+    }
+
+    // Anima apertura/chiusura dei children delle macro fasi (come animateNested ma senza rimuovere)
+    function animatePhaseChildren(children, isOpening, onComplete) {
+        if (!children) return;
+
+        const setStyles = (styles) => Object.entries(styles).forEach(([k, v]) => children.style[k] = v);
+
+        if (isOpening) {
+            // Apertura: da 0 a scrollHeight, poi max-height: none
+            setStyles({maxHeight: '0px', opacity: '0'});
+            forceReflow(children);
+            const target = children.scrollHeight;
+            setStyles({maxHeight: `${target}px`, opacity: '1'});
+
+            const handler = (e) => {
+                if (e.propertyName !== 'max-height') return;
+                children.removeEventListener('transitionend', handler);
+                if (document.body.contains(children) && children.style.opacity === '1') {
+                    children.style.maxHeight = 'none';
+                }
+                onComplete?.();
+            };
+            children.addEventListener('transitionend', handler);
+        } else {
+            // Chiusura: prima imposta altezza reale, poi transiziona a 0
+            const h = children.scrollHeight;
+            setStyles({maxHeight: `${h}px`, opacity: '1'});
+            forceReflow(children);
+            setStyles({maxHeight: '0px', opacity: '0'});
+
+            const handler = (e) => {
+                if (e.propertyName !== 'max-height') return;
+                children.removeEventListener('transitionend', handler);
+                onComplete?.();
+            };
+            children.addEventListener('transitionend', handler);
         }
     }
 
@@ -1055,18 +1094,24 @@ const QueryHelpers = {
                         };
                     }
 
-                    // Chiudi tutte le altre fasi
-                    document.querySelectorAll('.nav-item.open').forEach(item => {
-                        if (item !== navItem) {
+                    // Chiudi tutte le altre fasi con animazione fluida
+                    const otherOpenPhases = Array.from(document.querySelectorAll('.nav-item.open'))
+                        .filter(item => item !== navItem);
+
+                    otherOpenPhases.forEach(item => {
+                        const children = item.querySelector(':scope > .children');
+                        item.querySelector('.btn')?.classList.remove(CLASSES.active);
+                        clearPathHighlight(item);
+                        animatePhaseChildren(children, false, () => {
                             item.classList.remove(CLASSES.open);
-                            item.querySelector('.btn')?.classList.remove(CLASSES.active);
-                            clearPathHighlight(item);
-                        }
+                        });
                     });
 
-                    // Apri la fase cliccata
+                    // Apri la fase cliccata con animazione fluida
                     navItem.classList.add(CLASSES.open);
                     btn.classList.add(CLASSES.active);
+                    const newChildren = navItem.querySelector(':scope > .children');
+                    animatePhaseChildren(newChildren, true);
 
                     // Rimuovi eventuali nested children esistenti
                     navItem.querySelectorAll('.children-nested').forEach(n => n.remove());
@@ -1138,20 +1183,28 @@ const QueryHelpers = {
                 // CASO 2: Sidebar APERTA - toggle normale delle fasi
                 // ============================================================
 
-                if (!inSearch) {
-                    document.querySelectorAll('.nav-item.open').forEach(item => {
-                        if (item !== navItem) {
-                            item.classList.remove(CLASSES.open);
-                            item.querySelector('.btn')?.classList.remove(CLASSES.active);
-                            clearPathHighlight(item);
-                        }
-                    });
-                }
+                // Raccogli le fasi da chiudere (solo in modalità normale)
+                const phasesToClose = !inSearch
+                    ? Array.from(document.querySelectorAll('.nav-item.open')).filter(item => item !== navItem)
+                    : [];
 
                 if (!wasOpen) {
                     // APERTURA della fase
+                    // Chiudi le altre fasi con animazione fluida
+                    phasesToClose.forEach(item => {
+                        const children = item.querySelector(':scope > .children');
+                        item.querySelector('.btn')?.classList.remove(CLASSES.active);
+                        clearPathHighlight(item);
+                        animatePhaseChildren(children, false, () => {
+                            item.classList.remove(CLASSES.open);
+                        });
+                    });
+
+                    // Apri la nuova fase con animazione fluida
                     navItem.classList.add(CLASSES.open);
                     btn.classList.add(CLASSES.active);
+                    const newChildren = navItem.querySelector(':scope > .children');
+                    animatePhaseChildren(newChildren, true);
 
                     if (inSearch) {
                         const lastCtx = window.__lastSearchContext;
@@ -1278,10 +1331,13 @@ const QueryHelpers = {
                         }, 150);
                     }
                 } else {
-                    // CHIUSURA della fase
-                    navItem.classList.remove(CLASSES.open);
+                    // CHIUSURA della fase con animazione fluida
                     btn.classList.remove(CLASSES.active);
                     clearPathHighlight(navItem);
+                    const children = navItem.querySelector(':scope > .children');
+                    animatePhaseChildren(children, false, () => {
+                        navItem.classList.remove(CLASSES.open);
+                    });
 
                     if (inSearch) {
                         const lastCtx = window.__lastSearchContext;
@@ -1492,14 +1548,26 @@ const QueryHelpers = {
                 });
             }
 
+            // Toggle collapsed e chiusura fasi in PARALLELO
             sidebar.classList.toggle(CLASSES.collapsed, now);
             localStorage.setItem(MEM.collapsed, now ? '1' : '0');
             applyCollapsedStyle();
 
             if (now) {
+                // Chiudi le fasi in parallelo con il collapse
                 document.querySelectorAll('.nav-item.open').forEach(item => {
-                    item.classList.remove(CLASSES.open);
+                    const children = item.querySelector(':scope > .children');
                     item.querySelector('.btn')?.classList.remove(CLASSES.active);
+
+                    if (children) {
+                        animatePhaseChildren(children, false, () => {
+                            item.classList.remove(CLASSES.open);
+                            children.style.removeProperty('max-height');
+                            children.style.removeProperty('opacity');
+                        });
+                    } else {
+                        item.classList.remove(CLASSES.open);
+                    }
                 });
                 clearPathHighlight();
                 hideHoverPane();
@@ -1509,7 +1577,7 @@ const QueryHelpers = {
                 // RIPRISTINA le fasi aperte in search mode quando si espande
                 if (inSearch) {
                     setTimeout(() => {
-                        restoreSearchPhases(); // Chiama senza argomenti
+                        restoreSearchPhases();
                     }, 100);
                 }
             }
@@ -1527,12 +1595,28 @@ const QueryHelpers = {
         applyCollapsedStyle();
 
         collapseAllBtn?.addEventListener('click', () => {
-            document.querySelectorAll('.nav-item.open').forEach(item => {
-                item.classList.remove(CLASSES.open);
+            const openItems = Array.from(document.querySelectorAll('.nav-item.open'));
+
+            // Anima la chiusura di tutte le fasi
+            openItems.forEach(item => {
+                const children = item.querySelector(':scope > .children');
                 item.querySelector('.btn')?.classList.remove(CLASSES.active);
+
+                if (children) {
+                    animatePhaseChildren(children, false, () => {
+                        item.classList.remove(CLASSES.open);
+                        children.style.removeProperty('max-height');
+                        children.style.removeProperty('opacity');
+                    });
+                } else {
+                    item.classList.remove(CLASSES.open);
+                }
             });
 
-            document.querySelectorAll('.children-nested').forEach(n => n.remove());
+            // Rimuovi i nested con animazione
+            document.querySelectorAll('.children-nested').forEach(n => {
+                animateNested(n, false);
+            });
 
             clearPathHighlight();
             refreshAllVLinesDebounced();
@@ -1555,6 +1639,11 @@ const QueryHelpers = {
                 document.querySelectorAll('.nav-item').forEach(item => {
                     item.classList.remove(CLASSES.open);
                     item.querySelector('.btn')?.classList.remove(CLASSES.active);
+                    const ch = item.querySelector(':scope > .children');
+                    if (ch) {
+                        ch.style.removeProperty('max-height');
+                        ch.style.removeProperty('opacity');
+                    }
                     item.querySelectorAll('.children-nested').forEach(nest => nest.remove());
                 });
 
@@ -1564,6 +1653,10 @@ const QueryHelpers = {
 
                     item.classList.add(CLASSES.open);
                     item.querySelector('.btn')?.classList.add(CLASSES.active);
+
+                    // Anima l'apertura dei children
+                    const children = item.querySelector(':scope > .children');
+                    if (children) animatePhaseChildren(children, true);
 
                     const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phaseKey);
 
@@ -1633,6 +1726,10 @@ const QueryHelpers = {
                 if (!item.classList.contains(CLASSES.open)) {
                     item.classList.add(CLASSES.open);
                     btn?.classList.add(CLASSES.active);
+
+                    // Anima l'apertura dei children
+                    const children = item.querySelector(':scope > .children');
+                    if (children) animatePhaseChildren(children, true);
                 }
 
                 const activeSlash = getActivePathSlash(phaseKey);

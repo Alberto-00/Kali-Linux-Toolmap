@@ -1,6 +1,6 @@
 /**
  * Gestione ricerca tool (fuzzy e API)
- * - Fuzzy: ricerca in tempo reale su nome tool
+ * - Fuzzy: ricerca in tempo reale su nome e descrizione tool
  * - API: ricerca semantica AI
  */
 
@@ -138,8 +138,8 @@
     }
 
     /**
-     * Ricerca FUZZY su nome tool
-     * Case-insensitive, cerca tutti i termini nel nome
+     * Ricerca FUZZY su nome e descrizione tool
+     * Case-insensitive, cerca tutti i termini nel nome e/o descrizione
      */
     function performFuzzySearch(query) {
         const tm = window.Toolmap || {};
@@ -162,16 +162,39 @@
         const results = [];
 
         for (const [toolId, tool] of Object.entries(toolsById)) {
-            // Verifica se TUTTI i termini sono presenti nel nome
-            const nameMatch = searchTerms.every(term => toolId.includes(term));
+            const nameLower = toolId.toLowerCase();
+            const descLower = (tool.desc || tool.description || '').toLowerCase();
 
-            // Calcola score (priorità match all'inizio del nome)
+            // Verifica match nel nome (tutti i termini)
+            const nameMatch = searchTerms.every(term => nameLower.includes(term));
+
+            // Verifica match nella descrizione (tutti i termini)
+            const descMatch = searchTerms.every(term => descLower.includes(term));
+
+            // Verifica match combinato (ogni termine in nome O descrizione)
+            const combinedMatch = searchTerms.every(term =>
+                nameLower.includes(term) || descLower.includes(term)
+            );
+
+            // Calcola score (priorità: nome > descrizione > combinato)
             let score = 0;
+
             if (nameMatch) {
-                score = 10;
-                if (toolId.startsWith(searchTerms[0])) {
-                    score += 5;
+                // Match completo nel nome: massima priorità
+                score = 20;
+                if (nameLower.startsWith(searchTerms[0])) {
+                    score += 10; // Bonus se inizia con il primo termine
                 }
+            } else if (descMatch) {
+                // Match completo nella descrizione
+                score = 10;
+            } else if (combinedMatch) {
+                // Match distribuito tra nome e descrizione
+                score = 5;
+                // Bonus per ogni termine trovato nel nome
+                searchTerms.forEach(term => {
+                    if (nameLower.includes(term)) score += 2;
+                });
             }
 
             if (score > 0) {

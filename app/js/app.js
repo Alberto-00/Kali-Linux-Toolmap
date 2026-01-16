@@ -201,6 +201,23 @@
 
         // ESC per pulire ricerca
         document.addEventListener('keydown', handleEscapeKey);
+
+        // Coordina transizioni card quando sidebar cambia stato
+        window.addEventListener('tm:sidebar:toggle', handleSidebarToggle);
+    }
+
+    /**
+     * Gestisce toggle sidebar per coordinare animazioni grid
+     */
+    let sidebarTransitioning = false;
+    function handleSidebarToggle() {
+        // Marca che sidebar sta transizionando per evitare jank
+        sidebarTransitioning = true;
+
+        // Dopo la transizione sidebar (~350ms), rimuovi il flag
+        setTimeout(() => {
+            sidebarTransitioning = false;
+        }, 380);
     }
 
     // ========================================================================
@@ -233,7 +250,16 @@
 
         if (currentToolIds !== previousToolIds) {
             previousToolIds = currentToolIds;
-            render();
+
+            // Se sidebar sta transizionando, ritarda leggermente il render
+            // per evitare layout thrashing (jank)
+            if (sidebarTransitioning) {
+                requestAnimationFrame(() => {
+                    setTimeout(render, 50);
+                });
+            } else {
+                render();
+            }
         }
     }
 
@@ -408,7 +434,7 @@
             toolsRenderer.render(tools);
         }
 
-        // Applica animazione stagger
+        // Applica indici per stagger animation
         requestAnimationFrame(() => {
             const cards = grid.querySelectorAll('.card');
             cards.forEach((card, index) => {

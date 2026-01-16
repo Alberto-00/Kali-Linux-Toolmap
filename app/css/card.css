@@ -16,54 +16,24 @@
     flex-direction: column;
     position: relative;
     isolation: isolate;
-    animation: card-slide-in .35s cubic-bezier(.25, .46, .45, .94) both;
-    animation-delay: calc(var(--card-index, 0) * 0.04s);
     overflow: hidden;
     --hover-phase: var(--phase, var(--accent-2));
-    transition: transform 180ms cubic-bezier(.2, .7, .2, 1),
-    box-shadow 180ms cubic-bezier(.2, .7, .2, 1),
-    border-color 160ms ease,
-    background-color 160ms ease;
-}
-
-.tools-grid.updating .card {
-    animation: card-fade-out 0.2s ease forwards;
-}
-
-.tools-grid.updated .card {
-    animation: card-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: transform .3s cubic-bezier(.4, 0, .2, 1),
+        box-shadow .3s cubic-bezier(.4, 0, .2, 1),
+        border-color .3s cubic-bezier(.4, 0, .2, 1),
+        background-color .3s cubic-bezier(.4, 0, .2, 1);
+    animation: card-slide-in .35s cubic-bezier(.4, 0, .2, 1) both;
+    animation-delay: calc(var(--card-index, 0) * 0.035s);
 }
 
 @keyframes card-slide-in {
-    from {
+    0% {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(10px) scale(0.98);
     }
-    to {
+    100% {
         opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes card-fade-out {
-    from {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    to {
-        opacity: 0;
-        transform: translateY(-6px);
-    }
-}
-
-@keyframes card-fade-in {
-    from {
-        opacity: 0;
-        transform: translateY(6px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
     }
 }
 
@@ -97,7 +67,8 @@
     background-position: center;
     background-repeat: no-repeat;
     background-size: contain;
-    transition: transform .25s ease, box-shadow .25s ease, filter .25s ease;
+    transition: transform .3s cubic-bezier(.4, 0, .2, 1),
+        filter .3s cubic-bezier(.4, 0, .2, 1);
     position: relative;
     z-index: 10;
 }
@@ -125,10 +96,7 @@
     letter-spacing: 0.03em;
     text-align: center;
     font-size: 1.0625rem;
-    transition:
-    color .25s cubic-bezier(.4,0,.2,1),
-    text-shadow .25s cubic-bezier(.4,0,.2,1),
-    background-size .25s cubic-bezier(.4,0,.2,1);
+    transition: color .3s cubic-bezier(.4, 0, .2, 1);
 }
 
 .card-title .version-chip {
@@ -239,6 +207,10 @@
 .card .card-footer a.icon-btn {
     height: 34px;
     padding: 0 .7em;
+}
+
+.card .card-footer .icon-btn {
+    transition: all .25s cubic-bezier(.4, 0, .2, 1);
 }
 
 .card .card-footer .icon-btn[data-role="repo"]:where(:hover, :focus-visible) {
