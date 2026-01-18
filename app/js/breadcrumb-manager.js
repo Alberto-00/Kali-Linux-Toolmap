@@ -586,6 +586,8 @@
 
                 window.dispatchEvent(new CustomEvent('tm:sidebar:closeAll'));
                 window.dispatchEvent(new CustomEvent('tm:tools:showAll'));
+                // Dispatch scope:set per resettare phaseMemory e mostrare tutti i tool
+                window.dispatchEvent(new CustomEvent('tm:scope:set', { detail: { all: true } }));
             }
         },
 

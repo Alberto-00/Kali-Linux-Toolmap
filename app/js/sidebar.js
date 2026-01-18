@@ -1474,10 +1474,21 @@ const QueryHelpers = {
     }
 
     window.addEventListener('tm:sidebar:closeAll', () => {
+        // Chiudi tutte le fasi CON ANIMAZIONE
         document.querySelectorAll('.nav-item.open').forEach(item => {
-            item.classList.remove(CLASSES.open);
+            const children = item.querySelector(':scope > .children');
             const btn = item.querySelector('.btn');
             if (btn) btn.classList.remove(CLASSES.active);
+
+            if (children) {
+                animatePhaseChildren(children, false, () => {
+                    item.classList.remove(CLASSES.open);
+                    children.style.removeProperty('max-height');
+                    children.style.removeProperty('opacity');
+                });
+            } else {
+                item.classList.remove(CLASSES.open);
+            }
         });
 
         document.querySelectorAll('.children-nested').forEach(n => n.remove());
@@ -2544,10 +2555,26 @@ const QueryHelpers = {
             document.querySelectorAll('.sidebar .search-badge').forEach(el => el.remove());
             QueryHelpers.clearSearchMarks(document);
 
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.classList.remove(CLASSES.open, CLASSES.hasActivePath);
-                item.style.removeProperty('display');
+            // Chiudi le fasi aperte CON ANIMAZIONE
+            document.querySelectorAll('.nav-item.open').forEach(item => {
+                const children = item.querySelector(':scope > .children');
                 item.querySelector('.btn')?.classList.remove(CLASSES.active);
+
+                if (children) {
+                    animatePhaseChildren(children, false, () => {
+                        item.classList.remove(CLASSES.open);
+                        children.style.removeProperty('max-height');
+                        children.style.removeProperty('opacity');
+                    });
+                } else {
+                    item.classList.remove(CLASSES.open);
+                }
+            });
+
+            // Reset altri stati
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove(CLASSES.hasActivePath);
+                item.style.removeProperty('display');
             });
 
             document.querySelectorAll('.children-nested').forEach(n => n.remove());
@@ -2752,6 +2779,9 @@ const QueryHelpers = {
             clearPathHighlight();
             localStorage.removeItem(MEM.pathKey);
             localStorage.removeItem(MEM.pathSlash);
+
+            // La chiusura animata è gestita da tm:sidebar:closeAll
+            // phaseMemory NON viene resettata qui - solo Reset la resetta
             return;
         }
 
@@ -2941,9 +2971,20 @@ const QueryHelpers = {
             phaseMemory[k].expanded.clear();
         });
 
+        // Chiudi tutte le fasi con animazione
         document.querySelectorAll('.nav-item.open').forEach(item => {
-            item.classList.remove(CLASSES.open);
+            const children = item.querySelector(':scope > .children');
             item.querySelector('.btn')?.classList.remove(CLASSES.active);
+
+            if (children) {
+                animatePhaseChildren(children, false, () => {
+                    item.classList.remove(CLASSES.open);
+                    children.style.removeProperty('max-height');
+                    children.style.removeProperty('opacity');
+                });
+            } else {
+                item.classList.remove(CLASSES.open);
+            }
         });
         document.querySelectorAll('.children-nested').forEach(n => n.remove());
         clearPathHighlight();

@@ -251,14 +251,14 @@
         if (currentToolIds !== previousToolIds) {
             previousToolIds = currentToolIds;
 
-            // Se sidebar sta transizionando, ritarda leggermente il render
-            // per evitare layout thrashing (jank)
-            if (sidebarTransitioning) {
+            // Defer render per evitare blocco main thread
+            // Usa doppio rAF per permettere al browser di completare altre operazioni
+            if (sidebarTransitioning || state.scopeAll) {
                 requestAnimationFrame(() => {
-                    setTimeout(render, 50);
+                    requestAnimationFrame(render);
                 });
             } else {
-                render();
+                requestAnimationFrame(render);
             }
         }
     }
@@ -268,7 +268,10 @@
      */
     function handleShowAll() {
         state.scopeAll = true;
-        render();
+        // Defer render per evitare blocco main thread
+        requestAnimationFrame(() => {
+            requestAnimationFrame(render);
+        });
     }
 
     /**
@@ -313,17 +316,13 @@
         state.scopeIds = null;
         state.pathKey = null;
         hasVisitedAnyPhase = false;
-        previousToolIds = '';
+        // NON resettare previousToolIds qui - lascia che handleScopeSet lo gestisca
 
-        // 6. Dispatch altri eventi
+        // 6. Dispatch altri eventi - tm:scope:set triggererà il render
         window.dispatchEvent(new CustomEvent('tm:scope:set', {detail: {all: true}}));
-
         window.dispatchEvent(new CustomEvent('tm:phase:color', {detail: {color: null}}));
 
-        // 7. Render
-        render();
-
-        // 8. Sblocca flag reset
+        // 7. Sblocca flag reset (dopo che le animazioni sono partite)
         setTimeout(() => {
             state.isResetting = false;
         }, 100);
@@ -434,12 +433,13 @@
             toolsRenderer.render(tools);
         }
 
-        // Applica indici per stagger animation
+        // Applica indici per stagger animation (solo primi 20 - oltre CSS ha cap)
         requestAnimationFrame(() => {
             const cards = grid.querySelectorAll('.card');
-            cards.forEach((card, index) => {
-                card.style.setProperty('--card-index', index);
-            });
+            const maxStagger = Math.min(cards.length, 20);
+            for (let i = 0; i < maxStagger; i++) {
+                cards[i].style.setProperty('--card-index', i);
+            }
         });
     }
 

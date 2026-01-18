@@ -523,6 +523,20 @@
         state.isActive = false;
     }
 
+    /**
+     * Gestisce Ctrl+F per attivare ricerca
+     */
+    function handleGlobalKeydown(event) {
+        // Ctrl+F (o Cmd+F su Mac) attiva la ricerca
+        if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
+            event.preventDefault(); // Previeni ricerca browser
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.select(); // Seleziona testo esistente
+            }
+        }
+    }
+
     // ========================================================================
     // EVENT LISTENERS
     // ========================================================================
@@ -541,6 +555,9 @@
         // Eventi globali
         window.addEventListener('tm:search:clear', handleClearSearch);
         window.addEventListener('tm:reset', handleReset);
+
+        // Ctrl+F per attivare ricerca
+        document.addEventListener('keydown', handleGlobalKeydown);
     }
 
     // ========================================================================
