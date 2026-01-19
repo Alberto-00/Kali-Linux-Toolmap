@@ -337,7 +337,8 @@
             const needsReorder = !isShowingAll || this._needsReorder;
 
             if (needsReorder && sortedTools && sortedTools.length > 0) {
-                const toolsToOrder = isShowingAll ? this._allTools : sortedTools;
+                // Usa sempre sortedTools per mantenere l'ordine corretto (starred first)
+                const toolsToOrder = sortedTools;
                 const fragment = document.createDocumentFragment();
                 let staggerIndex = 0;
 
@@ -420,6 +421,9 @@
             if (path) {
                 path.style = starred ? `fill:${activeColor};stroke:none;` : `fill:${mutedFill};stroke:none;`;
             }
+
+            // Forza riordinamento al prossimo showOnly()
+            this._needsReorder = true;
         }
 
         /**

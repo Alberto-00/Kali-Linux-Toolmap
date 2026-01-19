@@ -604,6 +604,14 @@
 
         // Ctrl+F per attivare ricerca
         document.addEventListener('keydown', handleGlobalKeydown);
+
+        // Cleanup timer prima del reload
+        window.addEventListener('beforeunload', () => {
+            if (state.searchDebounceTimer) {
+                clearTimeout(state.searchDebounceTimer);
+                state.searchDebounceTimer = null;
+            }
+        });
     }
 
     // ========================================================================

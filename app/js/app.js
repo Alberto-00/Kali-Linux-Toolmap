@@ -181,7 +181,6 @@
 
         // Eventi globali applicazione
         window.addEventListener('tm:scope:set', handleScopeSet);
-        window.addEventListener('tm:tool:toggleStar', handleToggleStar);
         window.addEventListener('tm:stars:updated', handleStarsUpdated);
         window.addEventListener('tm:tools:showAll', handleShowAll);
         window.addEventListener('tm:reset', handleReset);
@@ -214,16 +213,11 @@
 
     /**
      * Gestisce toggle sidebar per coordinare animazioni grid
+     * (placeholder per eventuali future coordinazioni)
      */
-    let sidebarTransitioning = false;
     function handleSidebarToggle() {
-        // Marca che sidebar sta transizionando per evitare jank
-        sidebarTransitioning = true;
-
-        // Dopo la transizione sidebar (~350ms), rimuovi il flag
-        setTimeout(() => {
-            sidebarTransitioning = false;
-        }, 380);
+        // Attualmente non richiede azioni specifiche
+        // Il grid si adatta automaticamente via CSS
     }
 
     // ========================================================================
@@ -350,22 +344,25 @@
     // ========================================================================
 
     /**
-     * Gestisce toggle stella (re-render)
-     */
-    function handleToggleStar() {
-        // In Show/Hide mode le stelle vengono aggiornate direttamente
-        // tramite handleStarsUpdated, non serve fare nulla qui
-    }
-
-    /**
      * Gestisce aggiornamento stelle
      */
     function handleStarsUpdated(event) {
         const { id, value } = event.detail || {};
 
-        // In Show/Hide mode aggiorna direttamente la stella nel DOM
+        // In Show/Hide mode aggiorna la stella e riordina le card
         if (toolsRenderer?.isInitialized() && id) {
+            // Aggiorna stato stella nel DOM
             toolsRenderer.updateStarState(id, !!value);
+
+            // Aggiorna anche lo stato del tool in memoria
+            const tm = window.Toolmap || {};
+            const tool = tm.toolsById?.[id];
+            if (tool) {
+                tool._starred = !!value;
+            }
+
+            // Re-render per riordinare (starred first)
+            render();
             return;
         }
 
