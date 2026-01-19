@@ -256,6 +256,7 @@
     /**
      * Classe principale per rendering delle card
      * Gestisce rendering e attach event listeners
+     * Supporta modalità Show/Hide per performance ottimale
      */
     class ToolsRenderer {
         constructor(gridId, onCardClick, onNotesClick) {
@@ -266,6 +267,159 @@
 
             this.onCardClick = onCardClick;
             this.onNotesClick = onNotesClick;
+
+            // Mappa per lookup veloce card per ID (Show/Hide mode)
+            this._cardMap = new Map();
+            this._initialized = false;
+            this._allTools = [];
+            this._needsReorder = false; // Traccia se è necessario riordinare
+        }
+
+        /**
+         * Inizializza tutte le card una volta sola (Show/Hide mode)
+         * @param {Array} allTools - Array completo di tutti i tool
+         */
+        initAll(allTools) {
+            if (!this.grid || !Array.isArray(allTools) || allTools.length === 0) {
+                return;
+            }
+
+            this._allTools = allTools;
+            this._cardMap.clear();
+
+            // Genera HTML per tutte le card
+            const html = allTools.map(tool => Markup.card(tool)).join('');
+            this.grid.innerHTML = html;
+
+            // Popola la mappa e attacca event listeners
+            const cards = this.grid.querySelectorAll('.card[data-tool-id]');
+            cards.forEach((card, index) => {
+                const tool = allTools[index];
+                if (tool && tool.id) {
+                    this._cardMap.set(tool.id, card);
+                    this._attachCardClick(card, tool);
+                    this._attachNotesButton(card, tool);
+                    this._attachRepoLink(card);
+                    this._attachStarButton(card, tool);
+                }
+            });
+
+            this._initialized = true;
+
+            // Dopo che le animazioni iniziali sono complete, disabilita animazioni future
+            // Tempo = animation duration (0.35s) + max delay (0.6s) + buffer
+            setTimeout(() => {
+                cards.forEach(card => card.classList.add('card-loaded'));
+            }, 1000);
+        }
+
+        /**
+         * Mostra solo le card con ID specificati (Show/Hide mode)
+         * @param {Array|Set|null} visibleIds - IDs da mostrare (null = mostra tutti)
+         * @param {Array} sortedTools - Tool ordinati per determinare l'ordine visivo
+         */
+        showOnly(visibleIds, sortedTools) {
+            if (!this._initialized) return;
+
+            const showAll = visibleIds === null;
+            const idsSet = showAll ? null : (visibleIds instanceof Set ? visibleIds : new Set(visibleIds));
+            const isShowingAll = showAll || (idsSet && idsSet.size === this._cardMap.size);
+
+            // Nascondi/mostra card
+            this._cardMap.forEach((card, id) => {
+                const visible = showAll || idsSet.has(id);
+                card.classList.toggle('card-hidden', !visible);
+            });
+
+            // Riordina solo quando necessario:
+            // - Se filtriamo un subset (sempre riordina)
+            // - Se mostriamo tutto E le card erano state riordinate prima
+            const needsReorder = !isShowingAll || this._needsReorder;
+
+            if (needsReorder && sortedTools && sortedTools.length > 0) {
+                const toolsToOrder = isShowingAll ? this._allTools : sortedTools;
+                const fragment = document.createDocumentFragment();
+                let staggerIndex = 0;
+
+                toolsToOrder.forEach(tool => {
+                    const card = this._cardMap.get(tool.id);
+                    if (card && !card.classList.contains('card-hidden')) {
+                        if (staggerIndex < 20) {
+                            card.style.setProperty('--card-index', staggerIndex);
+                        }
+                        fragment.appendChild(card);
+                        staggerIndex++;
+                    }
+                });
+
+                this.grid.appendChild(fragment);
+
+                // Aggiorna flag: se abbiamo filtrato, le card sono fuori ordine
+                // Se abbiamo mostrato tutto, le card sono tornate in ordine
+                this._needsReorder = !isShowingAll;
+            }
+
+            // Gestisci empty state
+            const visibleCount = showAll ? this._cardMap.size : idsSet.size;
+            this._updateEmptyState(visibleCount === 0);
+        }
+
+        /**
+         * Mostra tutte le card (Show/Hide mode)
+         */
+        showAll() {
+            this.showOnly(null, this._allTools);
+        }
+
+        /**
+         * Aggiorna empty state
+         * @private
+         */
+        _updateEmptyState(isEmpty) {
+            let emptyEl = this.grid.querySelector('.empty-state');
+
+            if (isEmpty && !emptyEl) {
+                const div = document.createElement('div');
+                div.innerHTML = Markup.emptyState();
+                emptyEl = div.firstElementChild;
+                this.grid.appendChild(emptyEl);
+            } else if (!isEmpty && emptyEl) {
+                emptyEl.remove();
+            }
+        }
+
+        /**
+         * Verifica se è in modalità Show/Hide
+         */
+        isInitialized() {
+            return this._initialized;
+        }
+
+        /**
+         * Aggiorna stato starred di una card specifica
+         * @param {string} toolId - ID del tool
+         * @param {boolean} starred - Nuovo stato starred
+         */
+        updateStarState(toolId, starred) {
+            const card = this._cardMap.get(toolId);
+            if (!card) return;
+
+            const star = card.querySelector('[data-role="star"]');
+            if (!star) return;
+
+            const tool = this._allTools.find(t => t.id === toolId);
+            if (!tool) return;
+
+            const phase = ToolUtils.getCategoryPath(tool)[0] || '04_Miscellaneous';
+            const activeColor = ToolUtils.getPhaseColor(phase);
+            const mutedFill = 'hsl(var(--muted, 0 0% 60%))';
+
+            star.setAttribute('data-starred', starred ? '1' : '0');
+            star.setAttribute('aria-pressed', starred ? 'true' : 'false');
+            const path = star.querySelector('path');
+            if (path) {
+                path.style = starred ? `fill:${activeColor};stroke:none;` : `fill:${mutedFill};stroke:none;`;
+            }
         }
 
         /**

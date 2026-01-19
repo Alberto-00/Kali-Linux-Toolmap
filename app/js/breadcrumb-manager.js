@@ -569,26 +569,31 @@
 
         /**
          * Handler button "Show All"
+         * Comportamento unificato: esci sempre da search mode e mostra tutti i tool
          */
         handleShowAll() {
             const sidebar = document.getElementById('sidebar');
             const inSearch = sidebar && sidebar.classList.contains('search-mode');
 
+            // Se siamo in search mode, prima pulisci la ricerca
             if (inSearch) {
-                // Modalità ricerca: chiudi sidebar e mostra tutto
-                window.dispatchEvent(new CustomEvent('tm:show:all', {
-                    detail: { source: 'breadcrumb', searchMode: true, closeSidebar: true }
+                const searchInput = document.getElementById(SELECTORS.searchInput);
+                if (searchInput) {
+                    searchInput.value = '';
+                }
+                // Pulisci stato ricerca senza ripristinare pre-search state
+                window.dispatchEvent(new CustomEvent('tm:search:clear', {
+                    detail: { skipRestore: true }
                 }));
-            } else {
-                // Modalità normale: chiudi tutte le fasi
-                state.currentPathSlash = null;
-                BreadcrumbRenderer.render(null);
-
-                window.dispatchEvent(new CustomEvent('tm:sidebar:closeAll'));
-                window.dispatchEvent(new CustomEvent('tm:tools:showAll'));
-                // Dispatch scope:set per resettare phaseMemory e mostrare tutti i tool
-                window.dispatchEvent(new CustomEvent('tm:scope:set', { detail: { all: true } }));
             }
+
+            // Comportamento comune: mostra tutti i tool
+            state.currentPathSlash = null;
+            BreadcrumbRenderer.render(null);
+
+            window.dispatchEvent(new CustomEvent('tm:sidebar:closeAll'));
+            window.dispatchEvent(new CustomEvent('tm:tools:showAll'));
+            window.dispatchEvent(new CustomEvent('tm:scope:set', { detail: { all: true } }));
         },
 
         /**

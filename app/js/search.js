@@ -29,8 +29,14 @@
         mode: SEARCH_MODES.FUZZY,
         isActive: false,
         currentQuery: '',
-        preSearchState: null
+        preSearchState: null,
+        searchDebounceTimer: null,
+        isTyping: false
     };
+
+    // Costanti per debounce
+    const DEBOUNCE_DELAY = 150; // ms prima di eseguire la ricerca
+    const TYPING_COOLDOWN = 300; // ms dopo l'ultima digitazione per riabilitare animazioni
 
     // ========================================================================
     // DOM ELEMENTS
@@ -338,7 +344,7 @@
     /**
      * Esce dalla modalità ricerca
      */
-    function exitSearchMode() {
+    function exitSearchMode(skipRestore = false) {
         if (!state.isActive) return;
 
         state.isActive = false;
@@ -348,6 +354,13 @@
         window.dispatchEvent(new CustomEvent('tm:search:set', {
             detail: {hasQuery: false}
         }));
+
+        // Se skipRestore è true, non ripristinare lo stato pre-search
+        if (skipRestore) {
+            state.preSearchState = null;
+            localStorage.removeItem(STORAGE_KEYS.preSearchState);
+            return;
+        }
 
         if (state.preSearchState && state.preSearchState.pathKey) {
             restorePreSearchState();
@@ -392,11 +405,12 @@
 
     /**
      * Pulisce ricerca e ripristina stato
+     * @param {boolean} skipRestore - Se true, non ripristina lo stato pre-search
      */
-    function clearSearch() {
+    function clearSearch(skipRestore = false) {
         searchInput.value = '';
         state.currentQuery = '';
-        exitSearchMode();
+        exitSearchMode(skipRestore);
     }
 
     // ========================================================================
@@ -432,7 +446,23 @@
     // ========================================================================
 
     /**
-     * Gestisce input ricerca in tempo reale
+     * Attiva/disattiva modalità typing (disabilita animazioni sidebar)
+     */
+    function setTypingMode(isTyping) {
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+
+        if (isTyping && !state.isTyping) {
+            sidebar.classList.add('typing');
+            state.isTyping = true;
+        } else if (!isTyping && state.isTyping) {
+            sidebar.classList.remove('typing');
+            state.isTyping = false;
+        }
+    }
+
+    /**
+     * Gestisce input ricerca in tempo reale (con debounce)
      */
     function handleSearchInput(event) {
         const query = event.target.value;
@@ -440,8 +470,15 @@
 
         state.currentQuery = queryTrimmed;
 
-        // Query vuota: esci da modalità ricerca
+        // Cancella timer precedente
+        if (state.searchDebounceTimer) {
+            clearTimeout(state.searchDebounceTimer);
+            state.searchDebounceTimer = null;
+        }
+
+        // Query vuota: esci da modalità ricerca immediatamente
         if (!queryTrimmed) {
+            setTypingMode(false);
             exitSearchMode();
             return;
         }
@@ -452,14 +489,22 @@
             state.isActive = true;
         }
 
-        // Notifica breadcrumb (animazione query in tempo reale)
+        // Attiva modalità typing (disabilita animazioni sidebar)
+        setTypingMode(true);
+
+        // Notifica breadcrumb (animazione query in tempo reale - senza debounce)
         window.dispatchEvent(new CustomEvent('tm:search:query', {
             detail: {query: queryTrimmed, mode: state.mode}
         }));
 
-        // Solo fuzzy mode esegue ricerca in tempo reale
+        // Solo fuzzy mode esegue ricerca in tempo reale (CON DEBOUNCE)
         if (state.mode === SEARCH_MODES.FUZZY) {
-            performFuzzySearch(queryTrimmed);
+            state.searchDebounceTimer = setTimeout(() => {
+                performFuzzySearch(queryTrimmed);
+
+                // Disattiva typing mode dopo un breve delay per permettere animazione finale
+                setTimeout(() => setTypingMode(false), TYPING_COOLDOWN);
+            }, DEBOUNCE_DELAY);
         }
     }
 
@@ -508,8 +553,9 @@
         performAPISearch(state.currentQuery);
     }
 
-    function handleClearSearch() {
-        clearSearch();
+    function handleClearSearch(event) {
+        const skipRestore = event?.detail?.skipRestore || false;
+        clearSearch(skipRestore);
     }
 
     function handleReset() {

@@ -457,7 +457,7 @@ nav {
 .children-nested {
     transition:
       max-height .35s cubic-bezier(.4, 0, .2, 1),
-      opacity .4s cubic-bezier(.4, 0, .2, 1),
+      opacity .35s cubic-bezier(.4, 0, .2, 1),
       padding-top .35s cubic-bezier(.4, 0, .2, 1);
     will-change: max-height, opacity, padding-top;
 }
@@ -466,8 +466,18 @@ nav {
 .nav-item.auto-closing > .children {
     transition:
       max-height .35s cubic-bezier(.4, 0, .2, 1),
-      opacity .4s cubic-bezier(.4, 0, .2, 1),
+      opacity .35s cubic-bezier(.4, 0, .2, 1),
       padding-top .35s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* Disabilita animazioni durante digitazione rapida per evitare lag */
+.sidebar.typing .children,
+.sidebar.typing .children-nested {
+    transition: none !important;
+}
+
+.sidebar.typing .nav-item.auto-closing > .children {
+    transition: none !important;
 }
 
 .children {

@@ -204,6 +204,12 @@
 
         // Coordina transizioni card quando sidebar cambia stato
         window.addEventListener('tm:sidebar:toggle', handleSidebarToggle);
+
+        // Se registry è già caricato (race condition), inizializza subito
+        const tm = window.Toolmap || {};
+        if (tm.__loaded && tm.toolsById && Object.keys(tm.toolsById).length > 0) {
+            handleRegistryReady();
+        }
     }
 
     /**
@@ -250,16 +256,8 @@
 
         if (currentToolIds !== previousToolIds) {
             previousToolIds = currentToolIds;
-
-            // Defer render per evitare blocco main thread
-            // Usa doppio rAF per permettere al browser di completare altre operazioni
-            if (sidebarTransitioning || state.scopeAll) {
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(render);
-                });
-            } else {
-                requestAnimationFrame(render);
-            }
+            // Show/Hide mode è istantaneo, un singolo rAF basta
+            requestAnimationFrame(render);
         }
     }
 
@@ -268,10 +266,8 @@
      */
     function handleShowAll() {
         state.scopeAll = true;
-        // Defer render per evitare blocco main thread
-        requestAnimationFrame(() => {
-            requestAnimationFrame(render);
-        });
+        // Show/Hide mode è istantaneo
+        requestAnimationFrame(render);
     }
 
     /**
@@ -308,8 +304,10 @@
         // 3. DOPO il reset, pulisci storage
         Storage.clearAll();
 
-        // 4. Dispatch clear ricerca (DOPO clearAll)
-        window.dispatchEvent(new CustomEvent('tm:search:clear'));
+        // 4. Dispatch clear ricerca (DOPO clearAll) con skipRestore per evitare ripristino pre-search
+        window.dispatchEvent(new CustomEvent('tm:search:clear', {
+            detail: { skipRestore: true }
+        }));
 
         // 5. Reset stato interno
         state.scopeAll = true;
@@ -355,31 +353,59 @@
      * Gestisce toggle stella (re-render)
      */
     function handleToggleStar() {
-        render();
+        // In Show/Hide mode le stelle vengono aggiornate direttamente
+        // tramite handleStarsUpdated, non serve fare nulla qui
     }
 
     /**
-     * Gestisce aggiornamento stelle (re-render)
+     * Gestisce aggiornamento stelle
      */
-    function handleStarsUpdated() {
+    function handleStarsUpdated(event) {
+        const { id, value } = event.detail || {};
+
+        // In Show/Hide mode aggiorna direttamente la stella nel DOM
+        if (toolsRenderer?.isInitialized() && id) {
+            toolsRenderer.updateStarState(id, !!value);
+            return;
+        }
+
+        // Fallback: re-render completo
         render();
     }
 
     /**
      * Gestisce registry pronto (ripristina stato salvato)
      */
+    let registryInitialized = false;
     function handleRegistryReady() {
+        // Previeni chiamate multiple
+        if (registryInitialized) return;
+
+        const tm = window.Toolmap || {};
+        const toolsById = tm.toolsById || {};
+        const allTools = Object.values(toolsById).filter(Boolean);
+
+        // Inizializza tutte le card una volta sola (Show/Hide mode)
+        if (toolsRenderer && allTools.length > 0) {
+            applyStarredState(allTools);
+            sortTools(allTools);
+            toolsRenderer.initAll(allTools);
+            registryInitialized = true;
+        }
+
+        // Ripristina stato salvato se presente
         const savedPathKey = Storage.get(CONSTANTS.STORAGE_KEYS.pathKey);
 
         if (savedPathKey && !state.isResetting) {
-            const tm = window.Toolmap || {};
-
             if (tm.allToolsUnder?.[savedPathKey]) {
                 state.pathKey = savedPathKey;
                 state.scopeAll = false;
                 state.scopeIds = Array.from(tm.allToolsUnder[savedPathKey]);
                 render();
             }
+        } else {
+            // Mostra tutte le card
+            render();
         }
     }
 
@@ -412,7 +438,7 @@
     // ========================================================================
 
     /**
-     * Rendering principale cards
+     * Rendering principale cards (usa Show/Hide mode se inizializzato)
      */
     function render() {
         if (!grid) return;
@@ -422,13 +448,24 @@
         sortTools(tools);
         notifyBreadcrumb(tools);
 
-        // Empty state
+        // Se renderer è in Show/Hide mode, usa showOnly (molto più veloce)
+        if (toolsRenderer?.isInitialized()) {
+            if (!tools.length) {
+                toolsRenderer.showOnly([], []);
+                return;
+            }
+
+            const visibleIds = tools.map(t => t.id);
+            toolsRenderer.showOnly(visibleIds, tools);
+            return;
+        }
+
+        // Fallback: rendering tradizionale (prima dell'inizializzazione)
         if (!tools.length) {
             renderEmptyState();
             return;
         }
 
-        // Render cards
         if (toolsRenderer) {
             toolsRenderer.render(tools);
         }

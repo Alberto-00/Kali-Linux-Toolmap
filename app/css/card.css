@@ -38,6 +38,16 @@
     }
 }
 
+/* Show/Hide mode - filtering senza ricreare DOM */
+.card.card-hidden {
+    display: none !important;
+}
+
+/* Disabilita animazione dopo il primo caricamento per evitare re-trigger */
+.card.card-loaded {
+    animation: none;
+}
+
 .card:hover,
 .card:focus-within {
     cursor: pointer;

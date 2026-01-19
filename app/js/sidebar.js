@@ -2552,7 +2552,6 @@ const QueryHelpers = {
 
             const sidebarEl = document.getElementById('sidebar');
             sidebarEl?.classList.remove(CLASSES.searchMode);
-            document.querySelectorAll('.sidebar .search-badge').forEach(el => el.remove());
             QueryHelpers.clearSearchMarks(document);
 
             // Chiudi le fasi aperte CON ANIMAZIONE
@@ -2955,43 +2954,8 @@ const QueryHelpers = {
         }
     });
 
+    // Variabile per tracciare ultima fase con badge attivo
     let lastBadgePhase = null;
-
-    window.addEventListener('tm:reset', () => {
-        lastBadgePhase = null;
-        localStorage.removeItem('tm:search:open-phases');
-        document.querySelectorAll('.sidebar .phase-badge, .sidebar .search-badge').forEach(badge => {
-            badge.remove();
-        });
-        localStorage.removeItem(MEM.preSearchSlash);
-        localStorage.removeItem(MEM.searchTempSlash);
-
-        Object.keys(phaseMemory).forEach(k => {
-            phaseMemory[k].activePathSlash = null;
-            phaseMemory[k].expanded.clear();
-        });
-
-        // Chiudi tutte le fasi con animazione
-        document.querySelectorAll('.nav-item.open').forEach(item => {
-            const children = item.querySelector(':scope > .children');
-            item.querySelector('.btn')?.classList.remove(CLASSES.active);
-
-            if (children) {
-                animatePhaseChildren(children, false, () => {
-                    item.classList.remove(CLASSES.open);
-                    children.style.removeProperty('max-height');
-                    children.style.removeProperty('opacity');
-                });
-            } else {
-                item.classList.remove(CLASSES.open);
-            }
-        });
-        document.querySelectorAll('.children-nested').forEach(n => n.remove());
-        clearPathHighlight();
-        hideHoverPane();
-        refreshAllVLinesDebounced();
-        window.SidebarAutoGrow?.schedule();
-    });
 
     // PHASE TOOL COUNT BADGE
     (function PhaseBadgeModule() {
@@ -3135,11 +3099,9 @@ const QueryHelpers = {
             }
         });
         window.addEventListener('tm:reset', () => {
-            localStorage.removeItem('tm:search:open-phases');
-            removeBadges()
-            document.querySelectorAll('.sidebar .phase-badge, .sidebar .search-badge').forEach(badge => {
-                badge.remove();
-            });
+            // Solo reset dello stato locale - la pulizia DOM è gestita dal handler principale
+            removeBadges();
+            lastBadgePhase = null;
         });
         window.addEventListener('tm:search:set', (ev) => {
             const hasQuery = !!(ev.detail && ev.detail.hasQuery);
