@@ -25,6 +25,9 @@
     animation: card-slide-in .35s cubic-bezier(.4, 0, .2, 1) both;
     /* Cap stagger delay at 0.6s max (~17 cards) per evitare delay eccessivi con molte card */
     animation-delay: min(calc(var(--card-index, 0) * 0.035s), 0.6s);
+    /* Ottimizzazione rendering: il browser salta il rendering delle card fuori viewport */
+    content-visibility: auto;
+    contain-intrinsic-size: 320px 360px;
 }
 
 @keyframes card-slide-in {

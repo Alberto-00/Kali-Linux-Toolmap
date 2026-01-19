@@ -458,46 +458,183 @@ const QueryHelpers = {
     }
 
     // Unificata: apre o chiude con animazione
+    // Fallback timeout garantisce che il callback venga chiamato anche se transitionend non scatta
+    const NESTED_ANIMATION_FALLBACK_MS = 400;
+
     function animateNested(nest, isOpening, onComplete) {
         if (!nest) return;
 
         const setStyles = (styles) => Object.entries(styles).forEach(([k, v]) => nest.style[k] = v);
+        let completed = false;
 
         if (isOpening) {
+            // Misura altezza in modo affidabile con visibility:hidden
+            setStyles({visibility: 'hidden', maxHeight: 'none', opacity: '1', paddingTop: '2px'});
+            forceReflow(nest);
             const target = nest.scrollHeight;
+
+            // Ripristina stato iniziale e anima
+            setStyles({visibility: '', maxHeight: '0px', opacity: '0', paddingTop: '0px'});
             forceReflow(nest);
             setStyles({maxHeight: `${target}px`, opacity: '1', paddingTop: '2px'});
 
-            nest.addEventListener('transitionend', () => {
+            const complete = () => {
+                if (completed) return;
+                completed = true;
                 if (document.body.contains(nest) && nest.style.opacity === '1') {
                     nest.style.maxHeight = 'none';
                 }
                 onComplete?.();
-            }, {once: true});
+            };
+
+            nest.addEventListener('transitionend', complete, {once: true});
+            setTimeout(complete, NESTED_ANIMATION_FALLBACK_MS);
         } else {
             const h = nest.scrollHeight;
             setStyles({maxHeight: `${h}px`, opacity: '1', paddingTop: '2px'});
             forceReflow(nest);
             setStyles({maxHeight: '0px', opacity: '0', paddingTop: '0px'});
 
-            nest.addEventListener('transitionend', () => {
+            const complete = () => {
+                if (completed) return;
+                completed = true;
                 nest.remove();
                 onComplete?.();
-            }, {once: true});
+            };
+
+            nest.addEventListener('transitionend', complete, {once: true});
+            setTimeout(complete, NESTED_ANIMATION_FALLBACK_MS);
         }
     }
 
     // Anima apertura/chiusura dei children delle macro fasi (come animateNested ma senza rimuovere)
+    // Fallback timeout garantisce che il callback venga chiamato anche se transitionend non scatta
+    // (es. quando .typing disabilita le transizioni CSS)
+    const ANIMATION_FALLBACK_MS = 400;
+
+    /**
+     * Anima chiusura CONTEMPORANEA di nested e fasi (batch)
+     * Nested e fasi si chiudono insieme per un effetto fluido
+     * @param {Array} nestedArray - array di elementi .children-nested da animare
+     * @param {Array} childrenData - array di {item, children} per le fasi
+     * @param {Function} onAllComplete - callback finale
+     */
+    function animateCloseAllBatch(nestedArray, childrenData, onAllComplete) {
+        const hasNested = nestedArray && nestedArray.length > 0;
+        const hasPhases = childrenData && childrenData.length > 0;
+
+        if (!hasNested && !hasPhases) {
+            onAllComplete?.();
+            return;
+        }
+
+        // Conta totale elementi da animare
+        let totalToComplete = (hasNested ? nestedArray.length : 0) + (hasPhases ? childrenData.length : 0);
+        let completedCount = 0;
+
+        const checkAllComplete = () => {
+            completedCount++;
+            if (completedCount >= totalToComplete) {
+                // Cleanup fasi
+                if (hasPhases) {
+                    childrenData.forEach(({item, children}) => {
+                        item.classList.remove(CLASSES.open);
+                        children.style.removeProperty('max-height');
+                        children.style.removeProperty('opacity');
+                    });
+                }
+                onAllComplete?.();
+            }
+        };
+
+        // Usa un singolo RAF per sincronizzare tutte le animazioni
+        requestAnimationFrame(() => {
+            const setStyles = (el, styles) => Object.entries(styles).forEach(([k, v]) => el.style[k] = v);
+
+            // FASE 1: Imposta stili iniziali su TUTTI gli elementi
+            const nestedHeights = [];
+            const phaseHeights = [];
+
+            if (hasNested) {
+                nestedArray.forEach((nest, i) => {
+                    nestedHeights[i] = nest.scrollHeight;
+                    setStyles(nest, {maxHeight: `${nestedHeights[i]}px`, opacity: '1', paddingTop: '2px'});
+                });
+            }
+
+            if (hasPhases) {
+                childrenData.forEach(({children}, i) => {
+                    phaseHeights[i] = children.scrollHeight;
+                    setStyles(children, {maxHeight: `${phaseHeights[i]}px`, opacity: '1'});
+                });
+            }
+
+            // FASE 2: UN SOLO forceReflow per tutti
+            forceReflow(hasNested ? nestedArray[0] : childrenData[0].children);
+
+            // FASE 3: Imposta stili finali su TUTTI (trigger transizione contemporanea)
+            if (hasNested) {
+                nestedArray.forEach((nest) => {
+                    setStyles(nest, {maxHeight: '0px', opacity: '0', paddingTop: '0px'});
+
+                    let completed = false;
+                    const complete = () => {
+                        if (completed) return;
+                        completed = true;
+                        nest.remove();
+                        checkAllComplete();
+                    };
+
+                    nest.addEventListener('transitionend', complete, {once: true});
+                    setTimeout(complete, NESTED_ANIMATION_FALLBACK_MS);
+                });
+            }
+
+            if (hasPhases) {
+                childrenData.forEach(({children}) => {
+                    setStyles(children, {maxHeight: '0px', opacity: '0'});
+
+                    let completed = false;
+                    const complete = () => {
+                        if (completed) return;
+                        completed = true;
+                        checkAllComplete();
+                    };
+
+                    const handler = (e) => {
+                        if (e.propertyName !== 'max-height') return;
+                        children.removeEventListener('transitionend', handler);
+                        complete();
+                    };
+                    children.addEventListener('transitionend', handler);
+                    setTimeout(complete, ANIMATION_FALLBACK_MS);
+                });
+            }
+        });
+    }
+
     function animatePhaseChildren(children, isOpening, onComplete) {
         if (!children) return;
 
         const setStyles = (styles) => Object.entries(styles).forEach(([k, v]) => children.style[k] = v);
+        let completed = false;
+
+        const complete = () => {
+            if (completed) return;
+            completed = true;
+            onComplete?.();
+        };
 
         if (isOpening) {
-            // Apertura: da 0 a scrollHeight, poi max-height: none
-            setStyles({maxHeight: '0px', opacity: '0'});
+            // Apertura: misura altezza in modo affidabile, poi anima
+            // Usa visibility:hidden + max-height:none per calcolo preciso (anche alla prima apertura)
+            setStyles({visibility: 'hidden', maxHeight: 'none', opacity: '1'});
             forceReflow(children);
             const target = children.scrollHeight;
+
+            // Ripristina stato iniziale e anima
+            setStyles({visibility: '', maxHeight: '0px', opacity: '0'});
+            forceReflow(children);
             setStyles({maxHeight: `${target}px`, opacity: '1'});
 
             const handler = (e) => {
@@ -506,9 +643,11 @@ const QueryHelpers = {
                 if (document.body.contains(children) && children.style.opacity === '1') {
                     children.style.maxHeight = 'none';
                 }
-                onComplete?.();
+                complete();
             };
             children.addEventListener('transitionend', handler);
+            // Fallback se transitionend non scatta
+            setTimeout(complete, ANIMATION_FALLBACK_MS);
         } else {
             // Chiusura: prima imposta altezza reale, poi transiziona a 0
             const h = children.scrollHeight;
@@ -519,9 +658,11 @@ const QueryHelpers = {
             const handler = (e) => {
                 if (e.propertyName !== 'max-height') return;
                 children.removeEventListener('transitionend', handler);
-                onComplete?.();
+                complete();
             };
             children.addEventListener('transitionend', handler);
+            // Fallback se transitionend non scatta
+            setTimeout(complete, ANIMATION_FALLBACK_MS);
         }
     }
 
@@ -1474,35 +1615,36 @@ const QueryHelpers = {
     }
 
     window.addEventListener('tm:sidebar:closeAll', () => {
-        // Chiudi tutte le fasi CON ANIMAZIONE
-        document.querySelectorAll('.nav-item.open').forEach(item => {
-            const children = item.querySelector(':scope > .children');
-            const btn = item.querySelector('.btn');
-            if (btn) btn.classList.remove(CLASSES.active);
+        // Chiudi tutte le fasi CON ANIMAZIONE SEQUENZIALE (come Collapse All)
+        const openItems = Array.from(document.querySelectorAll('.nav-item.open'));
+        const childrenToAnimate = [];
 
+        openItems.forEach(item => {
+            item.querySelector('.btn')?.classList.remove(CLASSES.active);
+            const children = item.querySelector(':scope > .children');
             if (children) {
-                animatePhaseChildren(children, false, () => {
-                    item.classList.remove(CLASSES.open);
-                    children.style.removeProperty('max-height');
-                    children.style.removeProperty('opacity');
-                });
+                childrenToAnimate.push({item, children});
             } else {
                 item.classList.remove(CLASSES.open);
             }
         });
 
-        document.querySelectorAll('.children-nested').forEach(n => n.remove());
+        // Raccogli nested da animare
+        const nestedToAnimate = Array.from(document.querySelectorAll('.children-nested'));
 
-        clearPathHighlight();
+        // Anima in batch: nested e fasi si chiudono contemporaneamente
+        animateCloseAllBatch(nestedToAnimate, childrenToAnimate, () => {
+            clearPathHighlight();
 
-        // Rimuovi tutti i badge NELLA SIDEBAR
-        document.querySelectorAll('.sidebar .phase-badge, .sidebar .search-badge').forEach(b => {
-            b.style.animation = 'badgePopIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
-            setTimeout(() => b.remove(), 300);
+            // Rimuovi tutti i badge NELLA SIDEBAR
+            document.querySelectorAll('.sidebar .phase-badge, .sidebar .search-badge').forEach(b => {
+                b.style.animation = 'badgePopIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+                setTimeout(() => b.remove(), 300);
+            });
+
+            refreshAllVLinesDebounced();
+            window.SidebarAutoGrow?.schedule();
         });
-
-        refreshAllVLinesDebounced();
-        window.SidebarAutoGrow?.schedule();
     });
 
     function positionFlyouts() {
@@ -1607,31 +1749,28 @@ const QueryHelpers = {
 
         collapseAllBtn?.addEventListener('click', () => {
             const openItems = Array.from(document.querySelectorAll('.nav-item.open'));
+            const childrenToAnimate = [];
 
-            // Anima la chiusura di tutte le fasi
+            // Prepara la chiusura di tutte le fasi
             openItems.forEach(item => {
-                const children = item.querySelector(':scope > .children');
                 item.querySelector('.btn')?.classList.remove(CLASSES.active);
-
+                const children = item.querySelector(':scope > .children');
                 if (children) {
-                    animatePhaseChildren(children, false, () => {
-                        item.classList.remove(CLASSES.open);
-                        children.style.removeProperty('max-height');
-                        children.style.removeProperty('opacity');
-                    });
+                    childrenToAnimate.push({item, children});
                 } else {
                     item.classList.remove(CLASSES.open);
                 }
             });
 
-            // Rimuovi i nested con animazione
-            document.querySelectorAll('.children-nested').forEach(n => {
-                animateNested(n, false);
-            });
+            // Raccogli nested da animare
+            const nestedToAnimate = Array.from(document.querySelectorAll('.children-nested'));
 
-            clearPathHighlight();
-            refreshAllVLinesDebounced();
-            window.SidebarAutoGrow?.schedule();
+            // Anima in batch: nested e fasi si chiudono contemporaneamente
+            animateCloseAllBatch(nestedToAnimate, childrenToAnimate, () => {
+                clearPathHighlight();
+                refreshAllVLinesDebounced();
+                window.SidebarAutoGrow?.schedule();
+            });
         });
 
         expandAllBtn?.addEventListener('click', () => {
@@ -1833,10 +1972,7 @@ const QueryHelpers = {
                     }
                 });
 
-                forceReflow(hoverPane);
-
                 applyPhaseThemeToPane(hoverPane, phaseKey);
-                forceReflow(hoverPane);
 
                 const parts = splitPath(pathSlash);
                 let acc = [];
@@ -1844,6 +1980,8 @@ const QueryHelpers = {
                     acc.push(p);
                     ensureExpandedInContainer(hoverPane, acc.join('/'));
                 }
+
+                // Un solo forceReflow dopo tutte le modifiche DOM
                 forceReflow(hoverPane);
 
                 if (!inSearch) {
@@ -2096,10 +2234,17 @@ const QueryHelpers = {
                     item.classList.remove('has-search-results');
                 }
 
-                if (hasResults && !item.classList.contains(CLASSES.open)) {
+                // Resetta sempre stili inline dei children (potrebbero essere rimasti da animazioni)
+                const children = item.querySelector(':scope > .children');
+                if (children) {
+                    children.style.removeProperty('max-height');
+                    children.style.removeProperty('opacity');
+                }
+
+                if (hasResults) {
                     item.classList.add(CLASSES.open);
                     item.querySelector('.btn')?.classList.add(CLASSES.active);
-                } else if (!hasResults) {
+                } else {
                     item.classList.remove(CLASSES.open);
                     item.querySelector('.btn')?.classList.remove(CLASSES.active);
                 }
@@ -2536,6 +2681,15 @@ const QueryHelpers = {
         window.addEventListener('tm:reset', () => {
             localStorage.removeItem('tm:search:open-phases');
 
+            // Pulisci contesto ricerca globale
+            window.__lastSearchContext = null;
+
+            // Cancella hover timeout pendente
+            if (hoverTimeout) {
+                clearTimeout(hoverTimeout);
+                hoverTimeout = null;
+            }
+
             document.querySelectorAll('.sidebar .phase-badge, .sidebar .search-badge').forEach(badge => {
                 badge.remove();
             });
@@ -2554,43 +2708,45 @@ const QueryHelpers = {
             sidebarEl?.classList.remove(CLASSES.searchMode);
             QueryHelpers.clearSearchMarks(document);
 
-            // Chiudi le fasi aperte CON ANIMAZIONE
-            document.querySelectorAll('.nav-item.open').forEach(item => {
-                const children = item.querySelector(':scope > .children');
-                item.querySelector('.btn')?.classList.remove(CLASSES.active);
+            // Chiudi le fasi aperte CON ANIMAZIONE SEQUENZIALE (come Collapse All)
+            const openItems = Array.from(document.querySelectorAll('.nav-item.open'));
+            const childrenToAnimate = [];
 
+            openItems.forEach(item => {
+                item.querySelector('.btn')?.classList.remove(CLASSES.active);
+                const children = item.querySelector(':scope > .children');
                 if (children) {
-                    animatePhaseChildren(children, false, () => {
-                        item.classList.remove(CLASSES.open);
-                        children.style.removeProperty('max-height');
-                        children.style.removeProperty('opacity');
-                    });
+                    childrenToAnimate.push({item, children});
                 } else {
                     item.classList.remove(CLASSES.open);
                 }
             });
 
-            // Reset altri stati
+            // Reset altri stati PRIMA delle animazioni (evita interferenze)
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.classList.remove(CLASSES.hasActivePath);
                 item.style.removeProperty('display');
             });
 
-            document.querySelectorAll('.children-nested').forEach(n => n.remove());
-
             clearPathHighlight();
 
-            if (hoverPane) {
-                hoverPane.classList.remove(CLASSES.searchMode, CLASSES.active);
-                hoverPane.querySelectorAll('.folder-leaf, .leaf, .section-title')
-                    .forEach(el => el.classList.remove(CLASSES.inActivePath, CLASSES.active, CLASSES.searchHit));
-                hoverPane.querySelectorAll(SELECTORS.containers)
-                    .forEach(n => n.classList.remove(CLASSES.hasActivePath));
-                hideHoverPane();
-            }
+            // Raccogli nested da animare PRIMA di iniziare
+            const nestedToAnimate = Array.from(document.querySelectorAll('.children-nested'));
 
-            refreshAllVLinesDebounced();
-            window.SidebarAutoGrow?.schedule();
+            // Anima in batch: nested e fasi si chiudono contemporaneamente
+            animateCloseAllBatch(nestedToAnimate, childrenToAnimate, () => {
+                if (hoverPane) {
+                    hoverPane.classList.remove(CLASSES.searchMode, CLASSES.active);
+                    hoverPane.querySelectorAll('.folder-leaf, .leaf, .section-title')
+                        .forEach(el => el.classList.remove(CLASSES.inActivePath, CLASSES.active, CLASSES.searchHit));
+                    hoverPane.querySelectorAll(SELECTORS.containers)
+                        .forEach(n => n.classList.remove(CLASSES.hasActivePath));
+                    hideHoverPane();
+                }
+
+                refreshAllVLinesDebounced();
+                window.SidebarAutoGrow?.schedule();
+            });
         });
 
         window.addEventListener('tm:show:all', (ev) => {
@@ -3111,45 +3267,59 @@ const QueryHelpers = {
     })();
 })();
 
-// V-LINE CLAMP UTILITIES
+// V-LINE CLAMP UTILITIES - Ottimizzato per performance
+// Evita getClientRects() che causa reflow costosi
 function isVisible(el) {
     if (!el) return false;
-    const rects = el.getClientRects();
-    return el.offsetParent !== null || rects.length > 0;
+    // offsetParent è null per elementi hidden/display:none - molto più veloce di getClientRects
+    return el.offsetParent !== null;
 }
 
 function getDirectNodes(container) {
     const sel = ':scope > .leaf, :scope > .folder-leaf, :scope > .section-title';
     const list = (container || document).querySelectorAll(sel);
     const out = [];
-    list.forEach((el) => {
-        if (el instanceof HTMLElement && isVisible(el)) out.push(el);
-    });
+    for (let i = 0; i < list.length; i++) {
+        const el = list[i];
+        // Controllo veloce: se ha offsetParent è visibile
+        if (el.offsetParent !== null) out.push(el);
+    }
     return out;
 }
+
+// Cache per valori CSS che non cambiano frequentemente
+const ELBOW_DEFAULTS = { top: 0, h: 12 };
 
 function computeVLineEndPx(container) {
     const items = getDirectNodes(container);
     if (items.length === 0) return null;
 
     const last = items[items.length - 1];
+
+    // Leggi offsetTop prima di getComputedStyle per batch reading
+    const lastOffsetTop = last.offsetTop;
+    const containerScrollHeight = container.scrollHeight;
+
+    // getComputedStyle solo se necessario
     const csLast = getComputedStyle(last);
+    const elbowTop = parseFloat(csLast.getPropertyValue('--elbow-top')) || ELBOW_DEFAULTS.top;
+    const elbowH = parseFloat(csLast.getPropertyValue('--elbow-h')) || ELBOW_DEFAULTS.h;
+
+    let endY = lastOffsetTop + elbowTop + (elbowH / 2);
+
+    // Usa valore default per paddingBottom se possibile (solitamente 0)
     const csCont = getComputedStyle(container);
-
-    const elbowTop = parseFloat(csLast.getPropertyValue('--elbow-top')) || 0;
-    const elbowH = parseFloat(csLast.getPropertyValue('--elbow-h')) || 12;
-
-    let endY = last.offsetTop + elbowTop + (elbowH / 2);
-
     const padB = parseFloat(csCont.paddingBottom) || 0;
     const extraBottom = Math.round((elbowH * 0.8) + (padB * 0.5) + 6);
 
-    const maxH = container.scrollHeight;
-    endY = Math.max(0, Math.min(endY, maxH));
+    endY = Math.max(0, Math.min(endY, containerScrollHeight));
     endY = Math.max(0, endY - extraBottom);
 
-    items.forEach(el => el.classList.remove('is-last'));
-    last.classList.add('is-last');
+    // Aggiorna classe is-last solo se cambiata
+    if (!last.classList.contains('is-last')) {
+        items.forEach(el => el.classList.remove('is-last'));
+        last.classList.add('is-last');
+    }
 
     return Math.round(endY);
 }
@@ -3164,7 +3334,13 @@ function setVLine(container) {
 function refreshAllVLines(root = document) {
     root = normalizeRoot(root);
     const all = root.querySelectorAll('.children, .children-nested');
-    all.forEach(setVLine);
+    // Ottimizzazione: salta container in fasi chiuse (non visibili)
+    for (let i = 0; i < all.length; i++) {
+        const container = all[i];
+        // Se il container non è visibile (offsetParent null), salta
+        if (container.offsetParent === null) continue;
+        setVLine(container);
+    }
 }
 
 function refreshAllVLinesDebounced(root = document) {
@@ -3192,31 +3368,45 @@ function initVLineClamp() {
     refreshAllVLines();
     window.addEventListener('resize', refreshAllVLinesDebounced);
 
+    // Osserva solo la sidebar invece di document.body per ridurre mutazioni catturate
+    const sidebar = document.getElementById('sidebar');
     const observer = new MutationObserver(() => refreshAllVLinesDebounced());
-    observer.observe(document.body, {
+    observer.observe(sidebar || document.body, {
         childList: true,
         subtree: true,
         attributes: true,
         attributeFilter: ['class', 'style', 'hidden', 'open', 'aria-expanded']
     });
 
+    // Throttled animation tracking - invece di ogni frame (16ms), ogni 100ms
+    // Riduce chiamate da ~30 a ~5 per animazione
     let animTicker = null;
+    let lastTickTime = 0;
+    const TICK_THROTTLE_MS = 100;
+
     document.addEventListener('transitionstart', (e) => {
         if (!(e.target instanceof Element)) return;
         if (!e.target.closest('.children, .children-nested')) return;
 
         const start = performance.now();
         const tick = (t) => {
-            refreshAllVLines();
+            // Throttle: aggiorna solo se passati almeno TICK_THROTTLE_MS
+            if (t - lastTickTime >= TICK_THROTTLE_MS) {
+                refreshAllVLines();
+                lastTickTime = t;
+            }
             if (t - start < TIMINGS.animationTracking) {
                 animTicker = requestAnimationFrame(tick);
             } else {
                 cancelAnimationFrame(animTicker);
                 animTicker = null;
-                refreshAllVLines();
+                refreshAllVLines(); // Refresh finale
             }
         };
-        if (!animTicker) animTicker = requestAnimationFrame(tick);
+        if (!animTicker) {
+            lastTickTime = 0;
+            animTicker = requestAnimationFrame(tick);
+        }
     }, true);
 
     window.refreshAllVLines = refreshAllVLines;
@@ -3388,10 +3578,19 @@ if (document.readyState === 'loading') {
             else if (typeof window.refreshAllVLines === "function") window.refreshAllVLines();
         };
 
+        // Throttle con debounce minimo per evitare chiamate troppo frequenti
         let ticking = false;
+        let lastScheduleTime = 0;
+        const SCHEDULE_MIN_INTERVAL = 50; // Minimo 50ms tra chiamate effettive
+
         const schedule = () => {
             if (ticking) return;
+
+            const now = performance.now();
+            if (now - lastScheduleTime < SCHEDULE_MIN_INTERVAL) return;
+
             ticking = true;
+            lastScheduleTime = now;
             requestAnimationFrame(() => {
                 ticking = false;
                 const hoverActive = !!document.querySelector('.hover-pane.active');
