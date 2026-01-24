@@ -1384,7 +1384,8 @@ const QueryHelpers = {
                             updateSearchContainersVLines(navItem);
 
                             // SALVA lo stato delle fasi aperte
-                            requestAnimationFrame(() => {
+                            // Usa setTimeout(0) invece di requestAnimationFrame per garantire esecuzione immediata
+                            setTimeout(() => {
                                 const openPhases = getOpenNavItems().map(item => item.dataset.phase);
 
                                 // Salva le fasi aperte nel localStorage
@@ -1426,7 +1427,7 @@ const QueryHelpers = {
                                         }
                                     }));
                                 }
-                            });
+                            }, 0);
                         }
                     } else {
                         highlightActivePath(phaseKey);
@@ -1476,15 +1477,18 @@ const QueryHelpers = {
                     btn.classList.remove(CLASSES.active);
                     clearPathHighlight(navItem);
                     const children = navItem.querySelector(':scope > .children');
-                    animatePhaseChildren(children, false, () => {
-                        navItem.classList.remove(CLASSES.open);
-                    });
+
+                    // Rimuovi IMMEDIATAMENTE la classe open per aggiornare lo stato prima del dispatch
+                    navItem.classList.remove(CLASSES.open);
+
+                    animatePhaseChildren(children, false);
 
                     if (inSearch) {
                         const lastCtx = window.__lastSearchContext;
                         if (lastCtx && lastCtx.hasQuery && lastCtx.paths) {
                             // SALVA lo stato delle fasi aperte (dopo la chiusura)
-                            requestAnimationFrame(() => {
+                            // Usa setTimeout(0) invece di requestAnimationFrame per garantire che venga eseguito subito
+                            setTimeout(() => {
                                 const openPhases = getOpenNavItems().map(item => item.dataset.phase);
 
                                 // Aggiorna le fasi aperte nel localStorage
@@ -1527,7 +1531,7 @@ const QueryHelpers = {
                                         }
                                     }));
                                 }
-                            });
+                            }, 0);
                         }
                     }
                 }
@@ -2168,10 +2172,21 @@ const QueryHelpers = {
             SIDEBAR.classList.remove(CLASSES.searchMode);
             NAV.querySelectorAll('.nav-item').forEach(item => {
                 item.style.removeProperty('display');
-                item.classList.remove('search-disabled');
+                item.classList.remove('search-disabled', 'has-search-results');
                 const b = item.querySelector('.btn .search-badge');
                 if (b) b.remove();
                 QueryHelpers.clearSearchMarks(item);
+                // CRITICO: Rimuovi i nested children creati durante la ricerca
+                // per evitare interferenze con il ripristino dello stato PRE-ricerca
+                item.querySelectorAll('.children-nested').forEach(nest => nest.remove());
+
+                // CRITICO: Pulisci gli stili inline del .children principale
+                // che potrebbero essere stati impostati durante la ricerca
+                const children = item.querySelector(':scope > .children');
+                if (children) {
+                    children.style.removeProperty('max-height');
+                    children.style.removeProperty('opacity');
+                }
             });
             if (hoverPane && hoverPane.classList.contains(CLASSES.active)) {
                 hoverPane.classList.remove(CLASSES.searchMode);
@@ -2655,9 +2670,35 @@ const QueryHelpers = {
                     if (wasOpen) {
                         item.classList.add(CLASSES.open);
                         item.querySelector('.btn')?.classList.add(CLASSES.active);
+
+                        // CRITICO: Ripristina anche i nested children che erano espansi PRIMA della ricerca
+                        // Questo garantisce che lo stato sia completamente ripristinato
+                        if (typeof expandFromMemoryInContainer === 'function') {
+                            expandFromMemoryInContainer(item, phase);
+                        }
+
+                        // Ripristina l'evidenziazione del path attivo per questa fase
+                        if (typeof highlightActivePath === 'function') {
+                            highlightActivePath(phase);
+                        }
+
+                        // Ripristina gli stili del .children per renderlo visibile
+                        const children = item.querySelector(':scope > .children');
+                        if (children) {
+                            children.style.maxHeight = 'none';
+                            children.style.opacity = '1';
+                        }
                     } else {
                         item.classList.remove(CLASSES.open);
                         item.querySelector('.btn')?.classList.remove(CLASSES.active);
+
+                        // CRITICO: Imposta gli stili del .children per renderlo nascosto
+                        // Questo è necessario perché durante la ricerca potrebbero essere stati impostati
+                        const children = item.querySelector(':scope > .children');
+                        if (children) {
+                            children.style.maxHeight = '0px';
+                            children.style.opacity = '0';
+                        }
                     }
 
                     const badgeState = badgeStates[phase];

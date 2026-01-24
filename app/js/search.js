@@ -350,6 +350,10 @@
         state.isActive = false;
         state.currentQuery = '';
 
+        // CRITICO: Cancella lo stato delle fasi aperte DURANTE la ricerca
+        // Questo previene interferenze con il ripristino dello stato PRE-ricerca
+        localStorage.removeItem('tm:search:open-phases');
+
         // Notifica sistema
         window.dispatchEvent(new CustomEvent('tm:search:set', {
             detail: {hasQuery: false}
