@@ -266,6 +266,10 @@
         // Hide loading overlay
         hideLoading();
 
+        // CRITICO: Riattiva le animazioni dopo la ricerca AI
+        // Senza questo, la classe 'typing' rimane attiva e disabilita tutte le animazioni
+        setTypingMode(false);
+
         if (!toolIds || toolIds.length === 0) {
             window.dispatchEvent(new CustomEvent('tm:search:api', {
                 detail: {

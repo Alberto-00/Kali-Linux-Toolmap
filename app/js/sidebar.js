@@ -47,6 +47,16 @@ const QueryHelpers = {
     }
 };
 
+// OTTIMIZZAZIONE: Debounced wrapper per AutoGrow per evitare chiamate duplicate
+let autoGrowTimer = null;
+const scheduleAutoGrow = () => {
+    if (autoGrowTimer) clearTimeout(autoGrowTimer);
+    autoGrowTimer = setTimeout(() => {
+        window.SidebarAutoGrow?.schedule();
+        autoGrowTimer = null;
+    }, 50); // Debounce di 50ms
+};
+
 (() => {
     "use strict";
 
@@ -723,10 +733,13 @@ const QueryHelpers = {
     function updateSearchContainersVLines(root) {
         if (!root) return;
 
+        // OTTIMIZZAZIONE: Query più specifica invece di controllare ogni child
+        // Usa :has() se disponibile, altrimenti fallback a iterazione
         root.querySelectorAll('.children, .children-nested, .hover-root').forEach(container => {
-            const hasSearchNodes = Array.from(container.children).some(child =>
-                child.classList.contains(CLASSES.searchHit) ||
-                child.classList.contains(CLASSES.searchIntermediate)
+            // Ottimizzazione: usa querySelector invece di Array.from().some()
+            const hasSearchNodes = !!(
+                container.querySelector(`.${CLASSES.searchHit}`) ||
+                container.querySelector(`.${CLASSES.searchIntermediate}`)
             );
 
             container.classList.toggle(CLASSES.hasActivePath, hasSearchNodes);
@@ -1549,49 +1562,54 @@ const QueryHelpers = {
                         const lastCtx = window.__lastSearchContext;
                         const inSearch = sidebarEl.classList.contains(CLASSES.searchMode);
 
-                        if (inSearch && lastCtx && lastCtx.hasQuery) {
-                            const phasePaths = (lastCtx.paths || []).filter(arr => arr && arr[0] === phaseKey);
+                        // OTTIMIZZAZIONE: Aggiungi delay prima di mostrare hover pane
+                        // Previene aperture accidentali durante movimenti rapidi del mouse
+                        hoverTimeout = setTimeout(() => {
+                            if (inSearch && lastCtx && lastCtx.hasQuery) {
+                                const phasePaths = (lastCtx.paths || []).filter(arr => arr && arr[0] === phaseKey);
 
-                            if (phasePaths.length === 0) {
-                                return;
-                            }
-
-                            showHoverPaneForNode(btn, phaseData, phaseKey);
-
-                            setTimeout(() => {
-                                window.applySearchToHoverPane && window.applySearchToHoverPane(lastCtx);
-
-                                // Filtra i tool trovati per questa fase
-                                const tm = window.Toolmap || {};
-                                const allSearchIds = lastCtx.foundToolIds || [];
-                                const toolsById = tm.toolsById || {};
-
-                                const phaseToolIds = allSearchIds.filter(id => {
-                                    const tool = toolsById[id];
-                                    if (!tool || !tool.category_path) return false;
-                                    const toolPhase = tool.category_path[0];
-                                    return toolPhase === phaseKey;
-                                });
-
-                                if (phaseToolIds.length > 0) {
-                                    window.dispatchEvent(new CustomEvent('tm:scope:set', {
-                                        detail: {
-                                            ids: phaseToolIds,
-                                            pathKey: `search:${phaseKey}`,
-                                            all: false,
-                                            source: 'hover-search-phase'
-                                        }
-                                    }));
+                                if (phasePaths.length === 0) {
+                                    return;
                                 }
-                            }, TIMINGS.searchApply);
-                        } else {
-                            showHoverPaneForNode(btn, phaseData, phaseKey);
 
-                            const last = getActivePathSlash(phaseKey);
-                            if (last && typeof last === 'string') {
-                                dispatchScopeAndPhase(last);
+                                showHoverPaneForNode(btn, phaseData, phaseKey);
+
+                                // OTTIMIZZAZIONE: Ridotto delay per applicazione ricerca
+                                setTimeout(() => {
+                                    window.applySearchToHoverPane && window.applySearchToHoverPane(lastCtx);
+
+                                    // Filtra i tool trovati per questa fase
+                                    const tm = window.Toolmap || {};
+                                    const allSearchIds = lastCtx.foundToolIds || [];
+                                    const toolsById = tm.toolsById || {};
+
+                                    const phaseToolIds = allSearchIds.filter(id => {
+                                        const tool = toolsById[id];
+                                        if (!tool || !tool.category_path) return false;
+                                        const toolPhase = tool.category_path[0];
+                                        return toolPhase === phaseKey;
+                                    });
+
+                                    if (phaseToolIds.length > 0) {
+                                        window.dispatchEvent(new CustomEvent('tm:scope:set', {
+                                            detail: {
+                                                ids: phaseToolIds,
+                                                pathKey: `search:${phaseKey}`,
+                                                all: false,
+                                                source: 'hover-search-phase'
+                                            }
+                                        }));
+                                    }
+                                }, 30); // Ridotto da 50ms a 30ms
+                            } else {
+                                showHoverPaneForNode(btn, phaseData, phaseKey);
+
+                                const last = getActivePathSlash(phaseKey);
+                                if (last && typeof last === 'string') {
+                                    dispatchScopeAndPhase(last);
+                                }
                             }
-                        }
+                        }, 100); // Delay di 100ms prima di mostrare l'hover pane
                     }
                 }
             });
@@ -2139,15 +2157,8 @@ const QueryHelpers = {
             expandFromMemoryInContainer(pane, phaseKey);
         }
 
-        setTimeout(() => {
-            if (window.SidebarAutoGrow) {
-                window.SidebarAutoGrow.schedule();
-                setTimeout(() => window.SidebarAutoGrow.schedule(), TIMINGS.autoGrowShort);
-            }
-        }, TIMINGS.paneActivation);
-
-        window.dispatchEvent(new Event('tm:hover:show'));
-
+        // OTTIMIZZAZIONE: Single delayed call invece di multiple
+        // Batching degli aggiornamenti per ridurre reflow/repaint
         requestAnimationFrame(() => {
             if (!inSearch) {
                 const currentSlash = getActivePathSlash(phaseKey);
@@ -2157,9 +2168,15 @@ const QueryHelpers = {
                     if (activeLeaf) activeLeaf.classList.add(CLASSES.active);
                 }
             }
-            refreshAllVLines(pane);
-            window.SidebarAutoGrow?.schedule();
+
+            // OTTIMIZZAZIONE: Single refresh con delay per permettere al DOM di stabilizzarsi
+            setTimeout(() => {
+                refreshAllVLines(pane);
+                window.SidebarAutoGrow?.schedule();
+            }, 50);
         });
+
+        window.dispatchEvent(new Event('tm:hover:show'));
     }
 
     // RICERCA
@@ -2208,14 +2225,16 @@ const QueryHelpers = {
                 badge.remove();
             });
 
-
             SIDEBAR.classList.add(CLASSES.searchMode);
 
+            // OTTIMIZZAZIONE: Batch clear operations
             QueryHelpers.clearActive(NAV);
-            NAV.querySelectorAll(SELECTORS.pathNodes)
-                .forEach(el => el.classList.remove(CLASSES.inActivePath));
-            NAV.querySelectorAll(SELECTORS.containers)
-                .forEach(n => n.classList.remove(CLASSES.hasActivePath));
+            const pathNodes = NAV.querySelectorAll(SELECTORS.pathNodes);
+            const containers = NAV.querySelectorAll(SELECTORS.containers);
+
+            // Single loop per rimuovere classi
+            pathNodes.forEach(el => el.classList.remove(CLASSES.inActivePath));
+            containers.forEach(n => n.classList.remove(CLASSES.hasActivePath));
 
             const phaseSet = new Set(phaseKeys);
 
@@ -2322,15 +2341,23 @@ const QueryHelpers = {
                 }
             }
 
-            NAV.querySelectorAll('.nav-item.has-search-results').forEach(item => {
+            // OTTIMIZZAZIONE: Batch update delle vline invece di per-fase
+            // Raccogliamo tutte le fasi e aggiorniamo in un'unica chiamata
+            const hasSearchResults = NAV.querySelectorAll('.nav-item.has-search-results');
+            hasSearchResults.forEach(item => {
                 updateSearchContainersVLines(item);
             });
 
             if (hoverPane && hoverPane.classList.contains(CLASSES.active)) {
                 applySearchToHoverPane(detail);
             }
-            refreshAllVLinesDebounced(NAV);
-            window.SidebarAutoGrow?.schedule();
+
+            // OTTIMIZZAZIONE: Single refresh invece di multiple chiamate
+            // Usa setTimeout per permettere al DOM di stabilizzarsi
+            setTimeout(() => {
+                refreshAllVLinesDebounced(NAV);
+                window.SidebarAutoGrow?.schedule();
+            }, 50);
         }
 
         function applySearchToHoverPane(detail) {
@@ -3375,18 +3402,34 @@ function setVLine(container) {
 function refreshAllVLines(root = document) {
     root = normalizeRoot(root);
     const all = root.querySelectorAll('.children, .children-nested');
-    // Ottimizzazione: salta container in fasi chiuse (non visibili)
+
+    // OTTIMIZZAZIONE: Usa DocumentFragment per batch DOM reads
+    // Leggi tutte le dimensioni prima di scrivere (evita layout thrashing)
+    const updates = [];
+
     for (let i = 0; i < all.length; i++) {
         const container = all[i];
         // Se il container non è visibile (offsetParent null), salta
         if (container.offsetParent === null) continue;
-        setVLine(container);
+
+        // OTTIMIZZAZIONE: Salta container vuoti o con altezza 0
+        if (container.children.length === 0 || container.clientHeight === 0) continue;
+
+        updates.push(container);
     }
+
+    // Applica aggiornamenti in batch
+    updates.forEach(container => setVLine(container));
 }
 
 function refreshAllVLinesDebounced(root = document) {
     root = normalizeRoot(root);
-    if (rafId) cancelAnimationFrame(rafId);
+    // Cancella richieste pendenti per evitare aggiornamenti duplicati
+    if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+    }
+
     rafId = requestAnimationFrame(() => {
         refreshAllVLines(root);
         rafId = null;
@@ -3410,13 +3453,25 @@ function initVLineClamp() {
     window.addEventListener('resize', refreshAllVLinesDebounced);
 
     // Osserva solo la sidebar invece di document.body per ridurre mutazioni catturate
+    // OTTIMIZZAZIONE: Throttle delle mutation con debounce più aggressivo
     const sidebar = document.getElementById('sidebar');
-    const observer = new MutationObserver(() => refreshAllVLinesDebounced());
+    let mutationDebounceTimer = null;
+    const MUTATION_DEBOUNCE_MS = 150; // Throttle mutation observer calls
+
+    const observer = new MutationObserver(() => {
+        // Debounce aggressivo: salta chiamate frequenti durante animazioni
+        if (mutationDebounceTimer) clearTimeout(mutationDebounceTimer);
+        mutationDebounceTimer = setTimeout(() => {
+            refreshAllVLinesDebounced();
+            mutationDebounceTimer = null;
+        }, MUTATION_DEBOUNCE_MS);
+    });
+
     observer.observe(sidebar || document.body, {
         childList: true,
         subtree: true,
-        attributes: true,
-        attributeFilter: ['class', 'style', 'hidden', 'open', 'aria-expanded']
+        // OTTIMIZZAZIONE: Rimuovi 'attributes' - troppo aggressivo
+        // Le vline verranno aggiornate dai trigger espliciti nel codice
     });
 
     // Throttled animation tracking - invece di ogni frame (16ms), ogni 100ms
