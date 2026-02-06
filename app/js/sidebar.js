@@ -48,12 +48,21 @@ const QueryHelpers = {
 };
 
 // OTTIMIZZAZIONE: Debounced wrapper per AutoGrow per evitare chiamate duplicate
+// FIX 1.3: Add mutex lock to prevent concurrent calls
 let autoGrowTimer = null;
+let autoGrowPending = false;
+
 const scheduleAutoGrow = () => {
+    // Skip if already scheduled
+    if (autoGrowPending) return;
+
     if (autoGrowTimer) clearTimeout(autoGrowTimer);
+    autoGrowPending = true;
+
     autoGrowTimer = setTimeout(() => {
-        window.SidebarAutoGrow?.schedule();
+        autoGrowPending = false;
         autoGrowTimer = null;
+        window.SidebarAutoGrow?.schedule();
     }, 50); // Debounce di 50ms
 };
 
@@ -331,12 +340,11 @@ const scheduleAutoGrow = () => {
     }
 
     // MEMORIA (path attivo + rami espansi)
+    // FIX 2.1: Removed preSearchSlash - use search.js's tm:search:prestate instead
     const MEM = {
         collapsed: 'tm:sidebar:collapsed',
         pathKey: 'tm:active:path',
-        pathSlash: 'tm:active:slash',
-        preSearchSlash: 'tm:presearch:slash',
-        searchTempSlash: 'tm:search:tempSlash'
+        pathSlash: 'tm:active:slash'
     };
 
     const phaseMemory = Object.fromEntries(
@@ -418,9 +426,31 @@ const scheduleAutoGrow = () => {
         return slashPath.split('/').filter(Boolean);
     }
 
+    // FIX 3.2: Cache nav items to reduce DOM queries
+    const navItemCache = new Map();
+
     function getNavItem(phaseKey) {
         if (!phaseKey) return null;
-        return document.querySelector(`.nav-item[data-phase="${phaseKey}"]`);
+
+        // Check cache first
+        if (navItemCache.has(phaseKey)) {
+            const cached = navItemCache.get(phaseKey);
+            // Verify cached element still in DOM
+            if (cached && document.body.contains(cached)) {
+                return cached;
+            }
+            // Remove stale cache entry
+            navItemCache.delete(phaseKey);
+        }
+
+        // Query and cache
+        const item = document.querySelector(`.nav-item[data-phase="${phaseKey}"]`);
+        if (item) navItemCache.set(phaseKey, item);
+        return item;
+    }
+
+    function clearNavItemCache() {
+        navItemCache.clear();
     }
 
     function getOpenNavItems() {
@@ -471,8 +501,19 @@ const scheduleAutoGrow = () => {
     // Fallback timeout garantisce che il callback venga chiamato anche se transitionend non scatta
     const NESTED_ANIMATION_FALLBACK_MS = 400;
 
+    // FIX 1.2: Track active animations globally to prevent conflicts
+    const activeAnimations = new WeakMap();
+
     function animateNested(nest, isOpening, onComplete) {
         if (!nest) return;
+
+        // Cancel any existing animation on this element
+        const existing = activeAnimations.get(nest);
+        if (existing) {
+            clearTimeout(existing.timeout);
+            nest.removeEventListener('transitionend', existing.handler);
+            activeAnimations.delete(nest);
+        }
 
         const setStyles = (styles) => Object.entries(styles).forEach(([k, v]) => nest.style[k] = v);
         let completed = false;
@@ -491,14 +532,20 @@ const scheduleAutoGrow = () => {
             const complete = () => {
                 if (completed) return;
                 completed = true;
+
+                // Clean up tracking
+                activeAnimations.delete(nest);
+
                 if (document.body.contains(nest) && nest.style.opacity === '1') {
                     nest.style.maxHeight = 'none';
                 }
                 onComplete?.();
             };
 
+            const timeout = setTimeout(complete, NESTED_ANIMATION_FALLBACK_MS);
+            activeAnimations.set(nest, { handler: complete, timeout });
+
             nest.addEventListener('transitionend', complete, {once: true});
-            setTimeout(complete, NESTED_ANIMATION_FALLBACK_MS);
         } else {
             const h = nest.scrollHeight;
             setStyles({maxHeight: `${h}px`, opacity: '1', paddingTop: '2px'});
@@ -508,12 +555,18 @@ const scheduleAutoGrow = () => {
             const complete = () => {
                 if (completed) return;
                 completed = true;
+
+                // Clean up tracking
+                activeAnimations.delete(nest);
+
                 nest.remove();
                 onComplete?.();
             };
 
+            const timeout = setTimeout(complete, NESTED_ANIMATION_FALLBACK_MS);
+            activeAnimations.set(nest, { handler: complete, timeout });
+
             nest.addEventListener('transitionend', complete, {once: true});
-            setTimeout(complete, NESTED_ANIMATION_FALLBACK_MS);
         }
     }
 
@@ -750,6 +803,9 @@ const scheduleAutoGrow = () => {
         const nav = document.getElementById('nav');
         if (!nav) return;
 
+        // FIX 3.2: Clear cache when rebuilding nav
+        clearNavItemCache();
+
         let html = '';
         Object.entries(taxonomy).forEach(([phase, tree]) => {
             const hasChildren = hasChildrenNode(tree);
@@ -775,7 +831,8 @@ const scheduleAutoGrow = () => {
 
         nav.innerHTML = html;
         attachPhaseToggles();
-        attachFolderLeafDrilldown(document);
+        attachHoverPaneListener(); // FIX 3.4: Attach document listener once
+        attachFolderLeafDrilldown(); // FIX 3.1: Event delegation - no parameter needed
         document.querySelectorAll('.nav-item > .children').forEach(markLastVisible);
         positionFlyouts();
     }
@@ -911,12 +968,11 @@ const scheduleAutoGrow = () => {
         leaf.after(nest);
         markLastVisible(leaf.parentElement);
         markLastVisible(nest);
-        attachFolderLeafDrilldown(nest);
+        // FIX 3.1: No need to attach listeners - event delegation handles it
     }
 
     function expandFromMemoryInContainer(container, phaseKey) {
         getExpandedPaths(phaseKey).forEach(p => ensureExpandedInContainer(container, p));
-        refreshAllVLinesDebounced(container);
 
         const current = getActivePathSlash(phaseKey);
         if (!container) return;
@@ -941,7 +997,6 @@ const scheduleAutoGrow = () => {
         } else {
             highlightActivePath(phaseKey);
         }
-        window.SidebarAutoGrow?.schedule();
     }
 
     // DISPATCH FILTRO
@@ -959,8 +1014,6 @@ const scheduleAutoGrow = () => {
             localStorage.setItem(MEM.pathSlash, slashPath);
             if (pathKey) localStorage.setItem(MEM.pathKey, pathKey);
             else localStorage.removeItem(MEM.pathKey);
-        } else {
-            localStorage.setItem(MEM.searchTempSlash, slashPath);
         }
 
         window.dispatchEvent(new CustomEvent('tm:scope:set', {detail: {pathKey, ids, ...opts}}));
@@ -1103,18 +1156,26 @@ const scheduleAutoGrow = () => {
     }
 
     // INTERAZIONE NEL NAV
-    function attachFolderLeafDrilldown(scope = document) {
-        scope.querySelectorAll('.children .folder-leaf').forEach(el => {
-            if (el.dataset._drillbound) return;
-            el.dataset._drillbound = '1';
+    // FIX 3.1: Use event delegation instead of individual listeners to prevent memory leaks
+    function attachFolderLeafDrilldown() {
+        const NAV = document.getElementById('nav');
+        if (!NAV) return;
 
-            el.addEventListener('click', (ev) => {
-                ev.stopPropagation();
+        // Only attach once
+        if (NAV.dataset.drilldownAttached) return;
+        NAV.dataset.drilldownAttached = '1';
 
-                const pathSlash = el.dataset.path;
-                const node = getNodeByPath(taxonomy, pathSlash);
-                const hasKids = hasChildrenNode(node);
-                const phaseKey = getPhaseFromPath(pathSlash);
+        // Single delegated listener for all folder-leaf clicks
+        NAV.addEventListener('click', (ev) => {
+            const el = ev.target.closest('.children .folder-leaf');
+            if (!el) return;
+
+            ev.stopPropagation();
+
+            const pathSlash = el.dataset.path;
+            const node = getNodeByPath(taxonomy, pathSlash);
+            const hasKids = hasChildrenNode(node);
+            const phaseKey = getPhaseFromPath(pathSlash);
 
                 Object.keys(taxonomy).forEach(otherPhase => {
                     if (otherPhase !== phaseKey) {
@@ -1187,9 +1248,8 @@ const scheduleAutoGrow = () => {
                     window.SidebarAutoGrow?.schedule();
                 });
 
-                attachFolderLeafDrilldown(nest);
+                // No recursive call needed - event delegation handles nested elements
             });
-        });
     }
 
     function expandAncestors(container, slashPath) {
@@ -1265,11 +1325,11 @@ const scheduleAutoGrow = () => {
                     navItem.classList.add(CLASSES.open);
                     btn.classList.add(CLASSES.active);
                     const newChildren = navItem.querySelector(':scope > .children');
-                    animatePhaseChildren(newChildren, true);
 
                     // Rimuovi eventuali nested children esistenti
                     navItem.querySelectorAll('.children-nested').forEach(n => n.remove());
 
+                    // Espandi subito (in parallelo con l'animazione)
                     if (inSearch) {
                         // USA LA FUNZIONE HELPER per ripristinare le fasi in search mode
                         restoreSearchPhases(phaseKey);
@@ -1322,6 +1382,17 @@ const scheduleAutoGrow = () => {
                         }
                     }
 
+                    // Forza layout reflow per ottenere altezze corrette
+                    void newChildren.offsetHeight;
+
+                    // Refresh PRIMA dell'animazione con tutto già espanso
+                    refreshAllVLines(navItem);
+
+                    // Avvia animazione con vlines già corrette
+                    animatePhaseChildren(newChildren, true, () => {
+                        scheduleAutoGrow();
+                    });
+
                     btn.focus?.();
 
                     requestAnimationFrame(() => {
@@ -1358,8 +1429,8 @@ const scheduleAutoGrow = () => {
                     navItem.classList.add(CLASSES.open);
                     btn.classList.add(CLASSES.active);
                     const newChildren = navItem.querySelector(':scope > .children');
-                    animatePhaseChildren(newChildren, true);
 
+                    // Espandi nested children PRIMA dell'animazione
                     if (inSearch) {
                         const lastCtx = window.__lastSearchContext;
                         if (lastCtx && lastCtx.hasQuery && lastCtx.paths) {
@@ -1394,20 +1465,16 @@ const scheduleAutoGrow = () => {
                                     }
                                 }
                             }
-                            updateSearchContainersVLines(navItem);
 
                             // SALVA lo stato delle fasi aperte
-                            // Usa setTimeout(0) invece di requestAnimationFrame per garantire esecuzione immediata
                             setTimeout(() => {
                                 const openPhases = getOpenNavItems().map(item => item.dataset.phase);
 
-                                // Salva le fasi aperte nel localStorage
                                 if (openPhases.length > 0) {
                                     localStorage.setItem('tm:search:open-phases', JSON.stringify(openPhases));
                                 }
 
                                 if (openPhases.length === 0) {
-                                    // USA gli IDs dalla ricerca originale
                                     const allSearchIds = lastCtx.foundToolIds || [];
 
                                     window.dispatchEvent(new CustomEvent('tm:scope:set', {
@@ -1419,7 +1486,6 @@ const scheduleAutoGrow = () => {
                                         }
                                     }));
                                 } else {
-                                    // Filtra solo i tool che matchano la ricerca per le fasi aperte
                                     const tm = window.Toolmap || {};
                                     const allSearchIds = lastCtx.foundToolIds || [];
                                     const toolsById = tm.toolsById || {};
@@ -1485,6 +1551,21 @@ const scheduleAutoGrow = () => {
                             }
                         }, 150);
                     }
+
+                    // Forza layout reflow per ottenere altezze corrette
+                    void newChildren.offsetHeight;
+
+                    // Refresh PRIMA dell'animazione con tutto già espanso
+                    if (inSearch) {
+                        updateSearchContainersVLines(navItem);
+                    } else {
+                        refreshAllVLines(navItem);
+                    }
+
+                    // Avvia l'animazione con vlines già corrette
+                    animatePhaseChildren(newChildren, true, () => {
+                        scheduleAutoGrow();
+                    });
                 } else {
                     // CHIUSURA della fase con animazione fluida
                     btn.classList.remove(CLASSES.active);
@@ -1557,14 +1638,17 @@ const scheduleAutoGrow = () => {
                     const phaseKey = navItem.dataset.phase;
                     const phaseData = taxonomy[phaseKey];
                     if (hasChildrenNode(phaseData)) {
-                        clearTimeout(hoverTimeout);
+                        // FIX: Clear ALL hover timeouts when entering a new button
+                        // This prevents the previous button's timeout from showing wrong hover pane
+                        const allButtons = document.querySelectorAll('.nav-item.has-children > .btn');
+                        allButtons.forEach(b => clearHoverTimeout(b));
 
                         const lastCtx = window.__lastSearchContext;
                         const inSearch = sidebarEl.classList.contains(CLASSES.searchMode);
 
                         // OTTIMIZZAZIONE: Aggiungi delay prima di mostrare hover pane
                         // Previene aperture accidentali durante movimenti rapidi del mouse
-                        hoverTimeout = setTimeout(() => {
+                        setHoverTimeout(btn, () => {
                             if (inSearch && lastCtx && lastCtx.hasQuery) {
                                 const phasePaths = (lastCtx.paths || []).filter(arr => arr && arr[0] === phaseKey);
 
@@ -1617,7 +1701,7 @@ const scheduleAutoGrow = () => {
             btn.addEventListener('mouseleave', () => {
                 const sidebarEl = document.getElementById('sidebar');
                 if (sidebarEl && sidebarEl.classList.contains(CLASSES.collapsed)) {
-                    hoverTimeout = setTimeout(() => {
+                    setHoverTimeout(btn, () => {
                         hideHoverPane();
                         const inSearch = sidebarEl.classList.contains(CLASSES.searchMode);
                         if (!inSearch) {
@@ -1630,10 +1714,24 @@ const scheduleAutoGrow = () => {
                 }
             });
 
-            document.addEventListener('mouseenter', (e) => {
-                if (e.target.closest('.hover-pane')) clearTimeout(hoverTimeout);
-            }, true);
         });
+    }
+
+    // FIX 3.4: Move document listener outside function to prevent duplication
+    // Use module-level flag instead of document.dataset (which doesn't exist)
+    let hoverPaneListenerAttached = false;
+
+    function attachHoverPaneListener() {
+        if (hoverPaneListenerAttached) return;
+        hoverPaneListenerAttached = true;
+
+        document.addEventListener('mouseenter', (e) => {
+            if (e.target.closest('.hover-pane')) {
+                // Clear all hover timeouts when entering hover pane
+                const buttons = document.querySelectorAll('.nav-item.has-children > .btn');
+                buttons.forEach(b => clearHoverTimeout(b));
+            }
+        }, true);
     }
 
     window.addEventListener('tm:sidebar:closeAll', () => {
@@ -1951,7 +2049,27 @@ const scheduleAutoGrow = () => {
 
     // HOVER-PANE
     let hoverPane = null;
-    let hoverTimeout = null;
+    let currentHoverButton = null; // Track which button has hover pane open
+
+    // FIX 1.1: Use WeakMap for per-element hover timeouts to prevent race conditions
+    const hoverTimeouts = new WeakMap();
+
+    function clearHoverTimeout(element) {
+        const timeout = hoverTimeouts.get(element);
+        if (timeout) {
+            clearTimeout(timeout);
+            hoverTimeouts.delete(element);
+        }
+    }
+
+    function setHoverTimeout(element, callback, delay) {
+        clearHoverTimeout(element);
+        const timeout = setTimeout(() => {
+            hoverTimeouts.delete(element);
+            callback();
+        }, delay);
+        hoverTimeouts.set(element, timeout);
+    }
 
     function createHoverPane() {
         if (!hoverPane) {
@@ -1959,9 +2077,15 @@ const scheduleAutoGrow = () => {
             hoverPane.className = 'hover-pane';
             document.body.appendChild(hoverPane);
 
-            hoverPane.addEventListener('mouseenter', () => clearTimeout(hoverTimeout));
+            hoverPane.addEventListener('mouseenter', () => {
+                // Clear timeout for the button that opened this pane
+                if (currentHoverButton) clearHoverTimeout(currentHoverButton);
+            });
             hoverPane.addEventListener('mouseleave', () => {
-                hoverTimeout = setTimeout(() => hideHoverPane(), TIMINGS.hoverDelay);
+                // Set timeout for the button that opened this pane
+                if (currentHoverButton) {
+                    setHoverTimeout(currentHoverButton, () => hideHoverPane(), TIMINGS.hoverDelay);
+                }
             });
 
             hoverPane.addEventListener('click', (e) => {
@@ -2098,6 +2222,7 @@ const scheduleAutoGrow = () => {
     }
 
     function showHoverPaneForNode(element, node, path) {
+        currentHoverButton = element; // Track which button opened this hover pane
         ensureHoverPaneStyles();
         const pane = createHoverPane();
 
@@ -2405,7 +2530,7 @@ const scheduleAutoGrow = () => {
                     markLastVisible(parentLeaf.parentElement);
                     markLastVisible(nest);
 
-                    attachFolderLeafDrilldown(nest);
+                    // FIX 3.1: No need to attach listeners - event delegation handles it
                 }
             }
 
@@ -2443,10 +2568,23 @@ const scheduleAutoGrow = () => {
         window.addEventListener('tm:search:context', (ev) => {
             const detail = ev.detail || {};
 
-            window.__lastSearchContext = detail;
+            // FIX 2.2: Clear search context when exiting search to prevent memory leak
+            if (!detail.hasQuery) {
+                window.__lastSearchContext = null;
+                clearSearchGhost();
+            } else {
+                window.__lastSearchContext = detail;
+                applySearchGhost(detail);
+            }
+        });
 
-            if (!detail.hasQuery) clearSearchGhost();
-            else applySearchGhost(detail);
+        // FIX 2.2: Also listen to tm:search:set for search exit
+        window.addEventListener('tm:search:set', (ev) => {
+            const detail = ev.detail || {};
+            if (!detail.hasQuery) {
+                window.__lastSearchContext = null;
+                clearSearchGhost();
+            }
         });
 
         window.addEventListener('tm:hover:show', () => {
@@ -2481,7 +2619,9 @@ const scheduleAutoGrow = () => {
             const sidebarEl = document.getElementById('sidebar');
             const nav = document.getElementById('nav');
 
-            const preSearchSlash = localStorage.getItem(MEM.preSearchSlash);
+            // FIX 2.1: Read from search.js's unified state instead of duplicate key
+            const preSearchState = localStorage.getItem('tm:search:prestate');
+            const preSearchSlash = preSearchState ? JSON.parse(preSearchState).pathSlash : null;
             const pathSlash = localStorage.getItem(MEM.pathSlash);
             const lastSlash = preSearchSlash || pathSlash;
 
@@ -2575,11 +2715,6 @@ const scheduleAutoGrow = () => {
                 } catch (e) {
                 }
             }
-            try {
-                localStorage.removeItem(MEM.preSearchSlash);
-                localStorage.removeItem(MEM.searchTempSlash);
-            } catch (e) {
-            }
 
             // Aggiungi badge per il path ripristinato
             if (lastSlash && phaseItem) {
@@ -2612,15 +2747,6 @@ const scheduleAutoGrow = () => {
             const hasQuery = !!(ev.detail && ev.detail.hasQuery);
 
             if (hasQuery) {
-                try {
-                    if (!localStorage.getItem(MEM.preSearchSlash)) {
-                        const cur = localStorage.getItem(MEM.pathSlash);
-                        if (cur) localStorage.setItem(MEM.preSearchSlash, cur);
-                    }
-                } catch (e) {
-                    console.warn('[sidebar] Failed to save pre-search path:', e);
-                }
-
                 sidebar.classList.add(CLASSES.searchMode);
 
                 // RIMUOVI TUTTI I PHASE-BADGE quando entri in search mode
@@ -2747,16 +2873,16 @@ const scheduleAutoGrow = () => {
         });
 
         window.addEventListener('tm:reset', () => {
-            localStorage.removeItem('tm:search:open-phases');
+            // FIX 2.3: Remove redundant cleanup - search.js owns this state
+            // localStorage.removeItem('tm:search:open-phases'); already done by search.js
 
             // Pulisci contesto ricerca globale
             window.__lastSearchContext = null;
 
-            // Cancella hover timeout pendente
-            if (hoverTimeout) {
-                clearTimeout(hoverTimeout);
-                hoverTimeout = null;
-            }
+            // Cancella tutti gli hover timeout pendenti
+            const buttons = document.querySelectorAll('.nav-item.has-children > .btn');
+            buttons.forEach(btn => clearHoverTimeout(btn));
+            currentHoverButton = null;
 
             document.querySelectorAll('.sidebar .phase-badge, .sidebar .search-badge').forEach(badge => {
                 badge.remove();
@@ -2764,8 +2890,6 @@ const scheduleAutoGrow = () => {
 
             localStorage.removeItem(MEM.pathKey);
             localStorage.removeItem(MEM.pathSlash);
-            localStorage.removeItem(MEM.preSearchSlash);
-            localStorage.removeItem(MEM.searchTempSlash);
 
             Object.keys(phaseMemory).forEach(k => {
                 phaseMemory[k].activePathSlash = null;
@@ -3070,7 +3194,8 @@ const scheduleAutoGrow = () => {
 
             try {
                 if (isCollapsed && hoverPane && document.body.contains(hoverPane)) {
-                    clearTimeout(hoverTimeout);
+                    // Clear any pending hover timeouts
+                    if (currentHoverButton) clearHoverTimeout(currentHoverButton);
 
                     const currentPhase = phaseKey;
                     const currentPath = slash;
@@ -3716,6 +3841,9 @@ if (document.readyState === 'loading') {
             }
         };
 
+        // FIX 3.3: Track all observers for cleanup
+        const observers = [];
+
         const moNav = new MutationObserver(schedule);
         moNav.observe(nav, {
             subtree: true,
@@ -3723,6 +3851,7 @@ if (document.readyState === 'loading') {
             attributes: true,
             attributeFilter: ["class", "style", "data-open", "aria-expanded"]
         });
+        observers.push(moNav);
 
         const observeHoverPane = () => {
             const hover = document.querySelector('.hover-pane');
@@ -3735,9 +3864,11 @@ if (document.readyState === 'loading') {
                     attributes: true,
                     attributeFilter: ["class", "style"]
                 });
+                observers.push(moHover);
 
                 const roHover = new ResizeObserver(schedule);
                 roHover.observe(hover);
+                observers.push(roHover);
             }
         };
 
@@ -3748,6 +3879,7 @@ if (document.readyState === 'loading') {
             }
         });
         moBody.observe(document.body, {childList: true, subtree: false});
+        observers.push(moBody);
 
         window.addEventListener('tm:hover:show', () => {
             observeHoverPane();
@@ -3766,10 +3898,12 @@ if (document.readyState === 'loading') {
             schedule();
         });
         moSidebar.observe(sidebar, {attributes: true, attributeFilter: ["class", "style"]});
+        observers.push(moSidebar);
 
         const ro = new ResizeObserver(schedule);
         ro.observe(sidebar);
         ro.observe(nav);
+        observers.push(ro);
 
         nav.addEventListener("transitionend", e => {
             if (["max-height", "height", "opacity", "width"].includes(e.propertyName)) schedule();
@@ -3781,7 +3915,20 @@ if (document.readyState === 'loading') {
         setTimeout(schedule, TIMINGS.autoGrowLong);
         setTimeout(schedule, TIMINGS.autoGrowVeryLong);
 
-        window.SidebarAutoGrow = {schedule, apply, computeNeeded, reset};
+        // FIX 3.3: Add cleanup function to disconnect all observers
+        const cleanup = () => {
+            observers.forEach(observer => {
+                if (observer && typeof observer.disconnect === 'function') {
+                    observer.disconnect();
+                }
+            });
+            observers.length = 0;
+        };
+
+        window.SidebarAutoGrow = {schedule, apply, computeNeeded, reset, cleanup};
+
+        // FIX 3.3: Cleanup observers on page unload
+        window.addEventListener('beforeunload', cleanup);
     });
 
     // ============================================================================
