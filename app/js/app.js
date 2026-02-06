@@ -361,8 +361,12 @@
                 tool._starred = !!value;
             }
 
-            // Re-render per riordinare (starred first)
-            render();
+            // Riordina solo le card visibili (senza ricalcolare scope/breadcrumb)
+            const tools = computeVisibleTools();
+            applyStarredState(tools);
+            sortTools(tools);
+            const visibleIds = tools.map(t => t.id);
+            toolsRenderer.showOnly(visibleIds, tools);
             return;
         }
 

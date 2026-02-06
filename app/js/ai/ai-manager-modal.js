@@ -324,7 +324,14 @@
             attachEventListeners();
         }
 
+        // Scroll modal al top PRIMA di renderlo visibile (evita flash)
+        const modalBody = modal.querySelector('.modal-body');
+        if (modalBody) modalBody.scrollTop = 0;
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) modalContent.scrollTop = 0;
+
         modal.style.display = 'flex';
+
         requestAnimationFrame(() => {
             modal.classList.add('open');
         });

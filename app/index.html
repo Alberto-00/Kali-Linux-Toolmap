@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="css/modal-message.css">
     <link rel="stylesheet" href="css/ai-manager-modal.css">
     <link rel="stylesheet" href="css/ai-loading.css">
+    <link rel="stylesheet" href="css/responsive.css">
 
     <!-- JS -->
     <script src="js/utils/constants.js" defer></script>
@@ -35,12 +36,32 @@
     <script src="js/utils/features.js" defer></script>
     <script src="js/modal.js" defer></script>
     <script src="js/search.js" defer></script>
-    <script src="js/sidebar.js" defer></script>
+    <!-- Sidebar modules (dependency order) -->
+    <script src="js/sidebar/sidebar-constants.js" defer></script>
+    <script src="js/sidebar/sidebar-icons.js" defer></script>
+    <script src="js/sidebar/sidebar-state.js" defer></script>
+    <script src="js/sidebar/sidebar-dom.js" defer></script>
+    <script src="js/sidebar/sidebar-vlines.js" defer></script>
+    <script src="js/sidebar/sidebar-autogrow.js" defer></script>
+    <script src="js/sidebar/sidebar-hover.js" defer></script>
+    <script src="js/sidebar/sidebar-search.js" defer></script>
+    <script src="js/sidebar/sidebar-badges.js" defer></script>
+    <script src="js/sidebar/sidebar-main.js" defer></script>
     <script src="js/breadcrumb-manager.js" defer></script>
     <script src="js/back-to-top.js" defer></script>
     <script src="js/app.js" defer></script>
 </head>
 <body>
+<!-- MOBILE HAMBURGER (hidden on desktop via responsive.css) -->
+<button class="mobile-hamburger" id="mobileHamburger" aria-label="Apri menu">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+    </svg>
+</button>
+
+<!-- MOBILE SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app">
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
@@ -60,6 +81,12 @@
                 <button class="icon-btn" id="expandAllBtn" title="Expand All Sections">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <!-- Close drawer button (solo mobile via responsive.css) -->
+                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Chiudi menu">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
                 <button class="toggle" id="collapseBtn" title="Toggle Sidebar">

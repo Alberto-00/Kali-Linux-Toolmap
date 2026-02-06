@@ -32,11 +32,15 @@
     const ScrollContainer = {
         /**
          * Ottiene il container di scroll attuale
-         * Priorità: .tools-grid > document
+         * Priorità: .tools-grid (solo se effettivamente scrollabile) > document
          */
         get() {
             const grid = document.querySelector('.tools-grid');
-            return grid || document.scrollingElement || document.documentElement;
+            // In responsive il grid non ha overflow scroll, scorre il body
+            if (grid && grid.scrollHeight > grid.clientHeight + 1) {
+                return grid;
+            }
+            return document.scrollingElement || document.documentElement;
         },
 
         /**

@@ -349,7 +349,10 @@ nav {
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    transition: all .2s cubic-bezier(.4, 0, .2, 1);
+    transition: background .2s cubic-bezier(.4, 0, .2, 1),
+                color .2s cubic-bezier(.4, 0, .2, 1),
+                transform .2s cubic-bezier(.4, 0, .2, 1),
+                box-shadow .2s cubic-bezier(.4, 0, .2, 1);
     position: relative;
 }
 
@@ -560,7 +563,11 @@ nav {
     cursor: pointer;
     font-size: 14px;
     background: transparent;
-    transition: all .2s cubic-bezier(.4, 0, .2, 1);
+    transition: background .2s cubic-bezier(.4, 0, .2, 1),
+                color .2s cubic-bezier(.4, 0, .2, 1),
+                transform .2s cubic-bezier(.4, 0, .2, 1),
+                opacity .2s cubic-bezier(.4, 0, .2, 1),
+                box-shadow .2s cubic-bezier(.4, 0, .2, 1);
 }
 
 .leaf::before,

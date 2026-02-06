@@ -54,9 +54,8 @@
         const nodeIndex = { [CONFIG.rootName]: { tools: [], children: new Set() } };
         const allToolsUnder = {};
         const allPathKeys = new Set([CONFIG.rootName]);
-        const toolLeafKey = {};
 
-        // Processa ogni tool
+        // Processa ogni tool in un singolo passaggio
         for (const tool of tools) {
             const id = ToolUtils.normalizeId(tool.id || tool.name || tool.title);
             if (!id) continue;
@@ -75,9 +74,9 @@
                 phaseColor: color,
                 path: pathSegments
             };
-            toolLeafKey[id] = leafKey;
 
-            // Registra nodi path
+            // Registra nodi path + distribuzione tool (unificato)
+            let prevKey = null;
             for (let i = 1; i <= pathSegments.length; i++) {
                 const key = ToolUtils.createPathKey(pathSegments.slice(0, i));
 
@@ -85,32 +84,23 @@
                     nodeIndex[key] = { tools: [], children: new Set() };
                 }
 
+                // Distribuzione tool: ogni tool appartiene a tutti i nodi parent
+                if (!allToolsUnder[key]) {
+                    allToolsUnder[key] = new Set();
+                }
+                allToolsUnder[key].add(id);
+
                 allPathKeys.add(key);
 
                 // Link parent-child
-                if (i > 1) {
-                    const parentKey = ToolUtils.createPathKey(pathSegments.slice(0, i - 1));
-                    nodeIndex[parentKey].children.add(key);
+                if (prevKey) {
+                    nodeIndex[prevKey].children.add(key);
                 }
+                prevKey = key;
             }
 
             // Assegna tool al nodo foglia
             nodeIndex[leafKey].tools.push(id);
-        }
-
-        // Calcola distribuzione tool (ogni tool appartiene a tutti i parent)
-        for (const [toolId, leafKey] of Object.entries(toolLeafKey)) {
-            const segments = leafKey.split('>');
-
-            for (let i = 1; i <= segments.length; i++) {
-                const key = ToolUtils.createPathKey(segments.slice(0, i));
-
-                if (!allToolsUnder[key]) {
-                    allToolsUnder[key] = new Set();
-                }
-
-                allToolsUnder[key].add(toolId);
-            }
         }
 
         // Finalizza (converti Set in Array per children)

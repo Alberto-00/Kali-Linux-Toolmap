@@ -38,6 +38,9 @@
     const DEBOUNCE_DELAY = 150; // ms prima di eseguire la ricerca
     const TYPING_COOLDOWN = 300; // ms dopo l'ultima digitazione per riabilitare animazioni
 
+    // Cache lowercase per ricerca veloce (costruita una volta al primo search)
+    let searchIndex = null;
+
     // ========================================================================
     // DOM ELEMENTS
     // ========================================================================
@@ -144,8 +147,25 @@
     }
 
     /**
+     * Costruisce indice di ricerca (lowercase pre-computato)
+     * Chiamata una sola volta, poi riusata per tutte le ricerche
+     */
+    function buildSearchIndex(toolsById) {
+        const index = [];
+        for (const [toolId, tool] of Object.entries(toolsById)) {
+            index.push({
+                tool,
+                nameLower: toolId.toLowerCase(),
+                descLower: (tool.desc || tool.description || '').toLowerCase()
+            });
+        }
+        return index;
+    }
+
+    /**
      * Ricerca FUZZY su nome e descrizione tool
      * Case-insensitive, cerca tutti i termini nel nome e/o descrizione
+     * Usa indice pre-computato per evitare toLowerCase() ripetuti
      */
     function performFuzzySearch(query) {
         const tm = window.Toolmap || {};
@@ -156,6 +176,12 @@
             return;
         }
 
+        // Costruisci indice al primo utilizzo (o se registry è cambiato)
+        if (!searchIndex || searchIndex._source !== toolsById) {
+            searchIndex = buildSearchIndex(toolsById);
+            searchIndex._source = toolsById;
+        }
+
         // Notifica che siamo in modalità ricerca
         window.dispatchEvent(new CustomEvent('tm:search:set', {
             detail: {hasQuery: true}
@@ -164,12 +190,11 @@
         // Converti query in termini separati (lowercase)
         const searchTerms = query.toLowerCase().split(/\s+/).filter(Boolean);
 
-        // Cerca tool che matchano
+        // Cerca tool che matchano (usa indice pre-computato)
         const results = [];
 
-        for (const [toolId, tool] of Object.entries(toolsById)) {
-            const nameLower = toolId.toLowerCase();
-            const descLower = (tool.desc || tool.description || '').toLowerCase();
+        for (const entry of searchIndex) {
+            const {tool, nameLower, descLower} = entry;
 
             // Verifica match nel nome (tutti i termini)
             const nameMatch = searchTerms.every(term => nameLower.includes(term));
@@ -575,6 +600,7 @@
         }
         state.currentQuery = '';
         state.isActive = false;
+        searchIndex = null; // Invalida cache ricerca
     }
 
     /**

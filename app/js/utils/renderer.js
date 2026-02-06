@@ -16,6 +16,9 @@
     /**
      * Generatore di icone SVG per fasi e azioni
      */
+    // Cache per _getCanonicalKey (evita regex ripetute per stesse fasi)
+    const _canonicalKeyCache = new Map();
+
     const Icons = {
         /**
          * Ottiene icona per fase (da SIDEBAR_ICONS o fallback)
@@ -32,10 +35,13 @@
         },
 
         /**
-         * Normalizza nome fase per lookup icona
+         * Normalizza nome fase per lookup icona (con cache)
          */
         _getCanonicalKey(phase) {
-            const normalized = String(phase || '')
+            const key = String(phase || '');
+            if (_canonicalKeyCache.has(key)) return _canonicalKeyCache.get(key);
+
+            const normalized = key
                 .toLowerCase()
                 .replace(/^\d+[\s_-]*/, '')
                 .replace(/[^\w\s\/-]+/g, '')
@@ -53,7 +59,9 @@
                 miscellaneous: 'miscellaneous'
             };
 
-            return map[normalized] || normalized || 'miscellaneous';
+            const result = map[normalized] || normalized || 'miscellaneous';
+            _canonicalKeyCache.set(key, result);
+            return result;
         },
 
         /**
@@ -270,6 +278,7 @@
 
             // Mappa per lookup veloce card per ID (Show/Hide mode)
             this._cardMap = new Map();
+            this._toolById = new Map(); // Lookup tool per ID O(1)
             this._initialized = false;
             this._allTools = [];
             this._needsReorder = false; // Traccia se è necessario riordinare
@@ -286,6 +295,12 @@
 
             this._allTools = allTools;
             this._cardMap.clear();
+            this._toolById.clear();
+
+            // Costruisci lookup tool per ID
+            for (const tool of allTools) {
+                if (tool && tool.id) this._toolById.set(tool.id, tool);
+            }
 
             // Genera HTML per tutte le card
             const html = allTools.map(tool => Markup.card(tool)).join('');
@@ -408,7 +423,7 @@
             const star = card.querySelector('[data-role="star"]');
             if (!star) return;
 
-            const tool = this._allTools.find(t => t.id === toolId);
+            const tool = this._toolById.get(toolId);
             if (!tool) return;
 
             const phase = ToolUtils.getCategoryPath(tool)[0] || '04_Miscellaneous';

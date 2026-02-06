@@ -8,7 +8,7 @@ REM PALETTE COLORI (ANSI - Windows 10+)
 REM ============================================
 set "ESC="
 for /f %%a in ('echo prompt $E ^| cmd') do set "ESC=%%a"
-if "!ESC!"=="" set "ESC=[" 
+if "!ESC!"=="" set "ESC=["
 
 set "CYAN=!ESC![96m"
 set "BLUE=!ESC![94m"
@@ -97,7 +97,7 @@ REM FALLBACK SU PYTHON STANDARD
 REM ============================================
 if "!CONDA_FOUND!"=="0" (
     echo   !YELLOW![INFO]!RESET! !WHITE!Conda non trovato, uso Python di sistema!RESET!
-    
+
     where python >nul 2>&1
     if !errorlevel! equ 0 (
         set "PYTHON_CMD=python"
@@ -122,42 +122,56 @@ if "!PYTHON_CMD!"=="" (
 )
 
 REM ============================================
-REM TROVA IP LOCALE
+REM TROVA IP LOCALE (VPN-safe)
+REM Preferisce IP LAN (192.168.x.x, 172.16-31.x.x)
+REM rispetto a IP VPN (10.x.x.x, altri range)
 REM ============================================
 set "IP=localhost"
+set "IP_VPN="
+
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4" ^| findstr /v "127.0.0.1"') do (
-    set "IP=%%a"
-    set "IP=!IP:~1!"
-    goto :ip_found
+    set "CANDIDATE=%%a"
+    set "CANDIDATE=!CANDIDATE: =!"
+
+    REM Controlla se è un IP LAN (192.168.x.x)
+    echo !CANDIDATE! | findstr /b "192.168." >nul 2>&1
+    if !errorlevel! equ 0 (
+        if "!IP!"=="localhost" (
+            set "IP=!CANDIDATE!"
+        )
+    ) else (
+        REM Controlla se è un IP LAN (172.16-31.x.x)
+        echo !CANDIDATE! | findstr /b "172." >nul 2>&1
+        if !errorlevel! equ 0 (
+            if "!IP!"=="localhost" (
+                set "IP=!CANDIDATE!"
+            )
+        ) else (
+            REM Salva come fallback VPN (10.x.x.x o altro)
+            if "!IP_VPN!"=="" set "IP_VPN=!CANDIDATE!"
+        )
+    )
 )
-:ip_found
+
+REM Se non trovato IP LAN, usa IP VPN come fallback
+if "!IP!"=="localhost" if not "!IP_VPN!"=="" (
+    set "IP=!IP_VPN!"
+)
 
 REM ============================================
-REM TROVA PRIMA PORTA LIBERA
+REM TROVA PRIMA PORTA LIBERA (senza avviare server)
 REM ============================================
 set "PORT=0"
 
 for %%p in (8000 3000 5000 8080 8001 8888 9000 4000) do (
     if !PORT! equ 0 (
-        echo   !YELLOW![TEST]!RESET! !WHITE!Verifico porta %%p...!RESET!
-        
-        REM Testa la porta con timeout di 1 secondo
-        start /b cmd /c "!PYTHON_CMD! -m http.server %%p >nul 2>&1"
-        timeout /t 1 /nobreak >nul
-        
-        REM Verifica se il server è partito
-        netstat -an | find ":%%p " | find "LISTENING" >nul
-        if !errorlevel! equ 0 (
+        REM Verifica se qualcosa è già in ascolto sulla porta
+        netstat -an | findstr ":%%p " | findstr "LISTENING" >nul 2>&1
+        if !errorlevel! neq 0 (
             set "PORT=%%p"
             echo   !GREEN![OK]!RESET! !WHITE!Porta %%p disponibile!!RESET!
-            
-            REM Ferma il test
-            for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%%p ^| findstr LISTENING') do (
-                taskkill /PID %%a /F >nul 2>&1
-            )
         ) else (
-            echo   !RED![X]!RESET! !GRAY!Porta %%p non disponibile!RESET!
-            echo.
+            echo   !RED![X]!RESET! !GRAY!Porta %%p occupata!RESET!
         )
     )
 )
@@ -188,8 +202,8 @@ echo.
 REM Apri browser sulla porta corretta
 start "" http://localhost:!PORT!/app/
 
-REM Avvia il server
-!PYTHON_CMD! -m http.server !PORT!
+REM Avvia il server (bind su 0.0.0.0 per accesso da rete/VPN)
+!PYTHON_CMD! -m http.server !PORT! --bind 0.0.0.0
 
 if errorlevel 1 (
     echo.
