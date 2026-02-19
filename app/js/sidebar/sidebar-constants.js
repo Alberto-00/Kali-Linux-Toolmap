@@ -57,20 +57,31 @@
             "Network": {},
             "Scripts": {},
             "Tools_Windows": {},
-            "Wordlists": {}
+            "Wordlists": {
+                "Wordlists": {},
+                "Generators": {}
+            }
         },
         "01_Information_Gathering": {
             "OSINT": {
                 "People_Search": {},
                 "Social_Media": {},
                 "Email_Harvesting": {},
-                "Domain_Intelligence": {}
+                "Domain_Intelligence": {
+                    "Git_Recon": {},
+                    "Cloud_Enum": {},
+                    "URL_Archive": {},
+                    "Metadata": {},
+                    "Frameworks": {},
+                    "Domain_Recon": {}
+                }
             },
             "Recon": {
                 "Infrastructure": {
                     "DNS_Subdomains": {},
                     "Port_Scanning": {},
-                    "Service_Fingerprinting": {}
+                    "Service_Fingerprinting": {},
+                    "Spoofing_E-mail": {}
                 },
                 "Web": {
                     "Content_Discovery": {},
