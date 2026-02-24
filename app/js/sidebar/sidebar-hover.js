@@ -10,6 +10,19 @@
     const {getActivePathSlash, setActivePathSlash, expandBranch, collapseSubtree, getNavItem} = window.SidebarState;
     const {buildChildren, markLastVisible, applyPhaseThemeToPane, highlightPathInContainer, highlightActivePath, clearPathHighlight, ensureExpandedInContainer, expandFromMemoryInContainer, animateNested, createNestedContainer, dispatchScopeAndPhase} = window.SidebarDOM;
 
+    /**
+     * Sincronizza la classe has-active-path sull'header dell'hover pane.
+     * Controlla se esiste almeno un folder-leaf/leaf con in-active-path
+     * dentro il pane, e aggiorna l'header di conseguenza.
+     */
+    function syncHeaderActivePath(pane) {
+        if (!pane) return;
+        const header = pane.querySelector('.hover-pane-header');
+        if (!header) return;
+        const hasActive = !!pane.querySelector(`.folder-leaf.${CLASSES.inActivePath}, .leaf.${CLASSES.inActivePath}, .folder-leaf.${CLASSES.active}, .leaf.${CLASSES.active}`);
+        header.classList.toggle(CLASSES.hasActivePath, hasActive);
+    }
+
     let hoverPane = null;
     let currentHoverButton = null;
 
@@ -97,6 +110,7 @@
                 }
 
                 highlightActivePath(phaseKey);
+                syncHeaderActivePath(hoverPane);
 
                 requestAnimationFrame(() => {
                     if (typeof window.refreshAllVLines === 'function') window.refreshAllVLines(hoverPane);
@@ -117,12 +131,19 @@
                             forceReflow(hoverPane);
                             highlightPathInContainer(hoverPane, cur);
                             highlightActivePath(phaseKey);
+                            syncHeaderActivePath(hoverPane);
                         });
                         return;
                     }
 
                     const nest = createNestedContainer(pathSlash, node, true);
                     leaf.after(nest);
+
+                    // Applica filtro installed ai nuovi figli
+                    if (window.applyInstalledFilterToHoverPane) {
+                        window.applyInstalledFilterToHoverPane();
+                    }
+
                     markLastVisible(leaf.parentElement);
                     markLastVisible(nest);
 
@@ -135,6 +156,7 @@
                         forceReflow(hoverPane);
                         highlightPathInContainer(hoverPane, cur);
                         highlightActivePath(phaseKey);
+                        syncHeaderActivePath(hoverPane);
                     });
                 } else {
                     if (typeof window.refreshAllVLinesDebounced === 'function') window.refreshAllVLinesDebounced(hoverPane);
@@ -144,6 +166,7 @@
                     forceReflow(hoverPane);
                     highlightPathInContainer(hoverPane, cur);
                     highlightActivePath(phaseKey);
+                    syncHeaderActivePath(hoverPane);
                 }
             });
         }
@@ -200,10 +223,9 @@
         const navItem = getNavItem(phaseKey);
         const hasActivePath = navItem && navItem.classList.contains(CLASSES.hasActivePath);
         const phaseIcon = ICON_MAP.get(phaseKey) || ICONS.defaults.folderClosed;
-        const phaseColor = navItem ? getComputedStyle(navItem).getPropertyValue('--phase').trim() : '';
 
         pane.innerHTML = `
-          <div class="hover-pane-header${hasActivePath ? ' has-active-path' : ''}"${hasActivePath && phaseColor ? ` style="color: ${phaseColor}"` : ''}>
+          <div class="hover-pane-header${hasActivePath ? ' has-active-path' : ''}">
             <span class="hover-pane-icon">${phaseIcon}</span>
             <span class="hover-pane-title">${formatLabel(phaseKey)}</span>
           </div>
@@ -215,6 +237,12 @@
         pane.style.removeProperty('opacity');
 
         const rootChildren = pane.querySelector('.hover-root');
+
+        // Applica filtro installed (coerenza con sidebar aperta)
+        if (window.applyInstalledFilterToHoverPane) {
+            window.applyInstalledFilterToHoverPane();
+        }
+
         markLastVisible(rootChildren);
 
         applyPhaseThemeToPane(pane, phaseKey);
@@ -248,6 +276,7 @@
                     const activeLeaf = pane.querySelector(`.folder-leaf[data-path="${currentSlash}"], .leaf[data-path="${currentSlash}"]`);
                     if (activeLeaf) activeLeaf.classList.add(CLASSES.active);
                 }
+                syncHeaderActivePath(pane);
             }
 
             setTimeout(() => {
@@ -281,6 +310,7 @@
         clearHoverTimeout,
         setHoverTimeout,
         attachHoverPaneListener,
-        getCurrentHoverButton: () => currentHoverButton
+        getCurrentHoverButton: () => currentHoverButton,
+        syncHeaderActivePath
     };
 })();

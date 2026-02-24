@@ -78,6 +78,14 @@
         },
 
         /**
+         * Legge flag installed dal tool
+         */
+        readInstalledFlag(tool) {
+            if (!tool || typeof tool !== 'object') return false;
+            return !!tool['installed'];
+        },
+
+        /**
          * Compara due tool per nome (case-insensitive)
          */
         compareByName(a, b) {

@@ -532,6 +532,15 @@
                     </svg>
                     <span>AI</span>
                 </button>
+
+                <button class="is-installed-btn icon-btn" type="button"
+                        title="Tool is Installed" aria-label="Tool is Installed">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/>
+                        <line x1="8" y1="21" x2="16" y2="21"/>
+                        <line x1="12" y1="17" x2="12" y2="21"/>
+                    </svg>
+                </button>
                 
                 <button class="copy-path-btn icon-btn copy-path-icon" type="button"
                         title="Copy current path" aria-label="Copy current path">
@@ -560,11 +569,13 @@
             const downloadBtn = container.querySelector('.download-registry-btn');
             const copyBtn = container.querySelector('.copy-path-btn');
             const aiManagerBtn = container.querySelector('.ai-manager-btn');
+            const installedBtn = container.querySelector('.is-installed-btn');
 
             showAllBtn?.addEventListener('click', this.handleShowAll);
             downloadBtn?.addEventListener('click', this.handleDownload);
             copyBtn?.addEventListener('click', () => CopyPath.copy());
             aiManagerBtn?.addEventListener('click', this.handleAIManager);
+            installedBtn?.addEventListener('click', this.handleInstalledToggle);
         },
 
         /**
@@ -612,6 +623,26 @@
             } else {
                 console.error('[breadcrumb] AI Manager Modal not loaded');
             }
+        },
+
+        /**
+         * Handler button "Installed Toggle"
+         * Toggle tra visualizzazione solo installed e tutti
+         */
+        handleInstalledToggle() {
+            window.dispatchEvent(new CustomEvent('tm:installed:toggle-mode'));
+        },
+
+        /**
+         * Aggiorna stato visivo del button installed
+         */
+        updateInstalledButton(installedOnly) {
+            const btn = document.querySelector('.is-installed-btn');
+            if (!btn) return;
+
+            btn.classList.toggle('active', !!installedOnly);
+            btn.title = installedOnly ? 'Showing installed only – click to show all' : 'Showing all tools – click to show installed only';
+            btn.setAttribute('aria-pressed', installedOnly ? 'true' : 'false');
         }
     };
 
@@ -702,12 +733,18 @@
     // EVENT LISTENERS
     // ========================================================================
 
+    function handleInstalledModeChanged(event) {
+        const { installedOnly } = event.detail || {};
+        BreadcrumbActions.updateInstalledButton(!!installedOnly);
+    }
+
     function initializeEventListeners() {
         window.addEventListener('tm:scope:set', handleScopeSet);
         window.addEventListener('tm:reset', handleReset);
         window.addEventListener('tm:context:summary', handleContextSummary);
         window.addEventListener('tm:search:set', handleSearchSet);
         window.addEventListener('tm:search:query', handleSearchQuery);
+        window.addEventListener('tm:installed:mode-changed', handleInstalledModeChanged);
     }
 
     // ========================================================================

@@ -3,6 +3,7 @@
  * - Gestisce stato globale e scope visualizzazione
  * - Coordina rendering cards e modali
  * - Sincronizza eventi tra moduli
+ * - Filtro installed: di default mostra solo tool installati
  */
 
 (function () {
@@ -20,12 +21,18 @@
         scopeAll: true,          // Mostra tutti i tool
         scopeIds: null,          // Array IDs tool filtrati
         pathKey: null,           // Path attivo (es: "Root>Phase>Category")
-        isResetting: false       // Flag per evitare race condition durante reset
+        isResetting: false,      // Flag per evitare race condition durante reset
+        installedOnly: true      // Filtro installed: true = mostra solo installati
     };
 
     let hasVisitedAnyPhase = false;  // Traccia se l'utente ha mai aperto una fase
     let previousToolIds = '';         // Cache per evitare render inutili
     let eventsWired = false;          // Previene doppio wiring
+    let needsBadgeRefresh = false;    // Flag per refresh visuale badge dopo reset
+
+    // Snapshot originali dei valori registry (per ripristino al reset)
+    let originalBestIn = null;        // Map<toolId, boolean>
+    let originalInstalled = null;     // Map<toolId, boolean>
 
     // ========================================================================
     // DOM ELEMENTS
@@ -72,6 +79,7 @@
 
         /**
          * Pulizia totale localStorage + sessionStorage
+         * Preserva chiavi installed e stars
          */
         clearAll() {
             try {
@@ -155,6 +163,12 @@
      * Ripristina stato salvato da sessione precedente
      */
     function restoreState() {
+        // Ripristina modalità installed
+        const savedInstalledOnly = Storage.get(CONSTANTS.STORAGE_KEYS.installedOnly);
+        if (savedInstalledOnly !== null) {
+            state.installedOnly = savedInstalledOnly === 'true';
+        }
+
         const savedPathKey = Storage.get(CONSTANTS.STORAGE_KEYS.pathKey);
 
         if (savedPathKey) {
@@ -182,6 +196,8 @@
         // Eventi globali applicazione
         window.addEventListener('tm:scope:set', handleScopeSet);
         window.addEventListener('tm:stars:updated', handleStarsUpdated);
+        window.addEventListener('tm:installed:updated', handleInstalledUpdated);
+        window.addEventListener('tm:installed:toggle-mode', handleInstalledToggleMode);
         window.addEventListener('tm:tools:showAll', handleShowAll);
         window.addEventListener('tm:reset', handleReset);
         window.addEventListener('tm:registry:ready', handleRegistryReady);
@@ -213,10 +229,8 @@
 
     /**
      * Gestisce toggle sidebar per coordinare animazioni grid
-     * (placeholder per eventuali future coordinazioni)
      */
     function handleSidebarToggle() {
-        // Attualmente non richiede azioni specifiche
         // Il grid si adatta automaticamente via CSS
     }
 
@@ -257,6 +271,7 @@
 
     /**
      * Gestisce click "Show All"
+     * Rispetta il filtro installedOnly
      */
     function handleShowAll() {
         state.scopeAll = true;
@@ -266,6 +281,7 @@
 
     /**
      * Gestisce evento reset (chiamato da altri moduli)
+     * Ripristina stato iniziale: installed only, nessuna categoria selezionata
      */
     function handleReset() {
         if (state.isResetting) return;
@@ -276,8 +292,12 @@
         state.scopeAll = true;
         state.scopeIds = null;
         state.pathKey = null;
+        state.installedOnly = true;
         hasVisitedAnyPhase = false;
         previousToolIds = '';
+
+        // Salva stato installed mode
+        Storage.set(CONSTANTS.STORAGE_KEYS.installedOnly, 'true');
     }
 
     /**
@@ -303,18 +323,24 @@
             detail: { skipRestore: true }
         }));
 
-        // 5. Reset stato interno
+        // 5. Reset stato interno (installed torna a true di default)
         state.scopeAll = true;
         state.scopeIds = null;
         state.pathKey = null;
+        state.installedOnly = true;
         hasVisitedAnyPhase = false;
-        // NON resettare previousToolIds qui - lascia che handleScopeSet lo gestisca
+        needsBadgeRefresh = true;
 
-        // 6. Dispatch altri eventi - tm:scope:set triggererà il render
+        // 6. Notifica cambio modalità installed
+        window.dispatchEvent(new CustomEvent('tm:installed:mode-changed', {
+            detail: { installedOnly: true }
+        }));
+
+        // 7. Dispatch altri eventi - tm:scope:set triggererà il render
         window.dispatchEvent(new CustomEvent('tm:scope:set', {detail: {all: true}}));
         window.dispatchEvent(new CustomEvent('tm:phase:color', {detail: {color: null}}));
 
-        // 7. Sblocca flag reset (dopo che le animazioni sono partite)
+        // 8. Sblocca flag reset (dopo che le animazioni sono partite)
         setTimeout(() => {
             state.isResetting = false;
         }, 100);
@@ -340,7 +366,7 @@
     }
 
     // ========================================================================
-    // EVENT HANDLERS - Stars & Registry
+    // EVENT HANDLERS - Stars, Installed & Registry
     // ========================================================================
 
     /**
@@ -375,6 +401,59 @@
     }
 
     /**
+     * Gestisce aggiornamento stato installed di un tool
+     */
+    function handleInstalledUpdated(event) {
+        const { id, value } = event.detail || {};
+
+        if (toolsRenderer?.isInitialized() && id) {
+            // Aggiorna stato installed nel DOM
+            toolsRenderer.updateInstalledState(id, !!value);
+
+            // Aggiorna stato in memoria
+            const tm = window.Toolmap || {};
+            const tool = tm.toolsById?.[id];
+            if (tool) {
+                tool._installed = !!value;
+            }
+
+            // Re-render con filtro aggiornato
+            const tools = computeVisibleTools();
+            applyStarredState(tools);
+            applyInstalledState(tools);
+            sortTools(tools);
+            const visibleIds = tools.map(t => t.id);
+            toolsRenderer.showOnly(visibleIds, tools);
+
+            // Notifica breadcrumb e sidebar del cambio
+            notifyBreadcrumb(tools);
+            notifySidebarFilter(tools);
+            return;
+        }
+
+        render();
+    }
+
+    /**
+     * Gestisce toggle modalità installed (da breadcrumb button)
+     */
+    function handleInstalledToggleMode() {
+        state.installedOnly = !state.installedOnly;
+
+        // Salva preferenza in sessionStorage
+        Storage.set(CONSTANTS.STORAGE_KEYS.installedOnly, String(state.installedOnly));
+
+        // Notifica cambio modalità
+        window.dispatchEvent(new CustomEvent('tm:installed:mode-changed', {
+            detail: { installedOnly: state.installedOnly }
+        }));
+
+        // Forza re-render completo
+        previousToolIds = '';
+        render();
+    }
+
+    /**
      * Gestisce registry pronto (ripristina stato salvato)
      */
     let registryInitialized = false;
@@ -386,13 +465,29 @@
         const toolsById = tm.toolsById || {};
         const allTools = Object.values(toolsById).filter(Boolean);
 
+        // Salva snapshot originali dal registry (prima di qualsiasi modifica)
+        if (!originalBestIn) {
+            originalBestIn = new Map();
+            originalInstalled = new Map();
+            for (const tool of allTools) {
+                originalBestIn.set(tool.id, ToolUtils.readBestInFlag(tool));
+                originalInstalled.set(tool.id, ToolUtils.readInstalledFlag(tool));
+            }
+        }
+
         // Inizializza tutte le card una volta sola (Show/Hide mode)
         if (toolsRenderer && allTools.length > 0) {
             applyStarredState(allTools);
+            applyInstalledState(allTools);
             sortTools(allTools);
             toolsRenderer.initAll(allTools);
             registryInitialized = true;
         }
+
+        // Notifica modalità installed iniziale
+        window.dispatchEvent(new CustomEvent('tm:installed:mode-changed', {
+            detail: { installedOnly: state.installedOnly }
+        }));
 
         // Ripristina stato salvato se presente
         const savedPathKey = Storage.get(CONSTANTS.STORAGE_KEYS.pathKey);
@@ -405,7 +500,7 @@
                 render();
             }
         } else {
-            // Mostra tutte le card
+            // Mostra card (filtrando per installed se attivo)
             render();
         }
     }
@@ -444,13 +539,53 @@
     function render() {
         if (!grid) return;
 
+        // Dopo reset: ripristina valori originali PRIMA di computeVisibleTools
+        // (altrimenti il filtro installed usa i valori mutati in memoria)
+        if (needsBadgeRefresh && originalBestIn && originalInstalled) {
+            const tm = window.Toolmap || {};
+            const allTools = Object.values(tm.toolsById || {}).filter(Boolean);
+
+            for (const tool of allTools) {
+                const origStar = originalBestIn.get(tool.id);
+                const origInst = originalInstalled.get(tool.id);
+                if (origStar !== undefined) tool.best_in = origStar;
+                if (origInst !== undefined) tool.installed = origInst;
+            }
+
+            if (tm.registry) {
+                for (const record of tm.registry) {
+                    if (!record?.id) continue;
+                    const origStar = originalBestIn.get(record.id);
+                    const origInst = originalInstalled.get(record.id);
+                    if (origStar !== undefined) record.best_in = origStar;
+                    if (origInst !== undefined) record.installed = origInst;
+                }
+            }
+        }
+
         const tools = computeVisibleTools();
         applyStarredState(tools);
+        applyInstalledState(tools);
         sortTools(tools);
         notifyBreadcrumb(tools);
+        notifySidebarFilter(tools);
 
         // Se renderer è in Show/Hide mode, usa showOnly (molto più veloce)
         if (toolsRenderer?.isInitialized()) {
+            // Dopo reset: aggiorna visuale SVG di tutte le card
+            if (needsBadgeRefresh) {
+                needsBadgeRefresh = false;
+                const tm = window.Toolmap || {};
+                const allTools = Object.values(tm.toolsById || {}).filter(Boolean);
+                applyStarredState(allTools);
+                applyInstalledState(allTools);
+
+                for (const tool of allTools) {
+                    toolsRenderer.updateStarState(tool.id, !!tool._starred);
+                    toolsRenderer.updateInstalledState(tool.id, !!tool._installed);
+                }
+            }
+
             if (!tools.length) {
                 toolsRenderer.showOnly([], []);
                 return;
@@ -482,7 +617,7 @@
     }
 
     /**
-     * Calcola tool visibili in base a scope corrente
+     * Calcola tool visibili in base a scope corrente e filtro installed
      */
     function computeVisibleTools() {
         const tm = window.Toolmap || {};
@@ -490,7 +625,22 @@
         const allIds = Object.keys(toolsById);
 
         const baseIds = state.scopeAll ? allIds : (state.scopeIds || []);
-        return baseIds.map(id => toolsById[id]).filter(Boolean);
+        let tools = baseIds.map(id => toolsById[id]).filter(Boolean);
+
+        // Applica filtro installed se attivo
+        if (state.installedOnly) {
+            const installedMap = window.InstalledManager?.load() || {};
+            tools = tools.filter(tool => {
+                // Priorità: localStorage > registry
+                const localInstalled = Object.prototype.hasOwnProperty.call(installedMap, tool.id)
+                    ? !!installedMap[tool.id]
+                    : undefined;
+                const registryInstalled = ToolUtils.readInstalledFlag(tool);
+                return localInstalled !== undefined ? localInstalled : registryInstalled;
+            });
+        }
+
+        return tools;
     }
 
     /**
@@ -507,6 +657,22 @@
 
             const registryStar = ToolUtils.readBestInFlag(tool);
             tool._starred = localStar !== undefined ? localStar : registryStar;
+        }
+    }
+
+    /**
+     * Applica stato installed ai tool (da localStorage + registry)
+     */
+    function applyInstalledState(tools) {
+        const installedMap = window.InstalledManager?.load() || {};
+
+        for (const tool of tools) {
+            const localInstalled = Object.prototype.hasOwnProperty.call(installedMap, tool.id)
+                ? !!installedMap[tool.id]
+                : undefined;
+
+            const registryInstalled = ToolUtils.readInstalledFlag(tool);
+            tool._installed = localInstalled !== undefined ? localInstalled : registryInstalled;
         }
     }
 
@@ -545,7 +711,8 @@
                 toolsCount: tools.length,
                 scopeAll: !!state.scopeAll,
                 pathKey: state.pathKey || null,
-                hasVisitedAnyPhase: !!hasVisitedAnyPhase
+                hasVisitedAnyPhase: !!hasVisitedAnyPhase,
+                installedOnly: !!state.installedOnly
             };
 
             window.dispatchEvent(new CustomEvent('tm:context:summary', {
@@ -553,6 +720,65 @@
             }));
         } catch (error) {
             console.warn('[app] Errore notifica breadcrumb:', error);
+        }
+    }
+
+    /**
+     * Notifica sidebar dei tool visibili per filtrare fasi vuote.
+     * Quando installedOnly è attivo, il filtro sidebar si basa su TUTTI
+     * i tool installati (non solo quelli nello scope corrente), così
+     * navigando in una sottocategoria le altre fasi/sottofasi restano visibili.
+     */
+    function notifySidebarFilter(tools) {
+        try {
+            const visiblePhases = new Set();
+            const visiblePaths = new Set();
+
+            // Determina il set di tool per calcolare le fasi visibili
+            let filterTools;
+            if (state.installedOnly) {
+                // Usa TUTTI i tool installati, ignorando lo scope corrente
+                const tm = window.Toolmap || {};
+                const toolsById = tm.toolsById || {};
+                const installedMap = window.InstalledManager?.load() || {};
+
+                filterTools = Object.values(toolsById).filter(tool => {
+                    if (!tool) return false;
+                    const localInstalled = Object.prototype.hasOwnProperty.call(installedMap, tool.id)
+                        ? !!installedMap[tool.id]
+                        : undefined;
+                    const registryInstalled = ToolUtils.readInstalledFlag(tool);
+                    return localInstalled !== undefined ? localInstalled : registryInstalled;
+                });
+            } else {
+                // Nessun filtro installed: passa tutti (handleVisiblePathsFilter rimuove .filtered-empty)
+                filterTools = tools;
+            }
+
+            for (const tool of filterTools) {
+                const categoryPath = ToolUtils.getCategoryPath(tool);
+                if (!categoryPath.length) continue;
+
+                // Aggiungi fase principale
+                visiblePhases.add(categoryPath[0]);
+
+                // Aggiungi tutti i path intermedi
+                const segments = ['Root', ...categoryPath];
+                for (let i = 1; i <= segments.length; i++) {
+                    visiblePaths.add(segments.slice(0, i).join('>'));
+                }
+            }
+
+            window.dispatchEvent(new CustomEvent('tm:filter:visible-paths', {
+                detail: {
+                    visiblePhases,
+                    visiblePaths,
+                    installedOnly: !!state.installedOnly,
+                    toolCount: tools.length
+                }
+            }));
+        } catch (error) {
+            console.warn('[app] Errore notifica sidebar filter:', error);
         }
     }
 

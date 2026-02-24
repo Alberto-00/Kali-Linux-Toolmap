@@ -1,7 +1,8 @@
 /**
- * Gestione starred tools e export registry JSON
+ * Gestione starred tools, installed tools e export registry JSON
  * - Stars: salva preferiti in localStorage
- * - JSONExporter: esporta registry aggiornato con note e stars
+ * - Installed: salva stato installazione in localStorage
+ * - JSONExporter: esporta registry aggiornato con note, stars e installed
  */
 
 (function() {
@@ -70,21 +71,81 @@
     };
 
     // ========================================================================
+    // INSTALLED MANAGER
+    // ========================================================================
+
+    /**
+     * Gestisce lo stato "installed" dei tool in localStorage
+     */
+    const Installed = {
+        /**
+         * Carica mappa installed da localStorage
+         * @returns {Object} Map {toolId: boolean}
+         */
+        load() {
+            try {
+                const json = localStorage.getItem(STORAGE_KEYS.installed);
+                return JSON.parse(json || 'null') || {};
+            } catch (error) {
+                console.warn('[features] Errore caricamento installed:', error);
+                return {};
+            }
+        },
+
+        /**
+         * Salva mappa installed in localStorage
+         * @param {Object} map - Map {toolId: boolean}
+         */
+        save(map) {
+            if (!map || typeof map !== 'object') {
+                console.warn('[features] Map installed non valida');
+                return;
+            }
+
+            try {
+                localStorage.setItem(STORAGE_KEYS.installed, JSON.stringify(map));
+            } catch (error) {
+                console.error('[features] Errore salvataggio installed:', error);
+            }
+        },
+
+        /**
+         * Toggle installed per un tool
+         * @param {string} toolId - ID del tool
+         * @param {boolean} value - Stato desiderato (true=installed)
+         * @returns {Object} Mappa aggiornata
+         */
+        toggle(toolId, value) {
+            if (!toolId) {
+                console.warn('[features] toolId mancante per toggle installed');
+                return {};
+            }
+
+            const map = this.load();
+            map[toolId] = !!value;
+            this.save(map);
+
+            return map;
+        }
+    };
+
+    // ========================================================================
     // JSON EXPORTER
     // ========================================================================
 
     /**
-     * Esporta registry aggiornato con modifiche utente (note, stars)
+     * Esporta registry aggiornato con modifiche utente (note, stars, installed)
      */
     const JSONExporter = {
         /**
          * Serializza registry in JSON
-         * Include note aggiornate e stars locali
+         * Include note aggiornate, stars e installed locali
          * @returns {string} JSON string del registry aggiornato
          */
         serialize() {
             const tm = window.Toolmap || {};
             const stars = Stars.load();
+            const installedMap = Installed.load();
             const registry = tm.registry ? structuredClone(tm.registry) : null;
 
             if (!registry) {
@@ -92,8 +153,8 @@
                 return '';
             }
 
-            // Aggiorna note e stars nei record
-            this._updateRegistryRecords(registry, stars, tm);
+            // Aggiorna note, stars e installed nei record
+            this._updateRegistryRecords(registry, stars, installedMap, tm);
 
             return JSON.stringify(registry, null, 2);
         },
@@ -102,7 +163,7 @@
          * Aggiorna record registry con dati in memoria
          * @private
          */
-        _updateRegistryRecords(registry, stars, tm) {
+        _updateRegistryRecords(registry, stars, installedMap, tm) {
             for (const item of registry) {
                 const id = item?.id;
                 if (!id) continue;
@@ -128,6 +189,14 @@
 
                 // Imposta solo best_in (snake_case standard)
                 item['best_in'] = !!starred;
+
+                // Aggiorna INSTALLED (da installed localStorage)
+                const localInstalled = Object.prototype.hasOwnProperty.call(installedMap, id)
+                    ? !!installedMap[id]
+                    : undefined;
+
+                const registryInstalled = ToolUtils.readInstalledFlag(item);
+                item['installed'] = localInstalled !== undefined ? localInstalled : registryInstalled;
             }
         },
 
@@ -231,6 +300,45 @@
     }
 
     /**
+     * Gestisce evento toggle installed
+     */
+    function handleToggleInstalled(event) {
+        const { id, value } = event.detail || {};
+
+        if (!id) {
+            console.warn('[features] ID mancante in evento toggleInstalled');
+            return;
+        }
+
+        // Salva in localStorage
+        Installed.toggle(id, !!value);
+
+        const tm = window.Toolmap || {};
+
+        // Aggiorna toolsById in memoria
+        if (tm.toolsById?.[id]) {
+            tm.toolsById[id]._installed = !!value;
+        }
+
+        // Aggiorna registry in memoria
+        const record = tm.registry?.find(x => x?.id === id);
+        if (record) {
+            record.installed = !!value;
+        }
+
+        // Salva snapshot in sessionStorage
+        const json = JSONExporter.serialize();
+        if (json) {
+            sessionStorage.setItem(STORAGE_KEYS.registryJSON, json);
+        }
+
+        // Notifica aggiornamento (trigger re-render)
+        window.dispatchEvent(new CustomEvent('tm:installed:updated', {
+            detail: { id, value }
+        }));
+    }
+
+    /**
      * Gestisce evento download registry
      */
     function handleDownload() {
@@ -244,6 +352,7 @@
     function initialize() {
         // Registra event listeners
         window.addEventListener('tm:tool:toggleStar', handleToggleStar);
+        window.addEventListener('tm:tool:toggleInstalled', handleToggleInstalled);
         window.addEventListener('tm:registry:download', handleDownload);
     }
 
@@ -255,6 +364,7 @@
     // ========================================================================
 
     window.StarsManager = Stars;
+    window.InstalledManager = Installed;
     window.JSONExporter = JSONExporter;
 
 })();

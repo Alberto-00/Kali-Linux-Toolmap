@@ -131,6 +131,7 @@
                 "CMS_Exploits": {
                     "Drupal": {},
                     "Joomla": {},
+                    "Odoo": {},
                     "WordPress": {}
                 },
                 "File_Upload": {},
@@ -143,12 +144,15 @@
                     "CSRF": {},
                     "SSTI": {}
                 },
+                "Web_Servers": {
+                    "IIS": {},
+                    "Next_js": {},
+                    "Tomcat": {}
+                },
                 "Deserialization": {},
                 "JBoss_&_WildFly": {},
                 "Proxy_MITM": {},
                 "SSRF": {},
-                "Next_js": {},
-                "Tomcat": {}
             },
             "Wireless": {
                 "WiFi": {},
@@ -166,7 +170,9 @@
             },
             "Credentials": {
                 "Dumping": {},
-                "Cracking": {},
+                "Cookies_Hunting": {},
+                "Credentials_Hunting": {},
+                "Passwords_Cracking": {},
                 "Brute_Force": {},
                 "Spraying": {}
             },

@@ -142,6 +142,7 @@ body:has(.breadcrumb-item.search-breadcrumb) .copy-path-btn:hover {
 
 .show-all-btn,
 .copy-path-btn,
+.is-installed-btn,
 .download-registry-btn,
 .reset-btn,
 .ai-manager-btn {
@@ -161,6 +162,7 @@ body:has(.breadcrumb-item.search-breadcrumb) .copy-path-btn:hover {
 }
 
 .copy-path-btn,
+.is-installed-btn,
 .download-registry-btn,
 .ai-manager-btn {
     padding: 10px;
@@ -168,6 +170,7 @@ body:has(.breadcrumb-item.search-breadcrumb) .copy-path-btn:hover {
 
 .show-all-btn svg,
 .copy-path-btn svg,
+.is-installed-btn svg,
 .download-registry-btn svg,
 .reset-btn svg,
 .ai-manager-btn svg {
@@ -176,11 +179,19 @@ body:has(.breadcrumb-item.search-breadcrumb) .copy-path-btn:hover {
 }
 
 .copy-path-btn:hover,
+.is-installed-btn:hover,
 .download-registry-btn:hover {
     background: rgba(96, 165, 250, .15);
     border-color: var(--accent-2);
     color: var(--accent-2);
     transform: translateY(-1px);
+}
+
+.is-installed-btn.active {
+    background: rgba(96, 165, 250, .2);
+    border-color: var(--accent-2);
+    color: var(--accent-2);
+    box-shadow: 0 0 8px rgba(96, 165, 250, .25);
 }
 
 .ai-manager-btn:hover {

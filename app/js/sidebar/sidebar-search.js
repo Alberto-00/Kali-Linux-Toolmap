@@ -85,10 +85,13 @@
             const item = getNavItem(phase);
             if (!item) return;
 
+            const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phase);
+
+            // Non riaprire fasi che non hanno risultati nel contesto di ricerca corrente
+            if (phasePaths.length === 0) return;
+
             item.classList.add(CLASSES.open);
             item.querySelector('.btn')?.classList.add(CLASSES.active);
-
-            const phasePaths = lastCtx.paths.filter(arr => arr && arr[0] === phase);
 
             for (const arr of phasePaths) {
                 if (!arr || arr.length === 0) continue;
@@ -176,8 +179,53 @@
         window.SidebarAutoGrow?.schedule();
     }
 
-    function applySearchGhost(detail) {
-        const {hasQuery, phaseKeys = [], paths = [], countsByPhase = {}} = detail || {};
+    function applySearchGhost(detail, overrideInstalledOnly) {
+        let {hasQuery, phaseKeys = [], paths = [], countsByPhase = {}, foundToolIds = []} = detail || {};
+
+        // In installed mode, filtra il display sidebar per soli tool installati.
+        // foundToolIds e __lastSearchContext restano invariati (usati dallo scope dispatch
+        // che applica già il filtro installed via computeVisibleTools).
+        // overrideInstalledOnly: usato da tm:installed:mode-changed per passare il nuovo
+        // valore prima che window.__installedOnly sia aggiornato da handleVisiblePathsFilter.
+        const effectiveInstalledOnly = overrideInstalledOnly !== undefined
+            ? overrideInstalledOnly
+            : !!window.__installedOnly;
+
+        if (effectiveInstalledOnly && foundToolIds.length > 0) {
+            const installedMap = window.InstalledManager?.load() || {};
+            const toolsById = (window.Toolmap || {}).toolsById || {};
+
+            const installedSet = new Set(foundToolIds.filter(id => {
+                const tool = toolsById[id];
+                if (!tool) return false;
+                const localInstalled = Object.prototype.hasOwnProperty.call(installedMap, id)
+                    ? !!installedMap[id] : undefined;
+                return localInstalled !== undefined ? localInstalled : !!(tool.installed);
+            }));
+
+            if (installedSet.size < foundToolIds.length) {
+                const phaseHits = new Map();
+                const filteredCounts = {};
+
+                installedSet.forEach(id => {
+                    const tool = toolsById[id];
+                    if (!tool) return;
+                    const cat = tool.category_path || [];
+                    if (!cat.length) return;
+                    const phase = cat[0];
+                    const ps = cat.join('/');
+                    if (!phaseHits.has(phase)) phaseHits.set(phase, new Set());
+                    phaseHits.get(phase).add(ps);
+                    filteredCounts[phase] = (filteredCounts[phase] || 0) + 1;
+                });
+
+                phaseKeys = Array.from(phaseHits.keys());
+                paths = [];
+                phaseHits.forEach(s => s.forEach(p => paths.push(p.split('/'))));
+                countsByPhase = filteredCounts;
+            }
+        }
+
         if (!hasQuery) {
             clearSearchGhost();
             return;
@@ -560,6 +608,51 @@
             window.__lastSearchContext = null;
             clearSearchGhost();
         }
+    });
+
+    // Quando installed mode viene togolato durante la ricerca, ri-applica la ghost
+    // con il nuovo valore installedOnly dal detail (window.__installedOnly è ancora stale
+    // a questo punto, viene aggiornato solo dopo da handleVisiblePathsFilter in render()).
+    // Dopo aver aggiornato la sidebar, sincronizza anche lo scope della card grid:
+    // applySearchGhost può aprire fasi che erano chiuse, ma state.scopeIds è ancora stale.
+    // Il dispatch avviene qui (sincrono) in modo che render() usi già il scope corretto.
+    window.addEventListener('tm:installed:mode-changed', (ev) => {
+        const lastCtx = window.__lastSearchContext;
+        if (!lastCtx || !lastCtx.hasQuery || !isSearchMode()) return;
+
+        const newInstalledOnly = !!(ev.detail?.installedOnly);
+        applySearchGhost(lastCtx, newInstalledOnly);
+
+        // Raccogli le fasi aperte dopo che applySearchGhost ha aggiornato il DOM
+        const openPhases = Array.from(document.querySelectorAll('.nav-item.open'))
+            .map(item => item.dataset.phase)
+            .filter(Boolean);
+
+        const tm = window.Toolmap || {};
+        const toolsById = tm.toolsById || {};
+        const allSearchIds = lastCtx.foundToolIds || [];
+
+        let scopeIds;
+        if (openPhases.length === 0) {
+            scopeIds = allSearchIds;
+        } else {
+            scopeIds = allSearchIds.filter(id => {
+                const tool = toolsById[id];
+                if (!tool || !tool.category_path) return false;
+                return openPhases.includes(tool.category_path[0]);
+            });
+        }
+
+        window.dispatchEvent(new CustomEvent('tm:scope:set', {
+            detail: {
+                ids: scopeIds,
+                pathKey: openPhases.length > 0
+                    ? `search:phases:${openPhases.join(',')}`
+                    : 'search:all',
+                all: false,
+                source: 'search-installed-mode-change'
+            }
+        }));
     });
 
     window.addEventListener('tm:hover:show', () => {

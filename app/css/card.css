@@ -178,7 +178,7 @@
 }
 
 /* ============================================================================
-   TOP-RIGHT BADGES (best_in*)
+   TOP-RIGHT BADGES (installed, best_in*)
    ============================================================================ */
 
 .card-badges {
@@ -190,6 +190,14 @@
     z-index: 15;
 }
 
+.installed-badge {
+    width: 18px;
+    height: 18px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35));
+    cursor: pointer;
+    border-radius: 4px;
+}
+
 .best-star {
     width: 18px;
     height: 18px;
@@ -197,6 +205,7 @@
     fill: #383842;
     stroke: rgba(0, 0, 0, .35);
     stroke-width: .5;
+    cursor: pointer;
     border-radius: 4px;
 }
 

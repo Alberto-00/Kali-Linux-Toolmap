@@ -24,6 +24,8 @@
             pathKey: 'tm:active:path',
             pathSlash: 'tm:active:slash',
             stars: 'tm:stars',
+            installed: 'tm:installed',
+            installedOnly: 'tm:installed:only',
             registryJSON: 'tm:session:registry-json',
             booted: 'tm:session:booted',
             collapsed: 'tm:sidebar:collapsed'

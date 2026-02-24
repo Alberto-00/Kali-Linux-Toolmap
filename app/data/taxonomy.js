@@ -78,7 +78,8 @@ const taxonomy = {
             "CMS_Exploits": {
                 "Drupal": {},
                 "Joomla": {},
-                "WordPress": {}
+                "Odoo": {},
+                "WordPress": {},
             },
             "File_Upload": {},
             "Injection": {
@@ -90,12 +91,15 @@ const taxonomy = {
                 "CSRF": {},
                 "SSTI": {}
             },
+            "Web_Servers": {
+                "IIS": {},
+                "Next_js": {},
+                "Tomcat": {}
+            },
             "Deserialization": {},
             "JBoss_&_WildFly": {},
             "Proxy_MITM": {},
             "SSRF": {},
-            "Next_js": {},
-            "Tomcat": {}
         },
         "Wireless": {
             "WiFi": {},
@@ -113,7 +117,9 @@ const taxonomy = {
         },
         "Credentials": {
             "Dumping": {},
-            "Cracking": {},
+            "Cookies_Hunting": {},
+            "Credentials_Hunting": {},
+            "Passwords_Cracking": {},
             "Brute_Force": {},
             "Spraying": {}
         },

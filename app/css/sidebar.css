@@ -299,6 +299,11 @@ nav {
     animation: slideIn .3s ease backwards;
 }
 
+.nav-item.filtered-empty,
+.folder-leaf.filtered-empty {
+    display: none !important;
+}
+
 .nav-item:nth-child(1) {
     animation-delay: .05s;
 }

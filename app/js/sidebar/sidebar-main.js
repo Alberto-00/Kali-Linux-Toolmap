@@ -10,7 +10,7 @@
     const {ICON_MAP, precomputeIconMap} = window.SidebarIcons;
     const {MEM, getActivePathSlash, setActivePathSlash, expandBranch, collapseSubtree, getExpandedPaths, getNavItem, clearNavItemCache, getOpenNavItems, resolveToolIdsForSlashPath, derivePhaseColor, phaseMemory} = window.SidebarState;
     const {createNestedContainer, animateNested, animateCloseAllBatch, animatePhaseChildren, expandAndHighlightPath, buildNav, clearPathHighlight, highlightActivePath, highlightPathInContainer, ensureExpandedInContainer, expandFromMemoryInContainer, expandAncestors, expandAncestorsWithHits, updateSearchContainersVLines, dispatchScopeAndPhase, positionFlyouts, markLastVisible} = window.SidebarDOM;
-    const {getHoverPane, hideHoverPane, showHoverPaneForNode, clearHoverTimeout, setHoverTimeout, attachHoverPaneListener, getCurrentHoverButton} = window.SidebarHover;
+    const {getHoverPane, hideHoverPane, showHoverPaneForNode, clearHoverTimeout, setHoverTimeout, attachHoverPaneListener, getCurrentHoverButton, syncHeaderActivePath} = window.SidebarHover;
     const {restoreSearchPhases} = window.SidebarSearch;
 
     // ========================================================================
@@ -98,6 +98,10 @@
 
             const nest = createNestedContainer(pathSlash, node, true);
             el.after(nest);
+
+            // Applica filtro installed ai nuovi elementi prima dell'animazione
+            applyInstalledFilterToContainer(nest);
+
             markLastVisible(el.parentElement);
             markLastVisible(nest);
 
@@ -176,6 +180,9 @@
                     } else {
                         // Modalità normale (non search)
                         expandFromMemoryInContainer(navItem, phaseKey);
+
+                        // Applica filtro installed ai nuovi elementi
+                        applyInstalledFilterToContainer(navItem);
 
                         const current = getActivePathSlash(phaseKey);
                         if (current && typeof current === 'string') {
@@ -349,6 +356,9 @@
                         highlightActivePath(phaseKey);
                         expandFromMemoryInContainer(navItem, phaseKey);
 
+                        // Applica filtro installed ai nuovi elementi
+                        applyInstalledFilterToContainer(navItem);
+
                         const last = getActivePathSlash(phaseKey);
                         if (last && typeof last === 'string') {
                             QueryHelpers.clearActive(navItem);
@@ -468,6 +478,10 @@
                 const sidebarEl = document.getElementById('sidebar');
                 if (sidebarEl && sidebarEl.classList.contains(CLASSES.collapsed)) {
                     const navItem = btn.closest('.nav-item');
+
+                    // Non mostrare hover pane per fasi filtrate (installed mode)
+                    if (navItem.classList.contains('filtered-empty')) return;
+
                     const phaseKey = navItem.dataset.phase;
                     const phaseData = taxonomy[phaseKey];
                     if (hasChildrenNode(phaseData)) {
@@ -831,6 +845,9 @@
                         QueryHelpers.clearActive(item);
                     }
                 }
+
+                // Applica filtro installed ai nuovi elementi
+                applyInstalledFilterToContainer(item);
             });
             window.refreshAllVLinesDebounced();
             window.SidebarAutoGrow?.schedule();
@@ -893,6 +910,8 @@
                     acc.push(p);
                     ensureExpandedInContainer(pane, acc.join('/'));
                 }
+                // Applica filtro installed ai nuovi elementi
+                applyInstalledFilterToContainer(navItem);
             }
 
             setActivePathSlash(phaseKey, slash);
@@ -931,6 +950,7 @@
                                 QueryHelpers.clearActive(hoverPane);
                                 const activeLeaf = hoverPane.querySelector(`.folder-leaf[data-path="${currentPath}"], .leaf[data-path="${currentPath}"]`);
                                 if (activeLeaf) activeLeaf.classList.add(CLASSES.active);
+                                syncHeaderActivePath(hoverPane);
                                 if (typeof window.refreshAllVLinesDebounced === 'function') {
                                     window.refreshAllVLinesDebounced(hoverPane);
                                 }
@@ -949,6 +969,7 @@
 
                         const activeLeaf = hoverPane.querySelector(`.folder-leaf[data-path="${currentPath}"], .leaf[data-path="${currentPath}"]`);
                         if (activeLeaf) activeLeaf.classList.add(CLASSES.active);
+                        syncHeaderActivePath(hoverPane);
 
                         requestAnimationFrame(() => {
                             if (typeof window.refreshAllVLinesDebounced === 'function') {
@@ -1057,6 +1078,153 @@
     }
 
     // ========================================================================
+    // SIDEBAR FILTERING (nascondi fasi/sottofasi senza tool visibili)
+    // ========================================================================
+
+    /**
+     * Filtra nav items in base ai tool visibili
+     * Nasconde fasi e sottofasi che non hanno tool nel set corrente
+     */
+    function handleVisiblePathsFilter(event) {
+        const { visiblePaths, installedOnly, toolCount } = event.detail || {};
+
+        // Salva stato filtro globalmente per hover pane
+        window.__installedFilterPaths = visiblePaths || null;
+        window.__installedOnly = !!installedOnly;
+
+        const NAV = document.getElementById('nav');
+        if (!NAV) return;
+
+        // Se non c'è filtro installed attivo, mostra tutto
+        if (!installedOnly) {
+            NAV.querySelectorAll('.nav-item.filtered-empty').forEach(item => {
+                item.classList.remove('filtered-empty');
+            });
+            NAV.querySelectorAll('.folder-leaf.filtered-empty').forEach(item => {
+                item.classList.remove('filtered-empty');
+            });
+            // Pulisci anche hover pane se visibile
+            const hp = getHoverPane();
+            if (hp) {
+                hp.querySelectorAll('.folder-leaf.filtered-empty').forEach(item => {
+                    item.classList.remove('filtered-empty');
+                });
+            }
+            // Ricalcola v-line dopo che il browser ha applicato il layout
+            scheduleVLineRefresh();
+            return;
+        }
+
+        // Filtra fasi (nav-item con data-phase)
+        NAV.querySelectorAll('.nav-item[data-phase]').forEach(item => {
+            const phase = item.dataset.phase;
+            const pathKey = 'Root>' + phase;
+            const hasTools = visiblePaths && visiblePaths.has(pathKey);
+            item.classList.toggle('filtered-empty', !hasTools);
+        });
+
+        // Filtra folder-leaf (sottocategorie)
+        NAV.querySelectorAll('.folder-leaf[data-pathkey]').forEach(item => {
+            const pathKey = item.dataset.pathkey;
+            // data-pathkey usa formato "phase>sub>leaf" (senza Root>)
+            const fullPathKey = 'Root>' + pathKey;
+            const hasTools = visiblePaths && visiblePaths.has(fullPathKey);
+            item.classList.toggle('filtered-empty', !hasTools);
+        });
+
+        // Applica filtro anche all'hover pane se visibile
+        applyInstalledFilterToHoverPane();
+
+        // Ricalcola v-line dopo che il browser ha applicato il layout
+        scheduleVLineRefresh();
+    }
+
+    /**
+     * Applica filtro installed a un container specifico nella sidebar (o al NAV intero).
+     * Usa lo stato globale __installedFilterPaths e __installedOnly.
+     * Chiamato dopo ogni creazione dinamica di folder-leaf (apertura fasi/cartelle).
+     */
+    function applyInstalledFilterToContainer(container) {
+        if (!container) return;
+        const visiblePaths = window.__installedFilterPaths;
+        const installedOnly = window.__installedOnly;
+
+        if (!installedOnly) {
+            container.querySelectorAll('.folder-leaf.filtered-empty').forEach(item => {
+                item.classList.remove('filtered-empty');
+            });
+            return;
+        }
+
+        if (!visiblePaths) return;
+
+        container.querySelectorAll('.folder-leaf[data-pathkey]').forEach(item => {
+            const pathKey = item.dataset.pathkey;
+            const fullPathKey = 'Root>' + pathKey;
+            const hasTools = visiblePaths.has(fullPathKey);
+            item.classList.toggle('filtered-empty', !hasTools);
+        });
+    }
+
+    /**
+     * Applica il filtro installed all'hover pane (coerenza sidebar aperta/chiusa)
+     */
+    function applyInstalledFilterToHoverPane() {
+        const hp = getHoverPane();
+        if (!hp) return;
+
+        const visiblePaths = window.__installedFilterPaths;
+        const installedOnly = window.__installedOnly;
+
+        if (!installedOnly) {
+            hp.querySelectorAll('.folder-leaf.filtered-empty').forEach(item => {
+                item.classList.remove('filtered-empty');
+            });
+            return;
+        }
+
+        hp.querySelectorAll('.folder-leaf[data-pathkey]').forEach(item => {
+            const pathKey = item.dataset.pathkey;
+            const fullPathKey = 'Root>' + pathKey;
+            const hasTools = visiblePaths && visiblePaths.has(fullPathKey);
+            item.classList.toggle('filtered-empty', !hasTools);
+        });
+
+        // Gestisci anche children-nested che contengono il folder-leaf nascosto
+        // (nascondi il container se tutti i suoi figli diretti sono nascosti)
+        // Processa dal più interno verso l'esterno (bottom-up)
+        const nests = Array.from(hp.querySelectorAll('.children-nested')).reverse();
+        for (const nest of nests) {
+            const visibleChildren = nest.querySelectorAll(':scope > .folder-leaf:not(.filtered-empty)');
+            const visibleNested = nest.querySelectorAll(':scope > .children-nested');
+            if (visibleChildren.length === 0 && visibleNested.length === 0) {
+                const parentLeaf = nest.previousElementSibling;
+                if (parentLeaf && parentLeaf.classList.contains('folder-leaf')) {
+                    parentLeaf.classList.add('filtered-empty');
+                }
+            }
+        }
+
+        // Aggiorna markLastVisible e v-lines nel hover pane
+        const rootChildren = hp.querySelector('.hover-root');
+        if (rootChildren) markLastVisible(rootChildren);
+        scheduleVLineRefresh();
+    }
+
+    /**
+     * Ricalcola v-line con double-rAF per garantire che il layout sia aggiornato
+     */
+    function scheduleVLineRefresh() {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (window.refreshAllVLines) {
+                    window.refreshAllVLines();
+                }
+            });
+        });
+    }
+
+    // ========================================================================
     // BOOTSTRAP
     // ========================================================================
 
@@ -1073,6 +1241,9 @@
 
         setCollapsed(getCollapsed());
 
+        // Filtro fasi vuote
+        window.addEventListener('tm:filter:visible-paths', handleVisiblePathsFilter);
+
         const lastSlash = localStorage.getItem(MEM.pathSlash);
         if (lastSlash) {
             const phaseKey = lastSlash.split('/')[0];
@@ -1081,5 +1252,8 @@
             dispatchScopeAndPhase(lastSlash);
         }
     });
+
+    // Esponi la funzione di filtro hover pane
+    window.applyInstalledFilterToHoverPane = applyInstalledFilterToHoverPane;
 
 })();

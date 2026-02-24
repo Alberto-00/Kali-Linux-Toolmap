@@ -132,6 +132,28 @@
     };
 
     // ========================================================================
+    // INSTALLED UTILITIES
+    // ========================================================================
+
+    /**
+     * Helper per determinare stato "installed" di un tool
+     */
+    const InstalledUtils = {
+        /**
+         * Verifica se tool è installed (locale o da registry)
+         */
+        isInstalled(tool) {
+            if (!tool) return false;
+
+            // Priorità: flag locale _installed (se definito) > flag registry installed
+            if (tool._installed === true || tool._installed === 'true') return true;
+            if (tool._installed === false || tool._installed === 'false') return false;
+
+            return !!ToolUtils.readInstalledFlag(tool);
+        }
+    };
+
+    // ========================================================================
     // MARKUP GENERATOR
     // ========================================================================
 
@@ -152,11 +174,11 @@
             const description = (tool?.desc || tool?.description || '').trim();
 
             return `
-                <article class="card tool-card" 
-                         data-tool-id="${DOMUtils.escapeAttr(tool?.id ?? '')}" 
-                         data-phase="${DOMUtils.escapeAttr(phase)}" 
+                <article class="card tool-card"
+                         data-tool-id="${DOMUtils.escapeAttr(tool?.id ?? '')}"
+                         data-phase="${DOMUtils.escapeAttr(phase)}"
                          style="--phase:${phaseColor}">
-                    <div class="card-badges">${this._starBadge(tool)}</div>
+                    <div class="card-badges">${this._installedBadge(tool)}${this._starBadge(tool)}</div>
                     <div class="img" style="${this._imageStyle(tool, phaseColor)}"></div>
                     <h3 class="card-title">
                         <span class="title-text">
@@ -207,6 +229,31 @@
         },
 
         /**
+         * Badge installed (I maiuscola stile romano)
+         */
+        _installedBadge(tool) {
+            const categoryPath = ToolUtils.getCategoryPath(tool);
+            const phase = categoryPath.length ? categoryPath[0] : '04_Miscellaneous';
+            const activeColor = ToolUtils.getPhaseColor(phase);
+            const isInstalled = InstalledUtils.isInstalled(tool);
+            // Default: stesso colore della stella non attiva (#383842 + stroke scuro)
+            const mutedColor = '#383842';
+
+            return `
+                <svg class="installed-badge" viewBox="0 0 24 24"
+                     role="button" tabindex="0"
+                     data-role="installed" data-installed="${isInstalled ? '1' : '0'}"
+                     aria-pressed="${isInstalled ? 'true' : 'false'}"
+                     aria-label="Installed">
+                    <title>Installed</title>
+                    <line x1="6" y1="4" x2="18" y2="4" style="stroke:${isInstalled ? activeColor : mutedColor};stroke-width:2.5;stroke-linecap:round;"/>
+                    <line x1="12" y1="4" x2="12" y2="20" style="stroke:${isInstalled ? activeColor : mutedColor};stroke-width:2.5;stroke-linecap:round;"/>
+                    <line x1="6" y1="20" x2="18" y2="20" style="stroke:${isInstalled ? activeColor : mutedColor};stroke-width:2.5;stroke-linecap:round;"/>
+                </svg>
+            `;
+        },
+
+        /**
          * Badge stella (favorito)
          */
         _starBadge(tool) {
@@ -249,7 +296,7 @@
          */
         _notesButton() {
             return `
-                <button class="notes-btn icon-btn" data-role="notes" type="button" 
+                <button class="notes-btn icon-btn" data-role="notes" type="button"
                         title="View/Edit Notes" aria-label="View or edit notes">
                     ${Icons.notes()}<b>Notes</b>
                 </button>
@@ -315,6 +362,7 @@
                     this._attachCardClick(card, tool);
                     this._attachNotesButton(card, tool);
                     this._attachRepoLink(card);
+                    this._attachInstalledButton(card, tool);
                     this._attachStarButton(card, tool);
                 }
             });
@@ -442,6 +490,37 @@
         }
 
         /**
+         * Aggiorna stato installed di una card specifica
+         * @param {string} toolId - ID del tool
+         * @param {boolean} installed - Nuovo stato installed
+         */
+        updateInstalledState(toolId, installed) {
+            const card = this._cardMap.get(toolId);
+            if (!card) return;
+
+            const badge = card.querySelector('[data-role="installed"]');
+            if (!badge) return;
+
+            const tool = this._toolById.get(toolId);
+            if (!tool) return;
+
+            const phase = ToolUtils.getCategoryPath(tool)[0] || '04_Miscellaneous';
+            const activeColor = ToolUtils.getPhaseColor(phase);
+            const mutedColor = '#383842';
+
+            badge.setAttribute('data-installed', installed ? '1' : '0');
+            badge.setAttribute('aria-pressed', installed ? 'true' : 'false');
+
+            const color = installed ? activeColor : mutedColor;
+            badge.querySelectorAll('line').forEach(line => {
+                line.style.stroke = color;
+            });
+
+            // Forza riordinamento al prossimo showOnly()
+            this._needsReorder = true;
+        }
+
+        /**
          * Renderizza array di tool nel container
          * @param {Array} tools - Array di oggetti tool
          * @param {String|Element} containerOverride - Container opzionale (override this.grid)
@@ -483,6 +562,7 @@
                 this._attachCardClick(card, tool);
                 this._attachNotesButton(card, tool);
                 this._attachRepoLink(card);
+                this._attachInstalledButton(card, tool);
                 this._attachStarButton(card, tool);
             });
         }
@@ -498,7 +578,7 @@
 
             card.addEventListener('click', (e) => {
                 // Ignora click su bottoni/link interni
-                const isAction = e.target.closest('[data-role="notes"], [data-role="repo"], [data-role="star"]');
+                const isAction = e.target.closest('[data-role="notes"], [data-role="repo"], [data-role="star"], [data-role="installed"]');
                 if (isAction) return;
 
                 // Chiama callback o dispatch evento
@@ -544,6 +624,34 @@
             link.dataset._boundRepo = '1';
 
             link.addEventListener('click', (e) => e.stopPropagation());
+        }
+
+        /**
+         * Click su badge installed (toggle installed)
+         * @private
+         */
+        _attachInstalledButton(card, tool) {
+            const badge = card.querySelector('[data-role="installed"]');
+            if (!badge || badge.dataset._boundInstalled) return;
+            badge.dataset._boundInstalled = '1';
+
+            const toggle = (e) => {
+                e.stopPropagation();
+                const current = badge.getAttribute('data-installed') === '1';
+
+                window.dispatchEvent(new CustomEvent('tm:tool:toggleInstalled', {
+                    detail: { id: tool.id, value: !current }
+                }));
+            };
+
+            // Click e accessibilità tastiera
+            badge.addEventListener('click', toggle);
+            badge.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggle(e);
+                }
+            });
         }
 
         /**
