@@ -2,8 +2,6 @@
 
 Kali Toolmap è un'applicazione web client-side che funziona come una mappa interattiva di **500+ tool di sicurezza informatica**. Trovarli, capire a cosa servono e ricordarsi quali usare in ogni fase di un pentest è difficile — Toolmap organizza tutto in una struttura logica e navigabile, direttamente nel browser, senza backend.
 
----
-
 ## Indice
 
 - [Caratteristiche](#caratteristiche)
@@ -12,7 +10,6 @@ Kali Toolmap è un'applicazione web client-side che funziona come una mappa inte
 - [Architettura](#architettura)
   - [Flusso Dati](#flusso-dati)
   - [Moduli JavaScript](#moduli-javascript)
-  - [Sistema di Eventi](#sistema-di-eventi)
   - [Sidebar](#sidebar)
   - [CSS](#css)
 - [Tassonomia e Fasi](#tassonomia-e-fasi)
@@ -27,8 +24,6 @@ Kali Toolmap è un'applicazione web client-side che funziona come una mappa inte
 - [Ricerca AI](#ricerca-ai)
 - [Script di Utilità](#script-di-utilità)
 
----
-
 ## Caratteristiche
 
 | Funzionalità | Descrizione |
@@ -41,8 +36,6 @@ Kali Toolmap è un'applicazione web client-side che funziona come una mappa inte
 | **Export JSON** | Scarica il registry aggiornato con le personalizzazioni utente |
 | **Responsive** | Mobile-first con drawer sidebar, breakpoint adattivi e safe area per notch |
 | **Zero backend** | Tutto nel browser — serve solo un server HTTP statico |
-
----
 
 ## Quick Start
 
@@ -67,8 +60,6 @@ Poi apri `http://localhost:8000/app/` nel browser.
 | **Linux** | `chmod +x utils/linux/install-desktop-shortcut.sh && ./utils/linux/install-desktop-shortcut.sh` |
 
 Per rimuovere: elimina il collegamento dal desktop. Il progetto rimane intatto.
-
----
 
 ## Struttura del Progetto
 
@@ -142,8 +133,6 @@ Kali-Linux-Toolmap/
     └── kali_svg_scraping.py              # Scraping icone SVG da Kali
 ```
 
----
-
 ## Architettura
 
 ### Flusso Dati
@@ -185,36 +174,6 @@ sidebar-constants.js                                       │
     → sidebar-badges.js → sidebar-main.js
 [6] breadcrumb-manager.js → back-to-top.js → app.js
 ```
-
-### Sistema di Eventi
-
-La comunicazione tra moduli avviene tramite `CustomEvent` su `window`:
-
-| Evento | Payload | Descrizione |
-|---|---|---|
-| `tm:registry:ready` | — | Registry caricato e indicizzato |
-| `tm:scope:set` | `{ids, pathKey, all}` | Filtra i tool visibili nella griglia |
-| `tm:show:all` | — | Click sul pulsante "Show All" |
-| `tm:reset` | — | Reset completo di tutto lo stato |
-| `tm:search:set` | — | Avvio modalità ricerca |
-| `tm:search:clear` | — | Fine modalità ricerca |
-| `tm:search:context` | — | Cambio contesto ricerca |
-| `tm:search:filter:all` | — | Espandi tutti i risultati di ricerca |
-| `tm:tool:toggleStar` | — | Toggle preferito su un tool |
-| `tm:tool:toggleInstalled` | — | Toggle stato installato su un tool |
-| `tm:stars:updated` | `{id, value}` | Preferito aggiornato |
-| `tm:installed:updated` | `{id, value}` | Stato installato aggiornato |
-| `tm:installed:toggle-mode` | — | Attiva/disattiva filtro installed-only |
-| `tm:installed:mode-changed` | `{installedOnly}` | Modalità installed cambiata |
-| `tm:filter:visible-paths` | — | Path visibili per filtraggio sidebar (installed mode) |
-| `tm:card:openNotes` | — | Apri modal note di un tool |
-| `tm:card:openDetails` | — | Apri modal dettagli di un tool |
-| `tm:sidebar:toggle` | `{collapsed}` | Sidebar aperta/collassata |
-| `tm:sidebar:closeAll` | — | Chiudi tutte le fasi aperte |
-| `tm:sidebar:restore-snapshot` | — | Ripristina stato sidebar dopo ricerca |
-| `tm:phase:color` | `{color}` | Colore della fase corrente |
-| `tm:hover:show` | — | Hover pane mostrato |
-| `tm:context:summary` | — | Riepilogo conteggio tool per badge |
 
 ### Sidebar
 
@@ -264,8 +223,6 @@ La sidebar è il componente più complesso: è suddivisa in **10 moduli** con ca
 | `ai-manager-modal.css` | Modal configurazione AI |
 | `ai-loading.css` | Animazione loading durante ricerca AI |
 | `responsive.css` | Media queries per tutti i breakpoint, mobile drawer, hamburger, touch target |
-
----
 
 ## Tassonomia e Fasi
 
@@ -399,8 +356,6 @@ Dopo aver modificato il registry, rigenera la tassonomia:
 python utils/build_taxonomy_from_registry.py
 ```
 
----
-
 ## Funzionalità Utente
 
 ### Ricerca
@@ -446,8 +401,6 @@ Tutte le chiavi sono definite in `constants.js` sotto `STORAGE_KEYS`:
 
 > Il pulsante **Reset** esegue `localStorage.clear()` + `sessionStorage.clear()` completo.
 
----
-
 ## Ricerca AI
 
 La ricerca semantica usa OpenAI Chat Completions API con un system prompt dedicato.
@@ -483,8 +436,6 @@ OPENAI_MAX_TOKENS=1000
 2. Il registry viene inviato come contesto (solo i campi essenziali: `id`, `name`, `desc`, `category_path`)
 3. La query utente viene analizzata semanticamente
 4. Il modello restituisce esclusivamente una lista di ID tool rilevanti
-
----
 
 ## Script di Utilità
 
