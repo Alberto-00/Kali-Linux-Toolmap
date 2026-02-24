@@ -1,101 +1,74 @@
 # Cybersecurity Toolmap
 
-Kali Toolmap è un'applicazione web che funziona come una mappa interattiva di tutti i tool di sicurezza informatica disponibili in Kali Linux (e non solo). Contiene 500+ tool di sicurezza. Trovarli, capire a cosa servono e ricordarsi quali usare in ogni fase di un pentest è difficile. Kali Toolmap organizza tutto questo in una struttura logica e navigabile.
+Kali Toolmap è un'applicazione web client-side che funziona come una mappa interattiva di **500+ tool di sicurezza informatica**. Trovarli, capire a cosa servono e ricordarsi quali usare in ogni fase di un pentest è difficile — Toolmap organizza tutto in una struttura logica e navigabile, direttamente nel browser, senza backend.
+
+---
 
 ## Indice
 
-- [Panoramica](#panoramica)
+- [Caratteristiche](#caratteristiche)
 - [Quick Start](#quick-start)
 - [Struttura del Progetto](#struttura-del-progetto)
 - [Architettura](#architettura)
-  - [Pattern dei Moduli](#pattern-dei-moduli)
-  - [Sistema di Eventi](#sistema-di-eventi)
   - [Flusso Dati](#flusso-dati)
-  - [Architettura Sidebar](#architettura-sidebar)
-  - [Architettura CSS](#architettura-css)
-- [Gestione Fasi](#gestione-fasi)
-  - [Aggiungere una nuova Fase](#aggiungere-una-nuova-fase)
+  - [Moduli JavaScript](#moduli-javascript)
+  - [Sistema di Eventi](#sistema-di-eventi)
+  - [Sidebar](#sidebar)
+  - [CSS](#css)
+- [Tassonomia e Fasi](#tassonomia-e-fasi)
+  - [Aggiungere una Fase](#aggiungere-una-fase)
   - [Aggiungere un Tool](#aggiungere-un-tool)
-- [Ricerca AI (OpenAI)](#ricerca-ai-openai)
-- [Funzionamento UI](#funzionamento-ui)
-- [Altri Scripts](#altri-scripts)
+- [Funzionalità Utente](#funzionalità-utente)
+  - [Ricerca](#ricerca)
+  - [Preferiti](#preferiti)
+  - [Tool Installati](#tool-installati)
+  - [Note](#note)
+  - [Storage](#storage)
+- [Ricerca AI](#ricerca-ai)
+- [Script di Utilità](#script-di-utilità)
 
+---
 
-## Panoramica
+## Caratteristiche
 
-### Caratteristiche principali
+| Funzionalità | Descrizione |
+|---|---|
+| **Tassonomia a 7 fasi** | Struttura che segue il workflow di un pentest, dalla ricognizione al red teaming |
+| **Ricerca duale** | Fuzzy search locale istantanea + ricerca semantica AI via OpenAI |
+| **Preferiti** | Sistema di "star" salvato in localStorage |
+| **Tool installati** | Segna i tool installati sul tuo sistema, filtra per visualizzare solo quelli |
+| **Note personali** | Annotazioni Markdown per ogni tool, salvate in localStorage |
+| **Export JSON** | Scarica il registry aggiornato con le personalizzazioni utente |
+| **Responsive** | Mobile-first con drawer sidebar, breakpoint adattivi e safe area per notch |
+| **Zero backend** | Tutto nel browser — serve solo un server HTTP statico |
 
-- **Tassonomia a 7 fasi** - dalla ricognizione al red teaming
-- **Ricerca duale** - fuzzy search + ricerca semantica con AI (OpenAI)
-- **Note personali** - annota ogni tool in Markdown
-- **Preferiti** - sistema di "star" per i tool più usati
-- **Export** - scarica il JSON aggiornato
-- **Responsive** - mobile-first con drawer sidebar, breakpoint adattivi e safe area per notch
-- **Zero backend** - tutto gira nel browser, nessun server richiesto (solo un server HTTP statico)
-
+---
 
 ## Quick Start
 
-### Requisiti
-
-- Python 3.x (per il server HTTP locale)
-- Browser moderno (Chrome, Firefox, Edge, Safari)
+**Requisiti:** Python 3.x · Browser moderno (Chrome, Firefox, Edge, Safari)
 
 ### Avvio
 
-**Windows:**
-```bash
-# Doppio click su:
-utils\windows\start-server.bat
+| Piattaforma | Script rapido | Manuale |
+|---|---|---|
+| **Windows** | Doppio click su `utils\windows\start-server.bat` | `python -m http.server 8000` |
+| **Linux / macOS** | `./utils/linux/start-server.sh` | `python3 -m http.server 8000` |
 
-# Oppure da terminale:
-cd Kali-Linux-Toolmap
-python -m http.server 8000
-# Apri http://localhost:8000/app/
-```
+Poi apri `http://localhost:8000/app/` nel browser.
 
-**Linux / macOS:**
-```bash
-# Rendi eseguibile e lancia:
-chmod +x utils/linux/start-server.sh
-./utils/linux/start-server.sh
+> Lo script mostra anche l'IP locale per accedere da altri dispositivi sulla stessa rete.
 
-# Oppure manualmente:
-cd Kali-Linux-Toolmap
-python3 -m http.server 8000
-# Apri http://localhost:8000/app/
-```
+### Icona Desktop (opzionale)
 
-Il browser si aprirà automaticamente su `http://localhost:8000/app/`
+| Piattaforma | Comando |
+|---|---|
+| **Windows** | `utils\windows\install-desktop-shortcut.bat` |
+| **Linux** | `chmod +x utils/linux/install-desktop-shortcut.sh && ./utils/linux/install-desktop-shortcut.sh` |
 
-> **Nota**: Lo script mostra anche l'IP locale per accedere da altri dispositivi sulla stessa rete.
+Per rimuovere: elimina il collegamento dal desktop. Il progetto rimane intatto.
 
-### Installare icona Desktop
-
-Puoi creare un'icona desktop per avviare Toolmap come un'app:
-
-**Windows:**
-```bash
-# Esegui una volta:
-utils\windows\install-desktop-shortcut.bat
-
-# Apparirà "Toolmap" sul desktop
-# Click destro > "Aggiungi alla barra delle applicazioni"
-```
-
-**Linux:**
-```bash
-# Esegui una volta:
-chmod +x utils/linux/install-desktop-shortcut.sh
-./utils/linux/install-desktop-shortcut.sh
-
-# Apparirà "Toolmap" sul desktop e nel menu applicazioni
-# Click destro > "Aggiungi ai preferiti" per la dock
-```
-
-> **Rimuovere l'icona**: elimina semplicemente il collegamento dal desktop. Il progetto rimane intatto.
-
-
+---
 
 ## Struttura del Progetto
 
@@ -103,23 +76,23 @@ chmod +x utils/linux/install-desktop-shortcut.sh
 Kali-Linux-Toolmap/
 │
 ├── app/                              # Applicazione principale
-│   ├── index.html                    # Home HTML
+│   ├── index.html                    # Entry point HTML
 │   │
 │   ├── data/                         # Dati e configurazione
-│   │   ├── registry.json             # Database dei tool (principale)
+│   │   ├── registry.json             # Database dei tool (~500 voci, ~1.6MB)
 │   │   ├── taxonomy.js               # Albero delle categorie (auto-generato)
 │   │   ├── kali_tools.json           # Metadata originali Kali
-│   │   ├── system-prompt.md          # System Prompt per la ricerca semantica
+│   │   ├── system-prompt.md          # System prompt per la ricerca AI
 │   │   ├── secret.env                # Configurazione API OpenAI
 │   │   └── secret_backup.env         # Template di backup
 │   │
 │   ├── js/                           # Moduli JavaScript
 │   │   ├── app.js                    # Orchestratore principale
-│   │   ├── search.js                 # Logica di ricerca (fuzzy + AI)
-│   │   ├── modal.js                  # Dettagli tool e note
-│   │   ├── breadcrumb-manager.js     # Gestione breadcrumb
+│   │   ├── search.js                 # Ricerca fuzzy + AI
+│   │   ├── modal.js                  # Modal dettagli tool e note
+│   │   ├── breadcrumb-manager.js     # Breadcrumb di navigazione
 │   │   ├── back-to-top.js            # Scroll to top
-│   │   ├── modal-message.js          # Messaggi modal
+│   │   ├── modal-message.js          # Modal messaggi di sistema
 │   │   ├── sidebar/                  # Navigazione ad albero (10 moduli)
 │   │   │   ├── sidebar-constants.js  # Tassonomia, costanti, helper
 │   │   │   ├── sidebar-icons.js      # Icone SVG delle fasi
@@ -129,327 +102,265 @@ Kali-Linux-Toolmap/
 │   │   │   ├── sidebar-autogrow.js   # Larghezza dinamica sidebar
 │   │   │   ├── sidebar-hover.js      # Hover pane (sidebar chiusa)
 │   │   │   ├── sidebar-search.js     # Decorazioni ricerca sidebar
-│   │   │   ├── sidebar-badges.js     # Badge conteggio tool
-│   │   │   └── sidebar-main.js       # Bootstrap e controlli
+│   │   │   ├── sidebar-badges.js     # Badge conteggio tool per fase
+│   │   │   └── sidebar-main.js       # Bootstrap, controlli, event handlers
 │   │   ├── ai/                       # Integrazione OpenAI
 │   │   │   ├── config.js             # Gestione API key
 │   │   │   ├── ai-search.js          # Chat Completions API
-│   │   │   └── ai-manager-modal.js   # UI configurazione
-│   │   └── utils/                    # Utility
-│   │       ├── constants.js          # Colori fasi, selettori, chiavi storage
-│   │       ├── helpers.js            # Normalizzazione ID, Markdown
-│   │       ├── registry.js           # Caricamento e indicizzazione
-│   │       ├── renderer.js           # Generazione card HTML + icone fallback
-│   │       └── features.js           # Star e export
+│   │   │   └── ai-manager-modal.js   # UI configurazione AI
+│   │   └── utils/                    # Utility condivise
+│   │       ├── constants.js          # Colori fasi, selettori DOM, chiavi storage
+│   │       ├── helpers.js            # Normalizzazione ID, rendering Markdown
+│   │       ├── registry.js           # Caricamento e indicizzazione registry
+│   │       ├── renderer.js           # Generazione HTML card + icone fallback
+│   │       └── features.js           # StarsManager, InstalledManager, JSONExporter
 │   │
-│   ├── css/                          # Stili (9 moduli)
-│   │   ├── base.css                  # Variabili, reset, tipografia
-│   │   ├── sidebar.css               # Albero navigazione
+│   ├── css/                          # Fogli di stile (9 moduli)
+│   │   ├── base.css                  # Variabili CSS, reset, tipografia, animazioni
+│   │   ├── sidebar.css               # Sidebar desktop e collapsed state
 │   │   ├── card.css                  # Card dei tool
-│   │   ├── main-section.css          # Grid layout, breadcrumb, back-to-top
+│   │   ├── main-section.css          # Grid, breadcrumb, back-to-top, empty state
 │   │   ├── modal.css                 # Modal dettagli/note
-│   │   ├── modal-message.css         # Modal messaggi
-│   │   ├── ai-manager-modal.css      # Modal AI manager
+│   │   ├── modal-message.css         # Modal messaggi di sistema
+│   │   ├── ai-manager-modal.css      # Modal configurazione AI
 │   │   ├── ai-loading.css            # Animazione loading AI
 │   │   └── responsive.css            # Media queries, mobile drawer, breakpoint
 │   │
 │   ├── icons/                        # Loghi SVG dei tool (~400 file)
-│   │   ├── nmap-logo.svg
-│   │   ├── metasploit-logo.svg
-│   │   └── ...
-│   │
 │   └── favicon/                      # Icone app
 │
 └── utils/                            # Script di utilità
-    ├── windows/                      # Script Windows
-    │   ├── start-server.bat          # Avvia server
-    │   └── install-desktop-shortcut.bat  # Installa icona desktop
-    │
-    ├── linux/                        # Script Linux/Mac
-    │   ├── start-server.sh           # Avvia server
-    │   ├── install-desktop-shortcut.sh   # Installa icona desktop
-    │   └── toolmap.desktop           # Template .desktop
-    │
-    ├── build_taxonomy_from_registry.py   # Genera taxonomy.js
-    └── kali_svg_scraping.py          # Scraping icone da Kali
+    ├── windows/
+    │   ├── start-server.bat          # Avvia server HTTP
+    │   └── install-desktop-shortcut.bat
+    ├── linux/
+    │   ├── start-server.sh           # Avvia server HTTP
+    │   ├── install-desktop-shortcut.sh
+    │   └── toolmap.desktop           # Template .desktop Linux
+    ├── build_taxonomy_from_registry.py   # Rigenera taxonomy.js da registry.json
+    ├── sort_tools.py                     # Ordina tool per fase/best_in/nome
+    └── kali_svg_scraping.py              # Scraping icone SVG da Kali
 ```
 
-
+---
 
 ## Architettura
 
-### Pattern dei Moduli
+### Flusso Dati
 
-Tutti i moduli JS usano il pattern IIFE esponendo globali via `window.*`:
+Il ciclo di vita di un'interazione segue sempre questo percorso:
 
-| Global | Scopo |
-|--------|-------|
-| `window.TOOLMAP_CONSTANTS` | Colori fasi, chiavi storage, selettori DOM |
-| `window.Toolmap` | Dati registry (toolsById, nodeIndex, allToolsUnder) |
-| `window.ToolUtils` | Helper manipolazione tool |
-| `window.DOMUtils` | Utility DOM/HTML |
-| `window.ToolsRenderer` | Classe rendering card |
-| `window.StarsManager` | Gestione preferiti |
-| `window.JSONExporter` | Export registry con dati utente |
-| `window.AISearch` | Ricerca semantica OpenAI |
-| `window.Config` | Gestione configurazione API |
-| `window.ToolmapApp` | Orchestratore principale |
-| `window.SidebarConstants` | Costanti sidebar, tassonomia, helper |
-| `window.SidebarIcons` | Icone SVG, ICON_MAP |
-| `window.SidebarState` | Memoria fasi, path, cache |
-| `window.SidebarDOM` | Costruzione DOM, animazioni |
-| `window.SidebarVLines` | Linee verticali albero |
-| `window.SidebarAutoGrow` | Larghezza dinamica sidebar |
-| `window.SidebarHover` | Hover pane (sidebar chiusa) |
-| `window.SidebarSearch` | Overlay ricerca sidebar |
-| `window.SidebarBadges` | Badge conteggio tool |
+```
+registry.json
+     │
+     ▼
+registry.js  ──────────────────────────────────────────────
+  carica e indicizza i tool                                │
+  (toolsById, nodeIndex, allToolsUnder)                    │
+     │                                                     │
+     ▼                                                     │
+sidebar-constants.js                                       │
+  costruisce l'albero dalla tassonomia                     │
+     │                                                     ▼
+     │  utente clicca categoria          app.js (orchestratore)
+     │──────── tm:scope:set ────────────────► computeVisibleTools()
+                                                           │
+                                                           ▼
+                                                    ToolsRenderer
+                                           mostra/nasconde card via .card-hidden
+                                           (500+ card pre-renderizzate, no DOM recreation)
+```
+
+### Moduli JavaScript
+
+**Ordine di caricamento** (tutti con `defer` in `index.html`):
+
+```
+[1] constants.js → helpers.js → modal-message.js
+[2] config.js → ai-search.js → ai-manager-modal.js
+[3] registry.js → renderer.js → features.js
+[4] modal.js → search.js
+[5] sidebar-constants.js → sidebar-icons.js → sidebar-state.js → sidebar-dom.js
+    → sidebar-vlines.js → sidebar-autogrow.js → sidebar-hover.js → sidebar-search.js
+    → sidebar-badges.js → sidebar-main.js
+[6] breadcrumb-manager.js → back-to-top.js → app.js
+```
 
 ### Sistema di Eventi
 
-Comunicazione via CustomEvents su `window`:
+La comunicazione tra moduli avviene tramite `CustomEvent` su `window`:
 
-| Evento | Descrizione |
-|--------|-------------|
-| `tm:scope:set` | Filtra tool visibili (detail: {ids, pathKey, all}) |
-| `tm:registry:ready` | Registry caricato |
-| `tm:stars:updated` | Star cambiata (detail: {id, value}) |
-| `tm:search:set/clear/context` | Cambiamenti stato ricerca |
-| `tm:tool:toggleStar` | Toggle preferito |
-| `tm:reset` | Reset di tutto lo stato |
-| `tm:card:openNotes/openDetails` | Apertura modal |
-| `tm:sidebar:toggle` | Sidebar aperta/chiusa (detail: {collapsed}) |
-| `tm:sidebar:closeAll` | Chiudi tutte le fasi aperte |
-| `tm:phase:color` | Colore fase corrente (detail: {color}) |
-| `tm:show:all` | Click su Show All |
-| `tm:search:filter:all` | Espandi tutti i risultati ricerca |
+| Evento | Payload | Descrizione |
+|---|---|---|
+| `tm:registry:ready` | — | Registry caricato e indicizzato |
+| `tm:scope:set` | `{ids, pathKey, all}` | Filtra i tool visibili nella griglia |
+| `tm:show:all` | — | Click sul pulsante "Show All" |
+| `tm:reset` | — | Reset completo di tutto lo stato |
+| `tm:search:set` | — | Avvio modalità ricerca |
+| `tm:search:clear` | — | Fine modalità ricerca |
+| `tm:search:context` | — | Cambio contesto ricerca |
+| `tm:search:filter:all` | — | Espandi tutti i risultati di ricerca |
+| `tm:tool:toggleStar` | — | Toggle preferito su un tool |
+| `tm:tool:toggleInstalled` | — | Toggle stato installato su un tool |
+| `tm:stars:updated` | `{id, value}` | Preferito aggiornato |
+| `tm:installed:updated` | `{id, value}` | Stato installato aggiornato |
+| `tm:installed:toggle-mode` | — | Attiva/disattiva filtro installed-only |
+| `tm:installed:mode-changed` | `{installedOnly}` | Modalità installed cambiata |
+| `tm:filter:visible-paths` | — | Path visibili per filtraggio sidebar (installed mode) |
+| `tm:card:openNotes` | — | Apri modal note di un tool |
+| `tm:card:openDetails` | — | Apri modal dettagli di un tool |
+| `tm:sidebar:toggle` | `{collapsed}` | Sidebar aperta/collassata |
+| `tm:sidebar:closeAll` | — | Chiudi tutte le fasi aperte |
+| `tm:sidebar:restore-snapshot` | — | Ripristina stato sidebar dopo ricerca |
+| `tm:phase:color` | `{color}` | Colore della fase corrente |
+| `tm:hover:show` | — | Hover pane mostrato |
+| `tm:context:summary` | — | Riepilogo conteggio tool per badge |
 
-### Flusso Dati
+### Sidebar
 
-1. `registry.js` carica `registry.json` → costruisce indici
-2. I moduli sidebar rendono l'albero dalla tassonomia (in `sidebar-constants.js`)
-3. L'utente clicca una categoria → `tm:scope:set` con ID filtrati
-4. `app.js` orchestra il rendering via `ToolsRenderer`
-5. Le card usano modalità Show/Hide (tutte pre-renderizzate, toggle via classe `.card-hidden`)
+La sidebar è il componente più complesso: è suddivisa in **10 moduli** con catena di dipendenze stretta.
 
-### Ordine di Caricamento Script
+| Modulo | Global esposto | Responsabilità |
+|---|---|---|
+| `sidebar-constants.js` | `SidebarConstants` | Tassonomia, TIMINGS, SELECTORS, CLASSES, helper `formatLabel` |
+| `sidebar-icons.js` | `SidebarIcons`, `SIDEBAR_ICONS` | SVG delle fasi, `ICON_MAP`, `chevronSVG` |
+| `sidebar-state.js` | `SidebarState` | Memoria fasi aperte, path attivo, cache nav items |
+| `sidebar-dom.js` | `SidebarDOM` | `buildNav`, animazioni expand/collapse, highlight path |
+| `sidebar-vlines.js` | `SidebarVLines`, `refreshAllVLines` | Calcolo altezza e clamp linee verticali (MutationObserver) |
+| `sidebar-autogrow.js` | `SidebarAutoGrow` | Adattamento larghezza dinamica sidebar |
+| `sidebar-hover.js` | `SidebarHover` | Pannello floating quando la sidebar è collassata |
+| `sidebar-search.js` | `SidebarSearch` | Ghost overlay decorazioni in modalità ricerca |
+| `sidebar-badges.js` | `SidebarBadges` | Badge con contatore animato per fase |
+| `sidebar-main.js` | — | Bootstrap, toggle fasi, drilldown cartelle, controlli globali |
 
-Scripts caricati con `defer` in `index.html`:
-1. `constants.js` → `helpers.js` → `modal-message.js`
-2. `config.js` → `ai-search.js` → `ai-manager-modal.js`
-3. `registry.js` → `renderer.js` → `features.js`
-4. `modal.js` → `search.js`
-5. **Sidebar** (catena di dipendenze):
-   `sidebar-constants.js` → `sidebar-icons.js` → `sidebar-state.js` → `sidebar-dom.js` →
-   `sidebar-vlines.js` → `sidebar-autogrow.js` → `sidebar-hover.js` → `sidebar-search.js` →
-   `sidebar-badges.js` → `sidebar-main.js`
-6. `breadcrumb-manager.js` → `back-to-top.js` → `app.js`
+**Dove intervenire:**
 
-### Architettura Sidebar
-
-La sidebar è il componente più complesso dell'applicazione, suddiviso in **10 moduli** nella cartella `app/js/sidebar/`:
-
-| Modulo | Global | Responsabilità |
-|--------|--------|----------------|
-| `sidebar-constants.js` | `SidebarConstants` | Tassonomia, timing, selettori, helper |
-| `sidebar-icons.js` | `SidebarIcons` | Icone SVG fasi, `SIDEBAR_ICONS` |
-| `sidebar-state.js` | `SidebarState` | Memoria fasi, path attivo, cache |
-| `sidebar-dom.js` | `SidebarDOM` | Costruzione DOM, animazioni expand/collapse |
-| `sidebar-vlines.js` | `SidebarVLines` | Linee verticali dell'albero |
-| `sidebar-autogrow.js` | `SidebarAutoGrow` | Larghezza dinamica sidebar |
-| `sidebar-hover.js` | `SidebarHover` | Hover pane quando sidebar è chiusa |
-| `sidebar-search.js` | `SidebarSearch` | Decorazioni/ghost ricerca nella sidebar |
-| `sidebar-badges.js` | `SidebarBadges` | Badge conteggio tool sulle fasi |
-| `sidebar-main.js` | — | Bootstrap, controlli, event handlers |
-
-**Catena di dipendenze**: constants → icons → state → dom → vlines → autogrow → hover → search → badges → main
-
-#### Dove modificare la Sidebar
-
-| Cosa vuoi fare | File da modificare |
+| Cosa modificare | File |
 |---|---|
-| Aggiungere/modificare categorie | `sidebar-constants.js` (taxonomy) |
+| Aggiungere/modificare categorie nella tassonomia | `sidebar-constants.js` |
 | Cambiare icona di una fase | `sidebar-icons.js` |
-| Modificare animazioni expand/collapse | `sidebar-dom.js` |
-| Cambiare calcolo linee verticali | `sidebar-vlines.js` |
-| Modificare hover pane | `sidebar-hover.js` |
-| Cambiare badge/conteggi | `sidebar-badges.js` |
-| Aggiungere nuovi controlli | `sidebar-main.js` |
+| Timing animazioni | `sidebar-constants.js` (TIMINGS) |
+| Animazione expand/collapse | `sidebar-dom.js` |
+| Comportamento hover pane | `sidebar-hover.js` |
+| Evidenziazione in modalità ricerca | `sidebar-search.js` |
+| Badge e contatori | `sidebar-badges.js` |
+| Click sulle fasi | `sidebar-main.js` → `attachPhaseToggles` |
+| Click sulle cartelle/foglie | `sidebar-main.js` → `attachFolderLeafDrilldown` |
+| Pulsanti collapse/expand all | `sidebar-main.js` → `attachSidebarControls` |
+| Linee verticali albero | `sidebar-vlines.js` |
 
-### Architettura CSS
+### CSS
 
-9 moduli CSS in `app/css/`, caricati in ordine in `index.html`:
+9 moduli in `app/css/`, caricati in ordine in `index.html`:
 
-| File | Scopo |
-|------|-------|
-| `base.css` | Variabili CSS (`:root`), reset, tipografia, bottoni, scrollbar, animazioni |
-| `sidebar.css` | Sidebar desktop: header, search box, albero navigazione, collapsed state |
-| `card.css` | Card dei tool: layout, hover, thumbnail, badge, footer, animazione slide-in |
-| `main-section.css` | Area contenuto: breadcrumb bar, action buttons, grid, back-to-top, empty state |
-| `modal.css` | Modal dettagli/note dei tool |
-| `modal-message.css` | Modal per messaggi di sistema |
+| File | Responsabilità |
+|---|---|
+| `base.css` | Variabili `:root` (`--bg`, `--panel`, `--text`, `--accent`, `--color-*`), reset, tipografia, bottoni, scrollbar |
+| `sidebar.css` | Sidebar desktop: header, search box, albero, collapsed state, `.filtered-empty` |
+| `card.css` | Card tool: layout, hover, thumbnail, badge, footer, animazione slide-in |
+| `main-section.css` | Area contenuto: breadcrumb bar, action buttons, griglia, back-to-top, empty state |
+| `modal.css` | Modal dettagli tool e note |
+| `modal-message.css` | Modal messaggi di sistema |
 | `ai-manager-modal.css` | Modal configurazione AI |
 | `ai-loading.css` | Animazione loading durante ricerca AI |
-| `responsive.css` | Tutte le media queries: breakpoint, mobile drawer, hamburger, touch target |
+| `responsive.css` | Media queries per tutti i breakpoint, mobile drawer, hamburger, touch target |
 
-### Strutture Dati Principali
+---
 
-```javascript
-// Tool object (in Toolmap.toolsById)
-{
-  id, name, version, desc, desc_long,
-  category_path: ["01_Phase", "Sub", "Leaf"],
-  icon, repo, installation, best_in, notes,
-  phase, phaseColor, path, _starred
-}
-
-// Path key format: "Root>01_Phase>Sub>Leaf"
-// Toolmap.allToolsUnder[pathKey] = Set of tool IDs
-```
-
-
-## Gestione Fasi
+## Tassonomia e Fasi
 
 I tool sono organizzati in **7 fasi** che rispecchiano il workflow di un penetration test:
 
-| Fase                       | Descrizione                                         |
-|-|--|
-| `00_Common`                | Tool generici, plugin Metasploit, wordlist, script  |
-| `01_Information_Gathering` | OSINT, reconnaissance, scanning                     |
-| `02_Exploitation`          | Exploit web, infrastruttura, wireless               |
-| `03_Post_Exploitation`     | Active Directory, privilege escalation, persistence |
-| `04_Red_Team`              | C2 frameworks, evasion, payload generation          |
-| `05_Forensics`             | Analisi disco, memoria, rete, malware               |
-| `06_Miscellaneous`         | Tool non categorizzati                              |
+| # | Fase | Descrizione |
+|---|---|---|
+| 00 | `00_Common` | Tool generici, plugin Metasploit, wordlist, script condivisi |
+| 01 | `01_Information_Gathering` | OSINT, reconnaissance, port scanning, fingerprinting |
+| 02 | `02_Exploitation` | Exploit web, infrastruttura, wireless |
+| 03 | `03_Post_Exploitation` | Active Directory, privilege escalation, persistence, lateral movement |
+| 04 | `04_Red_Team` | C2 frameworks, payload generation, evasion |
+| 05 | `05_Forensics` | Analisi disco, memoria, rete, malware |
+| 06 | `06_Miscellaneous` | Tool non categorizzati altrove |
 
-### Aggiungere una nuova Fase
+I prefissi numerici (`00_`, `01_`, ...) controllano l'ordine di visualizzazione nella sidebar.
 
-Per aggiungere una nuova fase (es. `07_New_Phase`) devi modificare **6 file**:
+### Aggiungere una Fase
 
-#### 1. Aggiungi la fase nella tassonomia in `sidebar-constants.js`
+Per aggiungere una nuova fase (es. `07_New_Phase`) occorre modificare **6 file**:
 
+| # | File | Cosa aggiungere |
+|---|---|---|
+| 1 | `sidebar-constants.js` | Nuova chiave nel `taxonomy` object |
+| 2 | `constants.js` | Nuovo colore HSL in `PHASE_COLORS` |
+| 3 | `sidebar-icons.js` | SVG dell'icona + mapping in `SIDEBAR_ICONS` |
+| 4 | `renderer.js` | Mapping in `_getCanonicalKey()` e fallback in `_getFallback()` |
+| 5 | `base.css` | Variabile `--color-new-phase` nel `:root` + selettore `[data-phase="07_New_Phase"]` |
+| 6 | `registry.json` | `category_path` dei tool assegnati alla nuova fase |
+
+**1. Tassonomia** (`sidebar-constants.js`):
 ```javascript
-// app/js/sidebar/sidebar-constants.js
 const taxonomy = {
     "00_Common": { ... },
-    "01_Information_Gathering": { ... },
-    // ...
-    "07_New_Phase": {                    // <-- Nuova fase
+    "07_New_Phase": {
         "Subcategory_One": {},
-        "Subcategory_Two": {
-            "Nested_Category": {}
-        }
+        "Subcategory_Two": { "Nested_Category": {} }
     }
 };
 ```
 
-#### 2. Aggiungi il colore in `constants.js`
-
+**2. Colore** (`constants.js`):
 ```javascript
-// app/js/utils/constants.js
 PHASE_COLORS: {
-    '00_Common': 'hsl(270 91% 65%)',
-    '01_Information_Gathering': 'hsl(210 100% 62%)',
-    '02_Exploitation': 'hsl(4 85% 62%)',
-    '03_Post_Exploitation': 'hsl(32 98% 55%)',
-    '04_Red_Team': 'hsl(4 85% 62%)',
-    '05_Forensics': 'hsl(220 85% 55%)',
-    '06_Miscellaneous': 'hsl(158 64% 52%)',
-    '07_New_Phase': 'hsl(180 70% 50%)',  // <-- Colore per la nuova fase
+    // ...fasi esistenti...
+    '07_New_Phase': 'hsl(180 70% 50%)',
 }
 ```
 
-#### 3. Aggiungi l'icona in `sidebar-icons.js`
-
-Definisci l'SVG e aggiungilo a `SIDEBAR_ICONS`:
-
+**3. Icona** (`sidebar-icons.js`):
 ```javascript
-// app/js/sidebar/sidebar-icons.js
-
-// Definisci l'icona SVG (cerca le altre definizioni svg_* come riferimento)
 const svg_new_phase =
     '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
     '<circle cx="12" cy="12" r="10"/>' +
-    '<path d="M12 6v12M6 12h12"/>' +
     '</svg>';
 
-// Aggiungi alla mappa SIDEBAR_ICONS
 window.SIDEBAR_ICONS = {
-    common: svg_common,
-    information_gathering: svg_inf_gather,
-    exploitation: svg_exploit,
-    post_exploitation: svg_post_exploit,
-    red_team: svg_redteam,
-    forensics: svg_forensics,
-    miscellaneous: folderSVG,
-    new_phase: svg_new_phase,            // <-- Nuova icona
+    // ...icone esistenti...
+    new_phase: svg_new_phase,
 };
 ```
 
-#### 4. Aggiungi il mapping in `renderer.js`
-
-Aggiorna la mappa di normalizzazione e il fallback:
-
+**4. Mapping renderer** (`renderer.js`):
 ```javascript
-// app/js/utils/renderer.js
-
-// Nel metodo _getCanonicalKey(), aggiungi alla mappa:
+// _getCanonicalKey()
 const map = {
-    common: 'common',
-    information_gathering: 'information_gathering',
-    exploitation: 'exploitation',
-    post_exploitation: 'post_exploitation',
-    red_team: 'red_team',
-    forensics: 'forensics',
-    miscellaneous: 'miscellaneous',
-    new_phase: 'new_phase',              // <-- Nuova fase
+    // ...voci esistenti...
+    new_phase: 'new_phase',
 };
 
-// Nel metodo _getFallback(), aggiungi un fallback (opzionale):
+// _getFallback()
 const iconMap = {
-    information_gathering: this.search(),
-    exploitation: this.bolt(),
-    post_exploitation: this.gear(),
-    common: this.grid(),
-    forensics: this.grid(),
-    red_team: this.bolt(),
-    new_phase: this.dots(),              // <-- Fallback per nuova fase
+    // ...voci esistenti...
+    new_phase: this.dots(),
 };
 ```
 
-#### 5. Aggiungi il colore CSS in `base.css`
-
-Aggiungi il selettore data-phase con la variabile `--phase`:
-
+**5. CSS** (`base.css`):
 ```css
-/* app/css/base.css */
+:root {
+    --color-new-phase: #00bcd4;
+}
 [data-phase="07_New_Phase"] {
     --phase: var(--color-new-phase);
 }
 ```
 
-E definisci la variabile colore nel `:root`:
-```css
---color-new-phase: #00bcd4;
-```
-
-#### 6. Assegna i tool
-
-Modifica `category_path` nei tool in `registry.json`:
-
+**6. Assegna tool** (`registry.json`):
 ```json
-{
-    "id": "my-tool",
-    "category_path": ["07_New_Phase", "Subcategory_One"]
-}
+{ "id": "my-tool", "category_path": ["07_New_Phase", "Subcategory_One"] }
 ```
-
-> **Convenzione**: I prefissi numerici (`00_`, `01_`, ...) controllano l'ordine nella sidebar.
-
-
 
 ### Aggiungere un Tool
 
-Ogni tool in `registry.json` ha questa struttura:
+Aggiungi una voce in `registry.json` con questa struttura:
 
 ```json
 {
@@ -459,119 +370,149 @@ Ogni tool in `registry.json` ha questa struttura:
     "icon": "../app/icons/tool-id-logo.svg",
     "installation": "Kali",
     "repo": "https://github.com/author/tool",
-    "desc": "Breve descrizione (1-2 righe)",
-    "desc_long": "<h4>Descrizione dettagliata</h4><p>Con HTML...</p>",
+    "desc": "Breve descrizione (1-2 righe, usata anche dall'AI search)",
+    "desc_long": "<h4>Titolo</h4><p>Descrizione estesa in HTML per il modal</p>",
     "best_in": false,
+    "installed": false,
     "category_path": ["01_Information_Gathering", "Recon", "Port_Scanning"],
     "notes": null
 }
 ```
 
-#### Campi
-| Campo           | Tipo         | Descrizione                                          |
-|-----------------|--------------|------------------------------------------------------|
-| `id`            | string       | Identificatore univoco                               |
-| `name`          | string       | Nome visualizzato nel frontend                       |
-| `version`       | string       | Versione                                             |
-| `icon`          | string       | Path all'icona SVG                                   |
-| `installation`  | string       | "Kali", "GitHub", "pip", etc.                        |
-| `repo`          | string       | URL repository o pagina ufficiale                    |
-| `desc`          | string       | Descrizione breve (per card e AI search)             |
-| `desc_long`     | string       | HTML con descrizione estesa (per modal)              |
-| `best_in`       | boolean      | `true` per tool consigliati                          |
-| `category_path` | array        | Percorso nella tassonomia                            |
-| `notes`         | string\|null | Note utente (gestite automaticamente)                |
+| Campo | Tipo | Descrizione |
+|---|---|---|
+| `id` | string | Identificatore univoco (usato come chiave in `toolsById`) |
+| `name` | string | Nome visualizzato nelle card e nei modal |
+| `version` | string | Versione corrente del tool |
+| `icon` | string | Path relativo all'icona SVG in `app/icons/` |
+| `installation` | string | Sorgente di installazione: `"Kali"`, `"GitHub"`, `"pip"`, etc. |
+| `repo` | string | URL del repository o della pagina ufficiale |
+| `desc` | string | Descrizione breve (card + contesto AI search) |
+| `desc_long` | string | HTML con descrizione estesa (modal dettagli) |
+| `best_in` | boolean | `true` per tool raccomandati (badge visivo + ordinamento prioritario) |
+| `installed` | boolean | Valore di default da registry; l'utente può sovrascrivere via localStorage |
+| `category_path` | array | Percorso nella tassonomia: `["Fase", "Sottocategoria", "Foglia"]` |
+| `notes` | string\|null | Note utente in Markdown (gestite automaticamente dall'app) |
 
 Dopo aver modificato il registry, rigenera la tassonomia:
 ```bash
 python utils/build_taxonomy_from_registry.py
 ```
 
-## Ricerca AI (OpenAI)
+---
 
-L'app supporta ricerca semantica tramite OpenAI Chat Completions API.
+## Funzionalità Utente
+
+### Ricerca
+
+Due modalità selezionabili dall'icona nella barra di ricerca:
+
+| Modalità | Come funziona | Requisiti |
+|---|---|---|
+| **Fuzzy** | Ricerca locale istantanea per nome del tool | Nessuno |
+| **AI** | Ricerca semantica tramite OpenAI — trova tool per concetto, fase, caso d'uso | API key OpenAI |
+
+### Preferiti
+
+- Click sulla stella in una card per aggiungere/rimuovere dai preferiti
+- Salvati in `localStorage` (`tm:stars`)
+- Esportabili con il pulsante "Download JSON"
+
+### Tool Installati
+
+- Click sull'icona "installed" in una card per segnare il tool come installato
+- Gli override utente sovrascrivono il valore `installed` del registry (priorità: localStorage > registry)
+- Il filtro "Installed only" nella toolbar mostra solo i tool installati
+- Con il filtro attivo, la sidebar nasconde automaticamente le fasi/categorie senza tool installati
+
+### Note
+
+- Click su una card per aprire il modal dettagli
+- Tab "Notes" per scrivere annotazioni in Markdown
+- Salvate automaticamente in `localStorage` al cambio di tool
+
+### Storage
+
+Tutte le chiavi sono definite in `constants.js` sotto `STORAGE_KEYS`:
+
+| Chiave | Storage | Contenuto |
+|---|---|---|
+| `tm:stars` | localStorage | Mappa dei preferiti utente `{id: true}` |
+| `tm:installed` | localStorage | Override stato installato `{id: true/false}` |
+| `tm:installed:only` | sessionStorage | Modalità filtro installed-only (`"true"/"false"`) |
+| `tm:active:path` | sessionStorage | Path di navigazione corrente nella sidebar |
+| `tm:session:registry-json` | sessionStorage | Registry cachato per la sessione |
+| `tm:search:mode` | localStorage | Modalità ricerca attiva: `"fuzzy"` o `"api"` |
+
+> Il pulsante **Reset** esegue `localStorage.clear()` + `sessionStorage.clear()` completo.
+
+---
+
+## Ricerca AI
+
+La ricerca semantica usa OpenAI Chat Completions API con un system prompt dedicato.
 
 ### Configurazione
 
-1. **Ottieni una API key** da [OpenAI Platform](https://platform.openai.com/api-keys)
+1. Ottieni un'API key da [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+2. Compila `app/data/secret.env`:
 
-2. **Configura `secret.env`**:
+```env
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxx
+OPENAI_MODEL=gpt-4.1-mini-2025-04-14
+OPENAI_TEMPERATURE=0
+OPENAI_MAX_RESULTS=20
+OPENAI_MAX_TOKENS=1000
+```
 
-    ```env
-    # app/data/secret.env
-    OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxx
-    OPENAI_MODEL=gpt-4.1-mini-2025-04-14
-    OPENAI_TEMPERATURE=0
-    OPENAI_MAX_RESULTS=20
-    OPENAI_MAX_TOKENS=1000
-    ```
-
-3. **Ricarica** la pagina (F5)
+3. Ricarica la pagina (F5)
 
 ### Parametri
 
-| Parametro            | Default                   | Descrizione                      |
-|----------------------|---------------------------|----------------------------------|
-| `OPENAI_API_KEY`     | -                         | La tua API key (obbligatoria)    |
-| `OPENAI_MODEL`       | `gpt-4.1-mini-2025-04-14` | Modello da usare                 |
-| `OPENAI_TEMPERATURE` | `0`                       | 0 = deterministico, 1 = creativo |
-| `OPENAI_MAX_RESULTS` | `20`                      | Max tool restituiti              |
-| `OPENAI_MAX_TOKENS`  | `1000`                    | Limite token risposta            |
-
+| Parametro | Default | Descrizione |
+|---|---|---|
+| `OPENAI_API_KEY` | — | API key OpenAI (obbligatoria) |
+| `OPENAI_MODEL` | `gpt-4.1-mini-2025-04-14` | Modello da usare |
+| `OPENAI_TEMPERATURE` | `0` | `0` = deterministico, `1` = creativo |
+| `OPENAI_MAX_RESULTS` | `20` | Numero massimo di tool restituiti |
+| `OPENAI_MAX_TOKENS` | `1000` | Limite token per la risposta |
 
 ### Come funziona
 
-1. Il system prompt (`system-prompt.md`) definisce il comportamento del chatbot
-2. Il registry viene inviato come contesto (solo i campi essenziali)
+1. Il system prompt (`system-prompt.md`) definisce il comportamento del modello
+2. Il registry viene inviato come contesto (solo i campi essenziali: `id`, `name`, `desc`, `category_path`)
 3. La query utente viene analizzata semanticamente
-4. Il modello restituisce solo gli ID dei tool rilevanti
+4. Il modello restituisce esclusivamente una lista di ID tool rilevanti
 
-> **Nota**: Con `TEMPERATURE=0` le risposte sono deterministiche. Aumenta per risultati più vari.
+---
 
+## Script di Utilità
 
+| Script | Utilizzo | Descrizione |
+|---|---|---|
+| `build_taxonomy_from_registry.py` | Da eseguire dopo ogni modifica a `registry.json` | Rigenera `app/data/taxonomy.js` scansionando tutti i `category_path` |
+| `sort_tools.py` | Opzionale, per mantenere il registry ordinato | Ordina i tool per posizione in tassonomia, poi `best_in`, poi alfabetico |
+| `kali_svg_scraping.py` | Per aggiornare le icone | Scarica i loghi SVG dalla pagina ufficiale dei tool Kali |
 
-## Funzionamento UI
-
-#### Modalità ricerca
-
-Click sull'icona nella barra di ricerca per switchare tra:
-- **Fuzzy** - Ricerca locale istantanea per nome
-- **AI** - Ricerca semantica (richiede API key)
-
-#### Preferiti
-
-- Click sulla stella nella card per aggiungere ai preferiti
-- I preferiti sono salvati in `localStorage`
-- Esportabili con il pulsante "Download JSON"
-
-#### Note
-
-- Click su una card per aprire i dettagli
-- Tab "Notes" per scrivere note in Markdown
-- Salvate automaticamente in `localStorage`
-
-#### Storage Keys
-
-Definiti in `constants.js` sotto `STORAGE_KEYS`:
-- `tm:stars` - localStorage - Preferiti utente
-- `tm:active:path` - sessionStorage - Path di navigazione corrente
-- `tm:session:registry-json` - sessionStorage - Registry cachato
-- `tm:search:mode` - localStorage - "fuzzy" o "api"
-
-
-## Altri Scripts
-
-#### Rigenerare la tassonomia
-
-Se modifichi `registry.json`, rigenera `taxonomy.js`:
+### Rigenerare la tassonomia
 
 ```bash
 python utils/build_taxonomy_from_registry.py
 ```
 
-#### Scraping icone
+### Ordinare i tool
 
-Per scaricare icone da Kali tools:
+Applica tre criteri in cascata: posizione nella tassonomia → `best_in=true` prima → alfabetico per nome.
+
+```bash
+# Output in tools_sorted.json accanto al registry
+python utils/sort_tools.py -j app/data/registry.json -t app/data/taxonomy.js
+
+# Sovrascrive direttamente il registry
+python utils/sort_tools.py -j app/data/registry.json -t app/data/taxonomy.js -o app/data/registry.json
+```
+
+### Scraping icone
 
 ```bash
 python utils/kali_svg_scraping.py
