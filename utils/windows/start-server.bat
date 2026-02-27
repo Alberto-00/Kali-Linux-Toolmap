@@ -159,19 +159,18 @@ if "!IP!"=="localhost" if not "!IP_VPN!"=="" (
 )
 
 REM ============================================
-REM TROVA PRIMA PORTA LIBERA (senza avviare server)
+REM TROVA PRIMA PORTA LIBERA (test bind reale con Python, rileva anche porte riservate da Hyper-V)
 REM ============================================
 set "PORT=0"
 
-for %%p in (8000 3000 5000 8080 8001 8888 9000 4000) do (
+for %%p in (8000 3000 5000 8080 8001 8888 9000 4000 7000 7777 9090 9191 9292 9393) do (
     if !PORT! equ 0 (
-        REM Verifica se qualcosa è già in ascolto sulla porta
-        netstat -an | findstr ":%%p " | findstr "LISTENING" >nul 2>&1
-        if !errorlevel! neq 0 (
+        !PYTHON_CMD! -c "import socket,sys; s=socket.socket(); s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1); s.bind(('127.0.0.1',%%p)); s.close(); sys.exit(0)" >nul 2>&1
+        if !errorlevel! equ 0 (
             set "PORT=%%p"
             echo   !GREEN![OK]!RESET! !WHITE!Porta %%p disponibile!!RESET!
         ) else (
-            echo   !RED![X]!RESET! !GRAY!Porta %%p occupata!RESET!
+            echo   !RED![X]!RESET! !GRAY!Porta %%p occupata o riservata!RESET!
         )
     )
 )
@@ -187,27 +186,38 @@ if !PORT! equ 0 (
 REM ============================================
 REM AVVIA SERVER SULLA PORTA TROVATA
 REM ============================================
+
+REM Pre-test: verifica se 0.0.0.0 è accessibile prima di avviare il server
+set "BIND_ADDR=0.0.0.0"
+!PYTHON_CMD! -c "import socket,sys; s=socket.socket(); s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1); s.bind(('0.0.0.0',!PORT!)); s.close()" >nul 2>&1
+if !errorlevel! neq 0 set "BIND_ADDR=127.0.0.1"
+
 echo.
 echo !CYAN!==========================================================!RESET!
 echo   !BLUE![LOCALE]!RESET!     !MAGENTA!http://localhost:!PORT!/app/!RESET!
-echo   !BLUE![RETE]!RESET!       !MAGENTA!http://!IP!:!PORT!/app/!RESET!
-echo.
-echo   !GRAY!Accessibile da qualsiasi dispositivo sulla stessa rete!RESET!
+if "!BIND_ADDR!"=="0.0.0.0" (
+    echo   !BLUE![RETE]!RESET!       !MAGENTA!http://!IP!:!PORT!/app/!RESET!
+    echo.
+    echo   !GRAY!Accessibile da qualsiasi dispositivo sulla stessa rete!RESET!
+) else (
+    echo   !YELLOW![NOTA]!RESET!     !GRAY!Accesso da rete non disponibile ^(VPN/firewall attivo^)!RESET!
+)
 echo   !YELLOW!Chiudi questa finestra per fermare il server!RESET!
 echo !CYAN!==========================================================!RESET!
 echo.
-echo   !GREEN![AVVIO]!RESET! !WHITE!Server in esecuzione con !PYTHON_CMD! sulla porta !PORT!!RESET!
+echo   !GREEN![AVVIO]!RESET! !WHITE!Server in esecuzione con !PYTHON_CMD! sulla porta !PORT! ^(!BIND_ADDR!^)!RESET!
 echo.
 
 REM Apri browser sulla porta corretta
 start "" http://localhost:!PORT!/app/
 
-REM Avvia il server (bind su 0.0.0.0 per accesso da rete/VPN)
-!PYTHON_CMD! -m http.server !PORT! --bind 0.0.0.0
+REM Avvia il server con l'indirizzo verificato
+!PYTHON_CMD! -m http.server !PORT! --bind !BIND_ADDR!
 
 if errorlevel 1 (
     echo.
     echo   !RED![ERRORE]!RESET! !WHITE!Il server si e' chiuso con errore!RESET!
+    echo   !GRAY!Prova ad eseguire il .bat come Amministratore.!RESET!
     echo.
     pause
 )

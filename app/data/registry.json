@@ -9944,5 +9944,23 @@
       "Utilities"
     ],
     "notes": ""
+  },
+  {
+    "id": "argus",
+    "name": "Argus",
+    "version": "2.0",
+    "icon": "../app/icons/github.svg",
+    "modal_icon": "../app/icons/argus.png",
+    "installation": "GitHub",
+    "repo": "https://github.com/jasonxtn/Argus",
+    "desc": "Toolkit all-in-one Python per information gathering e reconnaissance con 135 moduli su rete, web application e threat intelligence.",
+    "desc_long": "<h4 class=\"rt-blue\">Panoramica</h4><p><strong>Argus</strong> è un toolkit all-in-one scritto in Python, progettato per semplificare e centralizzare il processo di information gathering e reconnaissance. Offre una CLI interattiva con oltre 135 moduli organizzati in tre macro-categorie: Network &amp; Infrastructure, Web Application Analysis e Security &amp; Threat Intelligence. Supporta multi-threading, integrazione con API esterne e vari formati di esportazione dei risultati (TXT, CSV, JSON).</p><br><hr><h4 class=\"rt-purple\">Funzionalità principali</h4><p><strong>135 moduli di reconnaissance</strong> suddivisi in:</p><ul><li><strong>Network &amp; Infrastructure (52):</strong> Port scanning, traceroute, DNS enumeration, BGP lookup, WHOIS, SSL/TLS analysis.</li><li><strong>Web Application Analysis (50):</strong> Subdomain enumeration, header analysis, CMS detection, directory bruteforce, link extraction.</li><li><strong>Security &amp; Threat Intelligence (33):</strong> IP reputation, VirusTotal lookup, Shodan query, CVE search, OSINT aggregation.</li></ul><p><strong>CLI interattiva</strong> con 25+ comandi built-in, multi-threading per esecuzione concorrente, favoriting dei moduli, operazioni batch e profili di configurazione personalizzabili.</p><br><hr><h4 class=\"rt-green\">Installazione e Utilizzo</h4><pre><code># Installazione via pip\npip install argus-recon\n\n# Installazione da sorgente\ngit clone https://github.com/jasonxtn/Argus\ncd Argus\npip install -r requirements.txt\n\n# Avvio\nargus\n\n# Workflow tipico nella CLI interattiva\nmodules              # Elenca tutti i moduli disponibili\nuse 42               # Seleziona modulo per numero\nset target example.com\nrun                  # Esegue il modulo selezionato\nviewout              # Visualizza l'output salvato\ngrepout keyword      # Filtra i risultati per parola chiave\n\n# Configurazione API keys (Shodan, VirusTotal, Censys, SSL Labs)\n# Impostare le chiavi in config/settings.py o come variabili d'ambiente</code></pre><br><hr><h4 class=\"rt-amber\">Casi d'uso</h4><ul><li><strong>Reconnaissance Phase:</strong> Punto di partenza ideale per la fase di information gathering durante penetration test o bug bounty — centralizza in un unico tool decine di operazioni normalmente distribuite su più strumenti.</li><li><strong>Threat Intelligence:</strong> Correlazione di IOC, lookup su database di reputazione IP e ricerca CVE direttamente dalla CLI senza dover aprire browser o più terminali.</li><li><strong>Asset Discovery:</strong> Enumerazione di subdomains, range IP, servizi esposti e infrastruttura complessiva di un'organizzazione target.</li></ul><br><hr><h4 class=\"rt-red\">Considerazioni OPSEC</h4><ul><li><strong>Traffico attivo:</strong> La maggior parte dei moduli genera traffico verso la target o verso API di terze parti. Usare con VPN o proxychains per ridurre l'esposizione dell'IP sorgente.</li><li><strong>API key exposure:</strong> Le chiavi API (Shodan, VirusTotal, Censys) sono memorizzate in locale; evitare di includerle in repository pubblici.</li><li><strong>Uso etico:</strong> Il tool è esplicitamente destinato a uso educativo ed etico. Utilizzare esclusivamente su target con autorizzazione scritta esplicita.</li></ul><br><hr>",
+    "best_in": true,
+    "installed": true,
+    "category_path": [
+      "06_Miscellaneous",
+      "Utilities"
+    ],
+    "notes": null
   }
 ]

@@ -530,11 +530,13 @@
 
             return `
                 <div class="tool-details">
-                    ${tool.icon ? `
-                        <div class="tool-icon" style="background-image:url('${DOMUtils.escapeAttr(tool.icon)}');
+                    ${(tool.modal_icon || tool.icon) ? (
+                        (tool.modal_icon || tool.icon).endsWith('.png')
+                        ? `<img src="${DOMUtils.escapeAttr(tool.modal_icon || tool.icon)}" class="tool-icon-png">`
+                        : `<div class="tool-icon" style="background-image:url('${DOMUtils.escapeAttr(tool.icon)}');
                              background-size:contain;background-position:center;background-repeat:no-repeat;
-                             width:80px;height:80px;margin:0 auto 20px;"></div>
-                    ` : ''}
+                             width:80px;height:80px;margin:0 auto 20px;"></div>`
+                    ) : ''}
 
                     <div class="detail-section">
                         <h3>Description</h3>

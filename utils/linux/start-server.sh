@@ -54,6 +54,22 @@ elif [ -f "$HOME/anaconda3/bin/activate" ]; then
 fi
 
 # ============================================
+# RILEVA PYTHON
+# ============================================
+if command -v python3 &> /dev/null; then
+    PYTHON_CMD="python3"
+elif command -v python &> /dev/null; then
+    PYTHON_CMD="python"
+else
+    echo ""
+    echo -e "  ${RED}[ERRORE]${NC} ${WHITE}Python non trovato!${NC}"
+    echo -e "  ${GRAY}Installa Python 3 per utilizzare questo server.${NC}"
+    echo ""
+    read -p "Premi INVIO per uscire..."
+    exit 1
+fi
+
+# ============================================
 # TROVA IP LOCALE (VPN-safe)
 # Preferisce IP LAN (esclude interfacce VPN: tun*, tap*, wg*, ppp*)
 # ============================================
@@ -122,17 +138,31 @@ if [ "$ACTIVE_PORT" -eq 0 ]; then
     exit 1
 fi
 
+# ============================================
+# TEST BIND ADDRESS E AVVIO SERVER
+# ============================================
+
+# Pre-test: verifica se 0.0.0.0 è accessibile (VPN/firewall potrebbero bloccarlo)
+BIND_ADDR="0.0.0.0"
+if ! $PYTHON_CMD -c "import socket,sys; s=socket.socket(); s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1); s.bind(('0.0.0.0',$ACTIVE_PORT)); s.close()" 2>/dev/null; then
+    BIND_ADDR="127.0.0.1"
+fi
+
 echo ""
 echo -e "${CYAN}===========================================================${NC}"
 echo -e "  ${BLUE}[LOCALE]${NC}     ${MAGENTA}http://localhost:${ACTIVE_PORT}/app/${NC}"
-echo -e "  ${BLUE}[RETE]${NC}       ${MAGENTA}http://$IP:${ACTIVE_PORT}/app/${NC}"
-echo ""
-echo -e "  ${GRAY}Accessibile da qualsiasi dispositivo sulla stessa rete${NC}"
+if [ "$BIND_ADDR" = "0.0.0.0" ]; then
+    echo -e "  ${BLUE}[RETE]${NC}       ${MAGENTA}http://$IP:${ACTIVE_PORT}/app/${NC}"
+    echo ""
+    echo -e "  ${GRAY}Accessibile da qualsiasi dispositivo sulla stessa rete${NC}"
+else
+    echo -e "  ${YELLOW}[NOTA]${NC}      ${GRAY}Accesso da rete non disponibile (VPN/firewall attivo)${NC}"
+fi
 echo -e "  ${YELLOW}Chiudi questa finestra per fermare il server${NC}"
 echo ""
 echo -e "${CYAN}===========================================================${NC}"
 echo ""
-echo -e "  ${GREEN}[OK]${NC} ${WHITE}Server in avvio sulla porta ${ACTIVE_PORT}...${NC}"
+echo -e "  ${GREEN}[OK]${NC} ${WHITE}Server in avvio sulla porta ${ACTIVE_PORT} (${BIND_ADDR})...${NC}"
 echo ""
 
 # Apri browser automaticamente (background)
@@ -146,17 +176,16 @@ sleep 2 && {
     fi
 } &
 
-# Avvia server Python (bind su 0.0.0.0 per accesso da rete/VPN)
-if command -v python3 &> /dev/null; then
-    python3 -m http.server "$ACTIVE_PORT" --bind 0.0.0.0 &
-    SERVER_PID=$!
-elif command -v python &> /dev/null; then
-    python -m http.server "$ACTIVE_PORT" --bind 0.0.0.0 &
-    SERVER_PID=$!
-else
+# Avvia server Python con l'indirizzo verificato
+$PYTHON_CMD -m http.server "$ACTIVE_PORT" --bind "$BIND_ADDR" &
+SERVER_PID=$!
+
+# Verifica avvio corretto (il bind test precedente dovrebbe garantirlo)
+sleep 1
+if ! kill -0 "$SERVER_PID" 2>/dev/null; then
     echo ""
-    echo -e "  ${RED}[ERRORE]${NC} ${WHITE}Python non trovato!${NC}"
-    echo -e "  ${GRAY}Installa Python 3 per utilizzare questo server.${NC}"
+    echo -e "  ${RED}[ERRORE]${NC} ${WHITE}Impossibile avviare il server.${NC}"
+    echo -e "  ${GRAY}Prova a eseguire lo script con sudo.${NC}"
     echo ""
     read -p "Premi INVIO per uscire..."
     exit 1
