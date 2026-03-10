@@ -2,33 +2,36 @@
    CARD.CSS - Tool Card Component
    ============================================================================ */
 
-.card {
-    width: 100%;
+/* Wrapper esterno: porta clip-path e transform.
+   Tenere clip-path separato dalla card risolve il bug per cui browser/GPU
+   anti-aliasa i pixel esattamente sul limite del poligono (y=100%),
+   rendendo invisibile il bordo inferiore. Con margin:1px sulla card interna
+   il suo border è sempre 1px dentro al clip boundary → sempre visibile. */
+.card-clip {
     max-width: 320px;
     min-height: 360px;
-    color: var(--text);
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px 20px 12px 20px;
     clip-path: polygon(30px 0%, 100% 0, 100% calc(100% - 30px),
     calc(100% - 30px) 100%, 0 100%, 0% 30px);
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    --hover-phase: var(--phase, var(--accent-2));
-    transition: transform .3s cubic-bezier(.4, 0, .2, 1),
-        box-shadow .3s cubic-bezier(.4, 0, .2, 1),
-        border-color .3s cubic-bezier(.4, 0, .2, 1),
-        background-color .3s cubic-bezier(.4, 0, .2, 1);
     will-change: transform;
+    transition: transform .3s cubic-bezier(.4, 0, .2, 1);
     animation: card-slide-in .35s cubic-bezier(.4, 0, .2, 1) both;
-    /* Cap stagger delay at 0.6s max (~17 cards) per evitare delay eccessivi con molte card */
     animation-delay: min(calc(var(--card-index, 0) * 0.035s), 0.6s);
-    /* Ottimizzazione rendering: il browser salta il rendering delle card fuori viewport */
     content-visibility: auto;
     contain-intrinsic-size: 320px 360px;
+}
+
+.card-clip:has(.card:hover),
+.card-clip:has(.card:focus-within) {
+    transform: translateY(-4px);
+}
+
+.card-clip:has(.card.card-loaded) {
+    animation: none;
+    content-visibility: visible;
+}
+
+.card-clip:has(.card.card-hidden) {
+    display: none !important;
 }
 
 @keyframes card-slide-in {
@@ -42,23 +45,39 @@
     }
 }
 
+.card {
+    width: 100%;
+    /* 1px margin: il border della card è sempre 1px dentro al clip-path del wrapper */
+    margin: 1px;
+    min-height: calc(360px - 2px);
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px 20px 12px 20px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    --hover-phase: var(--phase, var(--accent-2));
+    transition: border-color .3s cubic-bezier(.4, 0, .2, 1),
+        background-color .3s cubic-bezier(.4, 0, .2, 1);
+}
+
 /* Show/Hide mode - filtering senza ricreare DOM */
 .card.card-hidden {
     display: none !important;
 }
 
-/* Disabilita animazione dopo il primo caricamento per evitare re-trigger.
-   content-visibility: visible evita che il browser salti il paint del bordo
-   durante le transizioni hover (il beneficio di 'auto' resta per le card non ancora caricate) */
+/* card-loaded: disabilita animazione. content-visibility e animation:none
+   sul wrapper vengono gestite da .card-clip:has(.card.card-loaded) */
 .card.card-loaded {
     animation: none;
-    content-visibility: visible;
 }
 
 .card:hover,
 .card:focus-within {
     cursor: pointer;
-    transform: translateY(-4px);
     border-color: color-mix(in srgb, var(--phase, var(--accent-2)) 45%, var(--border));
     background: color-mix(in srgb, var(--hover-phase) 3%, var(--panel));
 }

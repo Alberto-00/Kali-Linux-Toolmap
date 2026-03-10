@@ -174,6 +174,7 @@
             const description = (tool?.desc || tool?.description || '').trim();
 
             return `
+                <div class="card-clip">
                 <article class="card tool-card"
                          data-tool-id="${DOMUtils.escapeAttr(tool?.id ?? '')}"
                          data-phase="${DOMUtils.escapeAttr(phase)}"
@@ -199,6 +200,7 @@
                         </div>
                     </div>
                 </article>
+                </div>
             `;
         },
 
@@ -408,10 +410,11 @@
                 toolsToOrder.forEach(tool => {
                     const card = this._cardMap.get(tool.id);
                     if (card && !card.classList.contains('card-hidden')) {
+                        const wrapper = card.closest('.card-clip') || card;
                         if (staggerIndex < 20) {
-                            card.style.setProperty('--card-index', staggerIndex);
+                            wrapper.style.setProperty('--card-index', staggerIndex);
                         }
-                        fragment.appendChild(card);
+                        fragment.appendChild(wrapper);
                         staggerIndex++;
                     }
                 });
